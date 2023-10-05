@@ -1,0 +1,73 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>default</LangVersion>
+        <Version>3.0.0</Version>
+        <Authors>KubeRoot</Authors>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="BepInEx">
+            <HintPath>..\libs\BepInEx.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="com.unity.multiplayer-hlapi.Runtime">
+            <HintPath>..\libs\com.unity.multiplayer-hlapi.Runtime.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Facepunch.Steamworks">
+            <HintPath>..\libs\Facepunch.Steamworks.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="HGCSharpUtils">
+            <HintPath>..\libs\HGCSharpUtils.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="MMHOOK_RoR2">
+            <HintPath>..\libs\MMHOOK_RoR2.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Mono.Cecil">
+            <HintPath>..\libs\Mono.Cecil.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="MonoMod.RuntimeDetour">
+            <HintPath>..\libs\MonoMod.RuntimeDetour.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="MonoMod.Utils">
+            <HintPath>..\libs\MonoMod.Utils.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="RoR2">
+            <HintPath>..\libs\RoR2.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Unity.TextMeshPro">
+            <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="UnityEngine">
+            <HintPath>..\libs\UnityEngine.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="UnityEngine.CoreModule">
+            <HintPath>..\libs\UnityEngine.CoreModule.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="UnityEngine.PhysicsModule">
+            <HintPath>..\libs\UnityEngine.PhysicsModule.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="UnityEngine.UI">
+            <HintPath>..\libs\UnityEngine.UI.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+    </ItemGroup>
+
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <!--        <Copy SourceFiles="$(TargetPath)" DestinationFolder="/mnt/data/SteamLibrary/steamapps/common/Risk of Rain 2/BepInEx/scripts/" />-->
+        <Copy SourceFiles="$(TargetPath)" DestinationFolder="/home/kuberoot/.config/r2modmanPlus-local/RiskOfRain2/profiles/Dev/BepInEx/scripts/" />
+    </Target>
+</Project>
