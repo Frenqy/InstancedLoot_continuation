@@ -13,13 +13,15 @@ public class HookManager
     {
         Plugin = pluginInstance;
 
-        // RegisterHandler<CreatePickupDropletHandler>();
-        // RegisterHandler<PrinterTargetHandler>();
-        // RegisterHandler<ScrapperTargetHandler>();
+        RegisterHandler<PickupDropletHandler>();
+        RegisterHandler<PrinterTargetHandler>();
+        RegisterHandler<ScrapperTargetHandler>();
         // RegisterHandler<CommandTargetHandler>();
         // RegisterHandler<CommandHandler>();
-        // RegisterHandler<ItemHandler>();
+        RegisterHandler<ItemHandler>();
         // RegisterHandler<PickupDropletOnCollisionOverrideHandler>();
+        RegisterHandler<PingHandler>();
+        RegisterHandler<FadeHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractHookHandler, new()
