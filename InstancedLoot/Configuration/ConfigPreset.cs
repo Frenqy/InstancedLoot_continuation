@@ -5,19 +5,20 @@ namespace InstancedLoot.Configuration;
 
 public class ConfigPreset
 {
-    protected Dictionary<string, InstanceModeNew> Configuration;
+    protected Dictionary<string, InstanceMode> Configuration;
+    public string Description = "Missing short description for preset";
 
     public ConfigPreset()
     {
     }
 
-    public ConfigPreset(Dictionary<string, InstanceModeNew> configuration)
+    public ConfigPreset(Dictionary<string, InstanceMode> configuration)
     {
         Configuration = configuration;
     }
 
-    public virtual InstanceModeNew GetPresetForSource(string source)
+    public virtual InstanceMode GetPresetForSource(string source)
     {
-        return Configuration.TryGetValue(source, out var value) ? value : InstanceModeNew.None;
+        return Configuration.TryGetValue(source, out var value) ? value : InstanceMode.None;
     }
 }

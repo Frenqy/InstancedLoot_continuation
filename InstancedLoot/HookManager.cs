@@ -22,6 +22,7 @@ public class HookManager
         // RegisterHandler<PickupDropletOnCollisionOverrideHandler>();
         RegisterHandler<PingHandler>();
         RegisterHandler<FadeHandler>();
+        RegisterHandler<ChestBehaviorHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractHookHandler, new()
@@ -38,6 +39,7 @@ public class HookManager
 
     public void RegisterHooks()
     {
+        Plugin._logger.LogWarning("REGISTERING HOOKS");
         foreach (var handler in HookHandlers.Values) handler.RegisterHooks();
     }
 

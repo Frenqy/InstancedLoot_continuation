@@ -16,7 +16,7 @@ public enum Mode
     LeastItems
 }
 
-public enum InstanceModeNew
+public enum InstanceMode
 {
     Default,
     None,
@@ -26,26 +26,7 @@ public enum InstanceModeNew
     InstanceItemForOwnerOnly
 }
 
-public enum InstanceMode
-{
-    NoInstancing,
-    OwnerOnly,
-    FullInstancing,
-    Default
-}
-
-public enum ItemSource
-{
-    Money, // Chests, shrines, etc.
-    SpecialCoin, // Lunar coins, void coins
-    TierItem, // Printers, cauldrons
-    Scrapper, // Scrappers
-    SpecificItem, // Lockboxes
-    PersonalDrop, // Special Delivery Form pods
-    Instanced // Obtained from an instanced object
-}
-
-public static class ItemSourceNew
+public static class ItemSource
 {
     public static string Chest1 = "Chest1";
     public static string Chest2 = "Chest2";

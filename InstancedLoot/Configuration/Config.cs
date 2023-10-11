@@ -14,61 +14,25 @@ public class Config
     private readonly ManualLogSource logger;
 
     public ConfigEntry<string> SelectedPreset;
-    
-    public ConfigEntry<InstanceMode> instancedChests;
-    public ConfigEntry<InstanceMode> instancedItems;
-    
-    public ConfigEntry<InstanceMode> instancedPrinters;
-    public ConfigEntry<InstanceMode> instancedScrappers;
-    //TODO: Generic config for instancing specific objects?
-    public ConfigEntry<InstanceMode> instancedLockboxes;
-
-    public Dictionary<ItemSource, ConfigEntry<InstanceMode>> ItemSourceMapper;
 
     public bool Ready => true;
     public event Action OnConfigReady;
     public ConfigMigrator migrator;
 
-    public class AcceptableValueNoOwnerOnly : AcceptableValueBase
-    {
-        public AcceptableValueNoOwnerOnly() : base(typeof(InstanceMode))
-        {
-        }
+    public delegate void SourcesGenerator(ISet<string> names);
+    public delegate void ExtraNamesGenerator(string source, ISet<string> names);
 
-        public SortedSet<InstanceMode> AcceptableValues = new SortedSet<InstanceMode>()
-        {
-            InstanceMode.Default, InstanceMode.FullInstancing, InstanceMode.NoInstancing
-        };
+    public delegate void InstanceModes(string source, ISet<InstanceMode> modes);
 
-        public override object Clamp(object value)
-        {
-            if (IsValid(value)) return value;
-            return InstanceMode.Default;
-        }
-
-        public override bool IsValid(object value)
-        {
-            return AcceptableValues.Contains((InstanceMode)value);
-        }
-
-        public override string ToDescriptionString() => "# Acceptable values: " +
-                                                        string.Join(", ",
-                                                            AcceptableValues.Select(x => x.ToString()).ToArray());
-    }
-    
-    public delegate void Names(ISet<string> names);
-
-    public delegate void InstanceModes(string source, ISet<InstanceModeNew> modes);
-
-    public event Names GenerateSources;
-    public event Names GenerateExtraNames;
+    public event SourcesGenerator GenerateSources;
+    public event ExtraNamesGenerator GenerateExtraNames;
     public event InstanceModes LimitInstanceModes;
 
-    public Dictionary<string, ConfigEntry<InstanceModeNew>> ConfigEntriesForNames;
-    public Dictionary<string, SortedSet<string>> ExtraNames;
-    public Dictionary<string, ConfigPreset> ConfigPresets;
+    public Dictionary<string, ConfigEntry<InstanceMode>> ConfigEntriesForNames = new();
+    public Dictionary<string, SortedSet<string>> ExtraNames = new();
+    public Dictionary<string, ConfigPreset> ConfigPresets = new();
 
-    private Dictionary<string, InstanceModeNew> CachedInstanceModes;
+    private Dictionary<string, InstanceMode> CachedInstanceModes = new();
 
     public Config(InstancedLoot plugin, ManualLogSource _logger)
     {
@@ -80,30 +44,54 @@ public class Config
         GenerateSources += DefaultGenerateSources;
         GenerateExtraNames += DefaultGenerateExtraNames;
 
-        var noBuyerAcceptableValues = new Config.AcceptableValueNoOwnerOnly();
-        
-        instancedChests = config.Bind("General", "InstancedChests", InstanceMode.FullInstancing,
-             new ConfigDescription("Should chests be able to be opened separately by each players?", noBuyerAcceptableValues));
-        instancedItems = config.Bind("General", "InstancedItems", InstanceMode.NoInstancing,
-            new ConfigDescription(
-                "Should items be able to be picked up separately by each player?\nNote: if chests are instanced, and items are set to Default, items bought from those chests will be limited to the buyer only.",
-                noBuyerAcceptableValues));
-        
-        instancedPrinters = config.Bind("General", "InstancedPrinters", InstanceMode.Default,
-             "Should items from printers be able to be picked up separately by each players?");
-        instancedScrappers = config.Bind("General", "InstancedScrappers", InstanceMode.NoInstancing,
-             "Should items from scrappers be able to be picked up separately by each players?");
-        
-        instancedLockboxes = config.Bind("General", "InstancedLockboxes", InstanceMode.NoInstancing,
-             "Should lockboxes be able to be opened separately by each players?");
-        
-        ItemSourceMapper = new()
+        SortedSet<InstanceMode> allInstanceModes = new SortedSet<InstanceMode>()
         {
-            {ItemSource.TierItem, instancedPrinters},
-            {ItemSource.Scrapper, instancedScrappers},
-            {ItemSource.SpecificItem, instancedLockboxes},
-            {ItemSource.PersonalDrop, instancedLockboxes},
+            InstanceMode.Default, InstanceMode.None, InstanceMode.InstanceBoth, InstanceMode.InstanceItems,
+            InstanceMode.InstanceObject, InstanceMode.InstanceItemForOwnerOnly
         };
+
+        SortedSet<string> sources = new();
+        Dictionary<string, SortedSet<InstanceMode>> instanceModeLimits = new();
+        
+        GenerateSources!(sources);
+
+        foreach (var source in sources)
+        {
+            SortedSet<InstanceMode> instanceModes = instanceModeLimits[source] = new(allInstanceModes);
+            LimitInstanceModes?.Invoke(source, instanceModes);
+            SortedSet<string> extraNames = ExtraNames[source] = new SortedSet<string>();
+            GenerateExtraNames!(source, extraNames);
+
+            ConfigEntriesForNames[source] = config.Bind("Sources", source, InstanceMode.Default,
+                new ConfigDescription("Configure instancing for specific raw source",
+                    new AcceptableValuesInstanceMode(instanceModes)));
+
+            foreach (var extraName in extraNames)
+            {
+                SortedSet<InstanceMode> extraNameInstanceModes;
+                if (!instanceModeLimits.ContainsKey(extraName))
+                {
+                    extraNameInstanceModes = instanceModeLimits[extraName] = new(instanceModes);
+                }
+                else
+                {
+                    extraNameInstanceModes = instanceModeLimits[extraName];
+                    extraNameInstanceModes.IntersectWith(instanceModes);
+                }
+                
+                LimitInstanceModes?.Invoke(extraName, extraNameInstanceModes);
+
+                ConfigEntriesForNames[extraName] = config.Bind("Aliases", extraName, InstanceMode.Default,
+                    new ConfigDescription("Configure instancing for alias/group of sources",
+                        new AcceptableValuesInstanceMode(extraNameInstanceModes)));
+            }
+        }
+
+        // SelectedPreset = config.Bind("General", "Preset", "Items",
+        //      new ConfigDescription($"Ready to use presets with sensible defaults.\nAvailable presets:\n{
+        //          string.Join("\n", ConfigPresets.Select(pair => $"{pair.Key}: {pair.Value.Description}"))
+        //      }", new AcceptableValueList<string>(ConfigPresets.Keys.ToArray())));
+        // ;
         
         config.SettingChanged += ConfigOnSettingChanged;
 
@@ -116,8 +104,9 @@ public class Config
 
     public ConfigPreset GetPreset()
     {
-        string presetName = SelectedPreset.Value ?? "";
-        return ConfigPresets.TryGetValue(presetName, out var preset) ? preset : null;
+        // string presetName = SelectedPreset.Value ?? "";
+        // return ConfigPresets.TryGetValue(presetName, out var preset) ? preset : null;
+        return null;
     }
 
     public SortedSet<string> GetExtraNames(string source)
@@ -125,21 +114,23 @@ public class Config
         return ExtraNames.TryGetValue(source, out var extraNames) ? extraNames : null;
     }
 
-    public void MergeInstanceModes(ref InstanceModeNew orig, InstanceModeNew other)
+    public void MergeInstanceModes(ref InstanceMode orig, InstanceMode other)
     {
-        if (other != InstanceModeNew.Default)
+        if (other != InstanceMode.Default)
             orig = other;
     }
     
-    public InstanceModeNew GetInstanceMode(string source)
+    public InstanceMode GetInstanceMode(string source)
     {
+        if (source == null) return InstanceMode.None;
+        
         if (CachedInstanceModes.TryGetValue(source, out var mode))
             return mode;
         
         ConfigPreset preset = GetPreset();
         SortedSet<string> extraNames = GetExtraNames(source);
 
-        InstanceModeNew result = InstanceModeNew.None;
+        InstanceMode result = InstanceMode.None;
         
         if (preset != null)
         {
@@ -169,12 +160,21 @@ public class Config
 
     private void DefaultGenerateSources(ISet<string> names)
     {
-        
+        names.UnionWith(new[]
+        {
+            "Chest1"
+        });
     }
-    
-    private void DefaultGenerateExtraNames(ISet<string> names)
+
+    private static Dictionary<string, string[]> defaultExtraNames = new()
     {
-        
+        {"Chest1", new[]{"Chests"}},
+        {"Chest2", new[]{"Chests"}},
+    };
+    private void DefaultGenerateExtraNames(string source, ISet<string> names)
+    {
+        if(defaultExtraNames.TryGetValue(source, out var extraNames))
+            names.UnionWith(extraNames);
     }
 
     private void CheckReadyStatus()

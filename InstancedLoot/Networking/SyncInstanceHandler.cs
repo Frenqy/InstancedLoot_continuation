@@ -7,17 +7,17 @@ using UnityEngine.Networking;
 
 namespace InstancedLoot.Networking;
 
-public class SyncInstanceTracker : INetMessage
+public class SyncInstanceHandler : INetMessage
 {
     private GameObject target;
     private bool hasInstances;
     private IEnumerable<GameObject> players;
 
-    public SyncInstanceTracker()
+    public SyncInstanceHandler()
     {
     }
 
-    public SyncInstanceTracker(GameObject target, bool hasInstances, IEnumerable<GameObject> players)
+    public SyncInstanceHandler(GameObject target, bool hasInstances, IEnumerable<GameObject> players)
     {
         this.target = target;
         this.hasInstances = hasInstances;
@@ -59,21 +59,21 @@ public class SyncInstanceTracker : INetMessage
     {
         if (NetworkServer.active)
         {
-            InstancedLoot.Instance._logger.LogWarning("SyncInstanceTracker ran on Host, ignoring");
+            InstancedLoot.Instance._logger.LogWarning("SyncInstanceHandler ran on Host, ignoring");
             return;
         }
 
-        InstanceTracker instanceTracker = target.GetComponent<InstanceTracker>();
+        InstanceHandler instanceHandler = target.GetComponent<InstanceHandler>();
         if (hasInstances)
         {
-            if (instanceTracker == null && hasInstances)
-                instanceTracker = target.AddComponent<InstanceTracker>();
+            if (instanceHandler == null && hasInstances)
+                instanceHandler = target.AddComponent<InstanceHandler>();
 
-            instanceTracker.SetPlayers(players.Select(player =>
+            instanceHandler.SetPlayers(players.Select(player =>
                 player.GetComponent<PlayerCharacterMasterController>()));
         }
 
-        if(instanceTracker != null && !hasInstances)
-            Object.Destroy(instanceTracker);
+        if(instanceHandler != null && !hasInstances)
+            Object.Destroy(instanceHandler);
     }
 }

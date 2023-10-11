@@ -10,7 +10,7 @@ using UnityEngine.Networking;
 
 namespace InstancedLoot;
 
-public class InstanceTracker : MonoBehaviour
+public class InstanceHandler : MonoBehaviour
 {
     public HashSet<PlayerCharacterMasterController> Players;
 
@@ -36,7 +36,7 @@ public class InstanceTracker : MonoBehaviour
     {
         if (NetworkServer.active)
         {
-            new SyncInstanceTracker(gameObject, true, Players.Select(player => player.gameObject)).Send(
+            new SyncInstanceHandler(gameObject, true, Players.Select(player => player.gameObject)).Send(
                 NetworkDestination.Clients);
         }
         

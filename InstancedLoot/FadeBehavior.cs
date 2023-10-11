@@ -9,14 +9,38 @@ namespace InstancedLoot;
 public class FadeBehavior : MonoBehaviour
 {
     public float FadeLevel = 0.3f;
+    protected float lastFadeLevel = 1.0f;
+    protected CameraRigController lastCamera = null;
     public List<Renderer> Renderers;
     public DitherModel[] DitherModels;
 	private MaterialPropertyBlock propertyStorage;
     private static readonly int Fade = Shader.PropertyToID("_Fade");
 
-    public static List<FadeBehavior> instancesList = new List<FadeBehavior>();
+    public static List<FadeBehavior> instancesList = new();
+    public static SceneCamera lastCameraStatic = null;
 
     public static void RefreshAllInstances(SceneCamera sceneCamera)
+    {
+        if (lastCameraStatic == sceneCamera)
+            return;
+        lastCameraStatic = sceneCamera;
+        
+        CameraRigController cameraRigController = sceneCamera.cameraRigController;
+        if (!cameraRigController) return;
+
+        CharacterBody body = cameraRigController.targetBody;
+        if (!body) return;
+
+        PlayerCharacterMasterController player = body.master != null ? body.master.playerCharacterMasterController : null;
+        if (!player) return;
+        
+        foreach (var fadeBehavior in instancesList)
+        {
+            fadeBehavior.RefreshFade(player);
+        }
+    }
+
+    public void RefreshInstanceForCamera(SceneCamera sceneCamera)
     {
         CameraRigController cameraRigController = sceneCamera.cameraRigController;
         if (!cameraRigController) return;
@@ -24,14 +48,10 @@ public class FadeBehavior : MonoBehaviour
         CharacterBody body = cameraRigController.targetBody;
         if (!body) return;
 
-        PlayerCharacterMasterController player = body.master?.playerCharacterMasterController;
-
+        PlayerCharacterMasterController player = body.master != null ? body.master.playerCharacterMasterController : null;
         if (!player) return;
         
-        foreach (var fadeBehavior in instancesList)
-        {
-            fadeBehavior.RefreshFade(player);
-        }
+        RefreshFade(player);
     }
 
     static FadeBehavior()
@@ -47,6 +67,9 @@ public class FadeBehavior : MonoBehaviour
     private void Start()
     {
         RefreshRenderers();
+
+        if (lastCameraStatic != null)
+            RefreshInstanceForCamera(lastCameraStatic);
     }
 
     private void OnEnable()
@@ -61,20 +84,25 @@ public class FadeBehavior : MonoBehaviour
 
     public float GetFadeLevel(PlayerCharacterMasterController player)
     {
-        var instanceTracker = GetComponent<InstanceTracker>();
-        if (!instanceTracker) return FadeLevel;
-        return instanceTracker.Players.Contains(player) ? 1.0f : FadeLevel;
+        var instanceHandler = GetComponent<InstanceHandler>();
+        if (!instanceHandler) return FadeLevel;
+        return instanceHandler.Players.Contains(player) ? 1.0f : FadeLevel;
     }
 
     public float GetFadeLevelForCameraRigController(CameraRigController cameraRigController)
     {
+        if (lastCamera == cameraRigController) return lastFadeLevel;
+        
         CharacterBody body = cameraRigController.targetBody;
         if (!body) return FadeLevel;
 
-        PlayerCharacterMasterController player = body.master?.playerCharacterMasterController;
+        PlayerCharacterMasterController player = body.master != null ? body.master.playerCharacterMasterController : null;
         if (!player) return FadeLevel;
 
-        return GetFadeLevel(player);
+        float fadeLevel = GetFadeLevel(player);
+        lastFadeLevel = fadeLevel;
+        lastCamera = cameraRigController;
+        return fadeLevel;
     }
 
     public void RefreshRenderers()
@@ -86,8 +114,8 @@ public class FadeBehavior : MonoBehaviour
 
     public void RefreshFade(PlayerCharacterMasterController player)
     {
-        var instanceTracker = GetComponent<InstanceTracker>();
-        float actualFadeLevel = instanceTracker.Players.Contains(player) ? 1.0f : FadeLevel;
+        var instanceHandler = GetComponent<InstanceHandler>();
+        float actualFadeLevel = instanceHandler.Players.Contains(player) ? 1.0f : FadeLevel;
         
         foreach (var renderer in Renderers)
         {

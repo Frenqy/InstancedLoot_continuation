@@ -28,10 +28,10 @@ public class ItemHandler : AbstractHookHandler
     }
 
     private void On_GenericPickupController_Start(On.RoR2.GenericPickupController.orig_Start orig,
-        RoR2.GenericPickupController self)
+        GenericPickupController self)
     {
         if (NetworkServer.active) 
-            Plugin.MakeInstanced(self.gameObject);
+            Plugin.HandleInstancing(self.gameObject);
 
         orig(self);
     }
@@ -44,10 +44,10 @@ public class ItemHandler : AbstractHookHandler
         if (body)
         {
             var player = body.master.GetComponent<PlayerCharacterMasterController>();
-            var instanceTracker = self.GetComponent<InstanceTracker>();
-            if (player && instanceTracker)
+            var instanceHandler = self.GetComponent<InstanceHandler>();
+            if (player && instanceHandler)
             {
-                if (!instanceTracker.Players.Contains(player))
+                if (!instanceHandler.Players.Contains(player))
                     interactability = Interactability.ConditionsNotMet;
             }
         }
@@ -79,12 +79,12 @@ public class ItemHandler : AbstractHookHandler
         cursor.EmitDelegate<Func<bool, GenericPickupController, CharacterBody, bool>>((shouldDestroy, self, body) =>
         {
             var player = body.master.GetComponent<PlayerCharacterMasterController>();
-            var instanceTracker = self.GetComponent<InstanceTracker>();
-            if (player && instanceTracker)
+            var instanceHandler = self.GetComponent<InstanceHandler>();
+            if (player && instanceHandler)
             {
                 Plugin._logger.LogWarning($"Granting instanced item to {player}");
-                instanceTracker.RemovePlayer(player);
-                if(instanceTracker.Players.Count > 0)
+                instanceHandler.RemovePlayer(player);
+                if(instanceHandler.Players.Count > 0)
                     shouldDestroy = false;
             }
             

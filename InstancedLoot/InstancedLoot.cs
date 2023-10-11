@@ -40,7 +40,7 @@ public class InstancedLoot : BaseUnityPlugin
         hookManager = new HookManager(this);
         hookManager.RegisterHooks();
 
-        NetworkingAPI.RegisterMessageType<SyncInstanceTracker>();
+        NetworkingAPI.RegisterMessageType<SyncInstanceHandler>();
     }
 
     public void OnDisable()
@@ -55,64 +55,68 @@ public class InstancedLoot : BaseUnityPlugin
             HookEndpointManager.GetOwner((Action)OnDisable));
     }
 
-    public void HandleInstancing(string source, GameObject obj)
+    public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null)
     {
-        InstanceModeNew instanceMode = InstanceModeNew.None;
-    }
+        Logger.LogWarning($"Called for {obj}");
+        InstanceInfoTracker instanceInfoTracker = obj.GetComponent<InstanceInfoTracker>();
 
-    public void MakeInstanced(GameObject obj)
-    {
-        Logger.LogWarning($"Considering instancing of {obj}");
-        InstanceOverride instanceOverride = obj.GetComponent<InstanceOverride>();
+        // Unity overrides null comparison, shouldn't matter here, but the IDE keeps yelling at me, so just to be safe...
+        if (instanceInfoTracker == null) instanceInfoTracker = null;
 
-        bool shouldInstance = true;
-        bool ownerOnly = false;
-        PlayerCharacterMasterController owner = null;
+        string source = overrideInfo?.ItemSource ?? instanceInfoTracker?.ItemSource;
+        PlayerCharacterMasterController owner = overrideInfo?.Owner ?? instanceInfoTracker?.Owner;
+
+        if (instanceInfoTracker == null && source == null)
+            return;
         
-        if (instanceOverride)
-        {
-            GenericPickupController pickup = obj.GetComponent<GenericPickupController>();
+        InstanceMode instanceMode = ModConfig.GetInstanceMode(source ?? instanceInfoTracker?.ItemSource);
+        
 
-            if (ModConfig.ItemSourceMapper.TryGetValue(instanceOverride.ItemSource, out var instanceConfig))
-            {
-                switch (instanceConfig.Value)
-                {
-                    case InstanceMode.NoInstancing:
-                        shouldInstance = false;
-                        break;
-                    case InstanceMode.FullInstancing:
-                        shouldInstance = true;
-                        ownerOnly = false;
-                        break;
-                    case InstanceMode.OwnerOnly:
-                        shouldInstance = true;
-                        ownerOnly = true;
-                        owner = instanceOverride.Owner;
-                        break;
-                }
-            }
-            
-            //TODO: Confirm if this is the right place and time
-            Destroy(pickup);
-        }
+        if (instanceMode == InstanceMode.None)
+            return;
 
-        if (obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null)
+        Logger.LogWarning($"Handling: {obj} as {instanceMode}");
+        
+        bool shouldInstance = false;
+        bool ownerOnly = false;
+
+        if (instanceInfoTracker != null && obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null)
         {
-            switch (ModConfig.instancedItems.Value)
+            Logger.LogWarning($"It's an item!");
+            switch (instanceMode)
             {
-                case InstanceMode.NoInstancing:
-                    shouldInstance = false;
+                case InstanceMode.InstanceBoth:
+                case InstanceMode.InstanceItemForOwnerOnly:
+                    shouldInstance = true;
+                    ownerOnly = true;
                     break;
-                case InstanceMode.FullInstancing:
+                case InstanceMode.InstanceItems:
                     shouldInstance = true;
                     ownerOnly = false;
                     break;
             }
         }
 
+        if (instanceInfoTracker == null && overrideInfo != null)
+        {
+            Logger.LogWarning($"Propagating overrideInfo");
+            overrideInfo.Value.AttachTo(obj);
+        } else if (instanceInfoTracker != null && owner != null)
+        {
+            Logger.LogWarning($"Fixing owner on InstanceInfoTracker");
+            instanceInfoTracker.Info.Owner = owner;
+        }
+        
+        Logger.LogWarning($"ShouldInstance: {shouldInstance}, OwnerOnly: {ownerOnly}");
+        
         if (shouldInstance)
         {
-            InstanceTracker tracker = obj.AddComponent<InstanceTracker>();
+            Logger.LogWarning($"Instancing!");
+            //If instancing should happen only for owner but owner is missing, don't instance to avoid duplication exploits
+            if (ownerOnly && owner == null)
+                return;
+            
+            InstanceHandler handler = obj.AddComponent<InstanceHandler>();
 
             HashSet<PlayerCharacterMasterController> players;
 
@@ -126,7 +130,7 @@ public class InstancedLoot : BaseUnityPlugin
             }
             
             Logger.LogWarning($"Instancing {obj} for {players}");
-            tracker.SetPlayers(players);
+            handler.SetPlayers(players);
         }
     }
 }

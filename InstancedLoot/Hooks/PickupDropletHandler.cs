@@ -14,7 +14,7 @@ namespace InstancedLoot.Hooks;
 /// </summary>
 public class PickupDropletHandler : AbstractHookHandler
 {
-    public InstanceOverride.InstanceOverrideInfo? InstanceOverrideInfo;
+    public InstanceInfoTracker.InstanceOverrideInfo? InstanceOverrideInfo;
 
     public override void RegisterHooks()
     {
@@ -36,11 +36,12 @@ public class PickupDropletHandler : AbstractHookHandler
 
         cursor.GotoNext(MoveType.After, i => i.MatchCall<Object>("Instantiate"));
         cursor.Emit(OpCodes.Dup);
-        cursor.EmitDelegate<RuntimeILReferenceBag.FastDelegateInvokers.Action<GameObject>>(obj =>
+        cursor.EmitDelegate<Action<GameObject>>(obj =>
         {
             if (InstanceOverrideInfo.HasValue)
             {
-                InstanceOverrideInfo.Value.AttachTo(obj);
+                Plugin.HandleInstancing(obj, InstanceOverrideInfo);
+                // InstanceOverrideInfo.Value.AttachTo(obj);
             }
         });
     }
@@ -55,9 +56,10 @@ public class PickupDropletHandler : AbstractHookHandler
         cursor.EmitDelegate<Action<GenericPickupController, PickupDropletController>>(
             (pickupController, self) =>
             {
-                var instanceOverride = self.GetComponent<InstanceOverride>();
+                var instanceOverride = self.GetComponent<InstanceInfoTracker>();
                 if (instanceOverride)
-                    instanceOverride.Info.AttachTo(pickupController.gameObject);
+                    Plugin.HandleInstancing(pickupController.gameObject, instanceOverride.Info);
+                    // instanceOverride.Info.AttachTo(pickupController.gameObject);
             });
     }
 }

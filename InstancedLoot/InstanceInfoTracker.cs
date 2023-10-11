@@ -5,40 +5,36 @@ using UnityEngine;
 
 namespace InstancedLoot;
 
-public class InstanceOverride : MonoBehaviour
+public class InstanceInfoTracker : MonoBehaviour
 {
     public InstanceOverrideInfo Info;
 
-    public ItemSource ItemSource => Info.ItemSource;
+    public string ItemSource => Info.ItemSource;
     public PlayerCharacterMasterController Owner => Info.Owner;
     public ItemIndex SourceItemIndex => Info.SourceItemIndex;
 
     public struct InstanceOverrideInfo
     {
-        public ItemSource ItemSource;
+        public string ItemSource;
 
         public PlayerCharacterMasterController Owner;
 
         //If ItemSource is SpecificItem
         public ItemIndex SourceItemIndex;
 
-        public InstanceOverrideInfo(ItemSource source, PlayerCharacterMasterController owner)
+        public InstanceOverrideInfo(string source = null, PlayerCharacterMasterController owner = null, ItemIndex sourceItemIndex = ItemIndex.None)
         {
             ItemSource = source;
             Owner = owner;
-        }
-
-        public InstanceOverrideInfo(ItemSource source, PlayerCharacterMasterController owner, ItemIndex sourceItemIndex) : this(source, owner)
-        {
             SourceItemIndex = sourceItemIndex;
         }
 
         public void AttachTo(GameObject obj)
         {
-            if (obj.GetComponent<InstanceOverride>() != null) return;
+            if (obj.GetComponent<InstanceInfoTracker>() != null) return;
 
-            InstanceOverride instanceOverride = obj.AddComponent<InstanceOverride>();
-            instanceOverride.Info = this;
+            InstanceInfoTracker instanceInfoTracker = obj.AddComponent<InstanceInfoTracker>();
+            instanceInfoTracker.Info = this;
         }
     }
 }

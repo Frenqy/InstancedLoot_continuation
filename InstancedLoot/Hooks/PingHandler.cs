@@ -30,12 +30,19 @@ public class PingHandler : AbstractHookHandler
             cursor.EmitDelegate<Func<string, PingIndicator, string>>((str, self) =>
             {
                 GameObject target = self.pingTarget;
-                InstanceTracker instanceTracker = target.GetComponent<InstanceTracker>();
+                InstanceHandler instanceHandler = target.GetComponent<InstanceHandler>();
 
-                if (instanceTracker)
+                if (instanceHandler)
                 {
                     str =
-                        $"{str} (Instanced: {string.Join(", ", instanceTracker.Players.Select(player => player.GetDisplayName()))})";
+                        $"{str} (Instanced: {string.Join(", ", instanceHandler.Players.Select(player => player.GetDisplayName()))})";
+                }
+
+                InstanceInfoTracker instanceInfoTracker = target.GetComponent<InstanceInfoTracker>();
+
+                if (instanceInfoTracker)
+                {
+                    str = $"{str} (InstanceInfo: {instanceInfoTracker.ItemSource}, {instanceInfoTracker.Owner}, {instanceInfoTracker.SourceItemIndex})";
                 }
                 
                 return str;
