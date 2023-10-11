@@ -58,8 +58,11 @@ public class Config
     
     public delegate void Names(ISet<string> names);
 
+    public delegate void InstanceModes(string source, ISet<InstanceModeNew> modes);
+
     public event Names GenerateSources;
     public event Names GenerateExtraNames;
+    public event InstanceModes LimitInstanceModes;
 
     public Dictionary<string, ConfigEntry<InstanceModeNew>> ConfigEntriesForNames;
     public Dictionary<string, SortedSet<string>> ExtraNames;
