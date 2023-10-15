@@ -110,6 +110,12 @@ public abstract class AbstractObjectHandler
         {
             instanceHandler.OrigPlayer = players[0];
             instanceHandler.SourceObject = source;
+
+            InstanceInfoTracker instanceInfoTracker = source.GetComponent<InstanceInfoTracker>();
+            if (instanceInfoTracker != null)
+            {
+                instanceInfoTracker.Info.AttachTo(target);
+            }
         }
         instanceHandler.ObjectInstanceMode = ObjectInstanceMode;
         return instanceHandler;
