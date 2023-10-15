@@ -3,6 +3,7 @@ using System.Linq;
 using InstancedLoot.Enums;
 using RoR2;
 using RoR2.Hologram;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -161,11 +162,13 @@ public class FadeBehavior : MonoBehaviour
         
         
         HashSet<Behaviour> componentsForPreCull = new(CustomGetComponents<Highlight>(gameObjects));
+        // componentsForPreCull.UnionWith(CustomGetComponents<TextMeshPro>(gameObjects));
         // componentsForPreCull.UnionWith(CustomGetComponents<CostHologramContent>(gameObjects).Select(hologram => hologram.targetTextMesh));
         
         ComponentsForPreCull = componentsForPreCull.ToArray();
 
         HashSet<Behaviour> componentsForPreRender = new();//CustomGetComponents<CostHologramContent>(gameObjects).Select(hologram => hologram.targetTextMesh));
+        // componentsForPreRender.UnionWith(CustomGetComponents<TextMeshPro>(gameObjects));
         
         ComponentsForPreRender = componentsForPreRender.ToArray();
         
@@ -247,7 +250,7 @@ public class FadeBehavior : MonoBehaviour
         {
             bool isOrigForCurrent = instanceHandler.OrigPlayer == player;
             
-            foreach (var component in ComponentsForPreCull)
+            foreach (var component in ComponentsForPreRender)
             {
                 if (component == null)
                 {

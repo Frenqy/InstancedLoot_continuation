@@ -3,6 +3,7 @@ using System.Collections;
 using System.Reflection;
 using InstancedLoot.Components;
 using RoR2;
+using UnityEngine;
 using UnityEngine.Networking;
 
 namespace InstancedLoot.Hooks;
@@ -17,6 +18,7 @@ public class PurchaseInteractionHandler : AbstractHookHandler
         On.RoR2.PurchaseInteraction.Awake += On_PurchaseInteraction_Awake;
         On.RoR2.PurchaseInteraction.GetInteractability += On_PurchaseInteraction_GetInteractability;
         On.RoR2.PurchaseInteraction.OnInteractionBegin += On_PurchaseInteraction_OnInteractionBegin;
+        On.RoR2.PurchaseInteraction.UpdateHologramContent += On_PurchaseInteraction_UpdateHologramContent;
     }
 
     public override void UnregisterHooks()
@@ -24,6 +26,7 @@ public class PurchaseInteractionHandler : AbstractHookHandler
         On.RoR2.PurchaseInteraction.Awake -= On_PurchaseInteraction_Awake;
         On.RoR2.PurchaseInteraction.GetInteractability -= On_PurchaseInteraction_GetInteractability;
         On.RoR2.PurchaseInteraction.OnInteractionBegin -= On_PurchaseInteraction_OnInteractionBegin;
+        On.RoR2.PurchaseInteraction.UpdateHologramContent -= On_PurchaseInteraction_UpdateHologramContent;
     }
 
     private void On_PurchaseInteraction_Awake(On.RoR2.PurchaseInteraction.orig_Awake orig, PurchaseInteraction self)
@@ -40,7 +43,7 @@ public class PurchaseInteractionHandler : AbstractHookHandler
         
         if (instanceHandler != null && instanceHandler.SourceObject != null && NetworkServer.active)
         {
-            Plugin._logger.LogInfo("Testing - Start called on PurchaseInteraction with InstanceHandler");
+            Plugin._logger.LogInfo("Testing - Awake called on PurchaseInteraction with InstanceHandler");
 
             PurchaseInteraction source = instanceHandler.SourceObject.GetComponent<PurchaseInteraction>();
             
@@ -80,10 +83,25 @@ public class PurchaseInteractionHandler : AbstractHookHandler
             {
                 PlayerCharacterMasterController player = master.playerCharacterMasterController;
                 if (player)
+                {
+                    Plugin._logger.LogInfo($"Marking owner {player.GetDisplayName()} for {self}");
                     InstanceInfoTracker.InstanceOverrideInfo.SetOwner(self.gameObject, player);
+                }
             }
         }
 
         orig(self, activator);
+    }
+
+    private void On_PurchaseInteraction_UpdateHologramContent(On.RoR2.PurchaseInteraction.orig_UpdateHologramContent orig, PurchaseInteraction self, GameObject hologramcontentobject)
+    {
+        orig(self, hologramcontentobject);
+        
+        FadeBehavior fadeBehavior = self.GetComponent<FadeBehavior>();
+
+        if (fadeBehavior != null)
+        {
+            fadeBehavior.RefreshComponentLists();
+        }
     }
 }

@@ -21,7 +21,7 @@ public class HookManager
         RegisterHandler<ItemHandler>();
         // RegisterHandler<PickupDropletOnCollisionOverrideHandler>();
         RegisterHandler<PingHandler>();
-        RegisterHandler<FadeHandler>();
+        RegisterHandler<DitherModelHandler>();
         RegisterHandler<ChestBehaviorHandler>();
         RegisterHandler<SpawnCardHandler>();
         // RegisterHandler<InteractorHandler>();

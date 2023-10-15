@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace InstancedLoot.Hooks;
 
-public class FadeHandler : AbstractHookHandler
+public class DitherModelHandler : AbstractHookHandler
 {
     public override void RegisterHooks()
     {
