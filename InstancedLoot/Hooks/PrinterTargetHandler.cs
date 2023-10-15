@@ -27,7 +27,7 @@ public class PrinterTargetHandler : AbstractHookHandler
             var target = body != null ? body.master : null;
 
             // if (target)
-            //     hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo =
+            //     HookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo =
             //         new InstanceInfoTracker.InstanceOverrideInfo(ItemSource.TierItem, target.playerCharacterMasterController);
         }
 

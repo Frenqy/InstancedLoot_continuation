@@ -1,9 +1,7 @@
-using System.Collections.Generic;
-using InstancedLoot.Enums;
 using RoR2;
 using UnityEngine;
 
-namespace InstancedLoot;
+namespace InstancedLoot.Components;
 
 public class InstanceInfoTracker : MonoBehaviour
 {

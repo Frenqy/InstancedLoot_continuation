@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using InstancedLoot.Components;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
@@ -34,9 +35,7 @@ public class FadeHandler : AbstractHookHandler
             method.Name == nameof(Component.GetComponent)
             && method.IsGenericMethod
         );
-        Plugin._logger.LogWarning(methodGetComponent);
         var methodGetComponentFadeBehavior = methodGetComponent.MakeGenericMethod(typeof(FadeBehavior));
-        Plugin._logger.LogWarning(methodGetComponentFadeBehavior);
 
         int ditherModelLoc = -1;
         

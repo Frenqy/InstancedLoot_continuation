@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using EntityStates.Scrapper;
+using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;

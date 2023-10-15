@@ -19,18 +19,20 @@ public class Config
     public event Action OnConfigReady;
     public ConfigMigrator migrator;
 
-    public delegate void SourcesGenerator(ISet<string> names);
-    public delegate void ExtraNamesGenerator(string source, ISet<string> names);
+    public delegate void SourcesDelegate(ISet<string> names);
+    public delegate void ExtraNamesDelegate(string source, ISet<string> names);
+    public delegate void InstanceModesDelegate(string source, ISet<InstanceMode> modes);
+    public delegate void ObjectInstanceModesDelegate(string source, ISet<ObjectInstanceMode> modes);
 
-    public delegate void InstanceModes(string source, ISet<InstanceMode> modes);
-
-    public event SourcesGenerator GenerateSources;
-    public event ExtraNamesGenerator GenerateExtraNames;
-    public event InstanceModes LimitInstanceModes;
+    public event SourcesDelegate GenerateSources;
+    public event ExtraNamesDelegate GenerateExtraNames;
+    public event InstanceModesDelegate LimitInstanceModes;
+    public event ObjectInstanceModesDelegate GenerateObjectInstanceModes;
 
     public Dictionary<string, ConfigEntry<InstanceMode>> ConfigEntriesForNames = new();
     public Dictionary<string, SortedSet<string>> ExtraNames = new();
     public Dictionary<string, ConfigPreset> ConfigPresets = new();
+    public Dictionary<string, ObjectInstanceMode> ObjectInstanceModes = new();
 
     private Dictionary<string, InstanceMode> CachedInstanceModes = new();
 
@@ -43,22 +45,51 @@ public class Config
 
         GenerateSources += DefaultGenerateSources;
         GenerateExtraNames += DefaultGenerateExtraNames;
+        LimitInstanceModes += DefaultLimitInstanceModes;
+        GenerateObjectInstanceModes += DefaultGenerateObjectInstanceModes;
+        
+        config.SettingChanged += ConfigOnSettingChanged;
 
-        SortedSet<InstanceMode> allInstanceModes = new SortedSet<InstanceMode>()
+        // OnTeleport.OnReady += CheckReadyStatus;
+        // OnDrop.OnReady += CheckReadyStatus;
+        OnConfigReady += DoMigrationIfReady;
+        
+        DoMigrationIfReady();
+    }
+
+    public void Init()
+    {
+        // SelectedPreset = config.Bind("General", "Preset", "Items",
+        //      new ConfigDescription($"Ready to use presets with sensible defaults.\nAvailable presets:\n{
+        //          string.Join("\n", ConfigPresets.Select(pair => $"{pair.Key}: {pair.Value.Description}"))
+        //      }", new AcceptableValueList<string>(ConfigPresets.Keys.ToArray())));
+        // ;
+        
+        SortedSet<InstanceMode> allInstanceModes = new SortedSet<InstanceMode>
         {
             InstanceMode.Default, InstanceMode.None, InstanceMode.InstanceBoth, InstanceMode.InstanceItems,
             InstanceMode.InstanceObject, InstanceMode.InstanceItemForOwnerOnly
         };
+        
+        SortedSet<ObjectInstanceMode> defaultObjectInstanceModes = new SortedSet<ObjectInstanceMode>
+        {
+            ObjectInstanceMode.None // ObjectInstanceMode needs to be explicitly enabled
+        };
 
         SortedSet<string> sources = new();
+        SortedSet<string> allExtraNames = new();
         Dictionary<string, SortedSet<InstanceMode>> instanceModeLimits = new();
         
         GenerateSources!(sources);
 
         foreach (var source in sources)
         {
+            SortedSet<ObjectInstanceMode> objectInstanceModes = new(defaultObjectInstanceModes);
+            GenerateObjectInstanceModes!(source, objectInstanceModes);
+            ObjectInstanceModes[source] = objectInstanceModes.Max;
             SortedSet<InstanceMode> instanceModes = instanceModeLimits[source] = new(allInstanceModes);
-            LimitInstanceModes?.Invoke(source, instanceModes);
+            LimitInstanceModes!(source, instanceModes);
+            if (instanceModes.Count == 0) continue;
             SortedSet<string> extraNames = ExtraNames[source] = new SortedSet<string>();
             GenerateExtraNames!(source, extraNames);
 
@@ -79,27 +110,20 @@ public class Config
                     extraNameInstanceModes.IntersectWith(instanceModes);
                 }
                 
-                LimitInstanceModes?.Invoke(extraName, extraNameInstanceModes);
+                LimitInstanceModes!(extraName, extraNameInstanceModes);
 
-                ConfigEntriesForNames[extraName] = config.Bind("Aliases", extraName, InstanceMode.Default,
-                    new ConfigDescription("Configure instancing for alias/group of sources",
-                        new AcceptableValuesInstanceMode(extraNameInstanceModes)));
+                allExtraNames.Add(extraName);
             }
         }
 
-        // SelectedPreset = config.Bind("General", "Preset", "Items",
-        //      new ConfigDescription($"Ready to use presets with sensible defaults.\nAvailable presets:\n{
-        //          string.Join("\n", ConfigPresets.Select(pair => $"{pair.Key}: {pair.Value.Description}"))
-        //      }", new AcceptableValueList<string>(ConfigPresets.Keys.ToArray())));
-        // ;
-        
-        config.SettingChanged += ConfigOnSettingChanged;
-
-        // OnTeleport.OnReady += CheckReadyStatus;
-        // OnDrop.OnReady += CheckReadyStatus;
-        OnConfigReady += DoMigrationIfReady;
-        
-        DoMigrationIfReady();
+        foreach (var extraName in allExtraNames)
+        {
+            var instanceModeLimit = instanceModeLimits[extraName];
+            if(instanceModeLimit.Count > 0)
+                ConfigEntriesForNames[extraName] = config.Bind("Aliases", extraName, InstanceMode.Default,
+                    new ConfigDescription("Configure instancing for alias/group of sources",
+                        new AcceptableValuesInstanceMode(instanceModeLimits[extraName])));
+        }
     }
 
     public ConfigPreset GetPreset()
@@ -158,23 +182,56 @@ public class Config
         return result;
     }
 
-    private void DefaultGenerateSources(ISet<string> names)
-    {
-        names.UnionWith(new[]
-        {
-            "Chest1"
-        });
-    }
-
     private static Dictionary<string, string[]> defaultExtraNames = new()
     {
-        {"Chest1", new[]{"Chests"}},
-        {"Chest2", new[]{"Chests"}},
+        {ItemSource.Chest1, new[]{"Chests", "ChestsSmall"}},
+        {ItemSource.Chest2, new[]{"Chests", "ChestsBig"}},
+        {ItemSource.GoldChest, new[]{"Chests"}},
+        
+        {ItemSource.CategoryChestDamage, new[]{"Chests", "ChestsSmall", "ChestsDamage"}},
+        {ItemSource.CategoryChestHealing, new[]{"Chests", "ChestsSmall", "ChestsHealing"}},
+        {ItemSource.CategoryChestUtility, new[]{"Chests", "ChestsSmall", "ChestsUtility"}},
+        {ItemSource.CategoryChest2Damage, new[]{"Chests", "ChestsBig", "ChestsDamage"}},
+        {ItemSource.CategoryChest2Healing, new[]{"Chests", "ChestsBig", "ChestsHealing"}},
+        {ItemSource.CategoryChest2Utility, new[]{"Chests", "ChestsBig", "ChestsUtility"}},
+        
+        {ItemSource.TripleShop, new[]{"Shops"}},
+        {ItemSource.TripleShopLarge, new[]{"Shops"}},
+        {ItemSource.TripleShopEquipment, new[]{"Shops"}},
+        
+        {ItemSource.TreasureCache, new[]{"ItemSpawned"}},
     };
+
+    private void DefaultGenerateSources(ISet<string> names)
+    {
+        // names.UnionWith(ItemSource.AllSources);
+        names.UnionWith(Plugin.ObjectHandlerManager.HandlersForSource.Keys);
+    }
+    
     private void DefaultGenerateExtraNames(string source, ISet<string> names)
     {
         if(defaultExtraNames.TryGetValue(source, out var extraNames))
             names.UnionWith(extraNames);
+    }
+
+    private void DefaultLimitInstanceModes(string source, ISet<InstanceMode> modes)
+    {
+        if (ObjectInstanceModes.TryGetValue(source, out var objectInstanceMode))
+        {
+            if (objectInstanceMode == ObjectInstanceMode.None)
+            {
+                modes.Remove(InstanceMode.InstanceBoth);
+                modes.Remove(InstanceMode.InstanceObject);
+            }
+        }
+    }
+
+    private void DefaultGenerateObjectInstanceModes(string source, ISet<ObjectInstanceMode> modes)
+    {
+        if (Plugin.ObjectHandlerManager.HandlersForSource.TryGetValue(source, out var objectHandler))
+        {
+            modes.Add(objectHandler.ObjectInstanceMode);
+        }
     }
 
     private void CheckReadyStatus()

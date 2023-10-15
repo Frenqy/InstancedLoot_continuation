@@ -23,10 +23,13 @@ public class HookManager
         RegisterHandler<PingHandler>();
         RegisterHandler<FadeHandler>();
         RegisterHandler<ChestBehaviorHandler>();
+        RegisterHandler<SpawnCardHandler>();
+        // RegisterHandler<InteractorHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractHookHandler, new()
     {
+        if (HookHandlers.ContainsKey(typeof(T))) return;
         var instance = new T();
         instance.Init(this);
         HookHandlers[typeof(T)] = instance;

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using InstancedLoot.Components;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
@@ -30,19 +31,23 @@ public class PingHandler : AbstractHookHandler
             cursor.EmitDelegate<Func<string, PingIndicator, string>>((str, self) =>
             {
                 GameObject target = self.pingTarget;
-                InstanceHandler instanceHandler = target.GetComponent<InstanceHandler>();
-
-                if (instanceHandler)
+                if (target)
                 {
-                    str =
-                        $"{str} (Instanced: {string.Join(", ", instanceHandler.Players.Select(player => player.GetDisplayName()))})";
-                }
+                    InstanceHandler instanceHandler = target.GetComponent<InstanceHandler>();
 
-                InstanceInfoTracker instanceInfoTracker = target.GetComponent<InstanceInfoTracker>();
+                    if (instanceHandler)
+                    {
+                        str +=
+                            $" (Instanced: {string.Join(", ", instanceHandler.AllPlayers.Select(player => player.GetDisplayName()))})";
+                    }
 
-                if (instanceInfoTracker)
-                {
-                    str = $"{str} (InstanceInfo: {instanceInfoTracker.ItemSource}, {instanceInfoTracker.Owner}, {instanceInfoTracker.SourceItemIndex})";
+                    InstanceInfoTracker instanceInfoTracker = target.GetComponent<InstanceInfoTracker>();
+
+                    if (instanceInfoTracker)
+                    {
+                        str =
+                            $"{str} (InstanceInfo: {instanceInfoTracker.ItemSource}, {instanceInfoTracker.Owner}, {instanceInfoTracker.SourceItemIndex})";
+                    }
                 }
                 
                 return str;

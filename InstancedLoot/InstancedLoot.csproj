@@ -76,6 +76,8 @@
     </ItemGroup>
 
 
+
+
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
         <!--        <Copy SourceFiles="$(TargetPath)" DestinationFolder="/mnt/data/SteamLibrary/steamapps/common/Risk of Rain 2/BepInEx/scripts/" />-->
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="/home/kuberoot/.config/r2modmanPlus-local/RiskOfRain2/profiles/Dev/BepInEx/scripts/" />

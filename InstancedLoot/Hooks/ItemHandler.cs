@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
@@ -84,7 +85,7 @@ public class ItemHandler : AbstractHookHandler
             {
                 Plugin._logger.LogWarning($"Granting instanced item to {player}");
                 instanceHandler.RemovePlayer(player);
-                if(instanceHandler.Players.Count > 0)
+                if(instanceHandler.AllPlayers.Count > 0)
                     shouldDestroy = false;
             }
             

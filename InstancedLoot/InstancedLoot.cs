@@ -1,11 +1,15 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Reflection;
 using InstancedLoot.Configuration;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
 using BepInEx;
 using BepInEx.Logging;
+using InstancedLoot.Components;
 using InstancedLoot.Networking;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
@@ -23,11 +27,20 @@ namespace InstancedLoot;
 [BepInDependency(NetworkingAPI.PluginGUID)]
 public class InstancedLoot : BaseUnityPlugin
 {
-    private HookManager hookManager;
+    public HookManager HookManager;
+    public ObjectHandlerManager ObjectHandlerManager;
 
     internal ManualLogSource _logger => Logger;
     public static InstancedLoot Instance { get; private set; }
     public Config ModConfig { get; private set; }
+
+    public void Awake()
+    {
+        ModConfig = new Config(this, Logger);
+        HookManager = new HookManager(this);
+        ObjectHandlerManager = new ObjectHandlerManager(this);
+        NetworkingAPI.RegisterMessageType<SyncInstanceHandlerSet>();
+    }
 
     public void OnEnable()
     {
@@ -35,24 +48,40 @@ public class InstancedLoot : BaseUnityPlugin
         // Debug code for local multiplayer testing
         On.RoR2.Networking.NetworkManagerSystemSteam.OnClientConnect += (s, u, t) => { };
 
-        ModConfig = new Config(this, Logger);
+        HookManager.RegisterHooks();
+    }
 
-        hookManager = new HookManager(this);
-        hookManager.RegisterHooks();
-
-        NetworkingAPI.RegisterMessageType<SyncInstanceHandler>();
+    public void Start()
+    {
+        ModConfig.Init();
     }
 
     public void OnDisable()
     {
         if (Instance == this) Instance = null;
         
-        hookManager.UnregisterHooks();
+        HookManager.UnregisterHooks();
 
         // TODO: Check if this works for non-hooks
         // Cleanup any leftover hooks
         HookEndpointManager.RemoveAllOwnedBy(
             HookEndpointManager.GetOwner((Action)OnDisable));
+        
+        foreach (var instanceHandler in FindObjectsOfType<InstanceHandler>())
+        {
+            Destroy(instanceHandler);
+        }
+    }
+
+    public void HandleInstancingNextTick(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo)
+    {
+        StartCoroutine(HandleInstancingNextTick_Internal(obj, overrideInfo));
+    }
+
+    private IEnumerator HandleInstancingNextTick_Internal(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo)
+    {
+        yield return 0;
+        HandleInstancing(obj, overrideInfo);
     }
 
     public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null)
@@ -69,9 +98,8 @@ public class InstancedLoot : BaseUnityPlugin
         if (instanceInfoTracker == null && source == null)
             return;
         
-        InstanceMode instanceMode = ModConfig.GetInstanceMode(source ?? instanceInfoTracker?.ItemSource);
+        InstanceMode instanceMode = ModConfig.GetInstanceMode(source ?? instanceInfoTracker.ItemSource);
         
-
         if (instanceMode == InstanceMode.None)
             return;
 
@@ -79,12 +107,29 @@ public class InstancedLoot : BaseUnityPlugin
         
         bool shouldInstance = false;
         bool ownerOnly = false;
+        bool isItem = false;
+
+        if (instanceInfoTracker == null)
+        {
+            switch (instanceMode)
+            {
+                case InstanceMode.InstanceBoth:
+                case InstanceMode.InstanceObject:
+                    shouldInstance = true;
+                    ownerOnly = false;
+                    break;
+            }
+        }
 
         if (instanceInfoTracker != null && obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null)
         {
+            isItem = true;
             Logger.LogWarning($"It's an item!");
             switch (instanceMode)
             {
+                case InstanceMode.InstanceObject:
+                    shouldInstance = false;
+                    break;
                 case InstanceMode.InstanceBoth:
                 case InstanceMode.InstanceItemForOwnerOnly:
                     shouldInstance = true;
@@ -95,6 +140,11 @@ public class InstancedLoot : BaseUnityPlugin
                     ownerOnly = false;
                     break;
             }
+        }
+
+        if (!isItem && shouldInstance)
+        {
+            shouldInstance = ObjectHandlerManager.CanInstanceObject(source, obj);
         }
 
         if (instanceInfoTracker == null && overrideInfo != null)
@@ -115,8 +165,6 @@ public class InstancedLoot : BaseUnityPlugin
             //If instancing should happen only for owner but owner is missing, don't instance to avoid duplication exploits
             if (ownerOnly && owner == null)
                 return;
-            
-            InstanceHandler handler = obj.AddComponent<InstanceHandler>();
 
             HashSet<PlayerCharacterMasterController> players;
 
@@ -128,9 +176,19 @@ public class InstancedLoot : BaseUnityPlugin
             {
                 players = ModConfig.GetValidPlayersSet();
             }
-            
-            Logger.LogWarning($"Instancing {obj} for {players}");
-            handler.SetPlayers(players);
+
+            if (isItem)
+            {
+                InstanceHandler handler = obj.AddComponent<InstanceHandler>();
+
+                Logger.LogWarning($"Instancing {obj} as item for {players}");
+                handler.SetPlayers(players);
+            }
+            else
+            {
+                Logger.LogWarning($"Instancing {obj} as object for {players}");
+                ObjectHandlerManager.InstanceObject(source, obj, players.ToArray());
+            }
         }
     }
 }

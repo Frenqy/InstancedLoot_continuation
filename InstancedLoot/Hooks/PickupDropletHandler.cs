@@ -1,4 +1,5 @@
 using System;
+using InstancedLoot.Components;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
