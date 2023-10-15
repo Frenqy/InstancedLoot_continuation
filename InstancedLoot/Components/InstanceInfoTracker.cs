@@ -34,5 +34,13 @@ public class InstanceInfoTracker : MonoBehaviour
             InstanceInfoTracker instanceInfoTracker = obj.AddComponent<InstanceInfoTracker>();
             instanceInfoTracker.Info = this;
         }
+
+        public static void SetOwner(GameObject obj, PlayerCharacterMasterController newOwner)
+        {
+            InstanceInfoTracker instanceInfoTracker =
+                obj.GetComponent<InstanceInfoTracker>() ?? obj.AddComponent<InstanceInfoTracker>();
+
+            instanceInfoTracker.Info.Owner = newOwner;
+        }
     }
 }

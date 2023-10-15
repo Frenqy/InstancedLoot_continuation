@@ -16,12 +16,14 @@ public class PurchaseInteractionHandler : AbstractHookHandler
     {
         On.RoR2.PurchaseInteraction.Awake += On_PurchaseInteraction_Awake;
         On.RoR2.PurchaseInteraction.GetInteractability += On_PurchaseInteraction_GetInteractability;
+        On.RoR2.PurchaseInteraction.OnInteractionBegin += On_PurchaseInteraction_OnInteractionBegin;
     }
 
     public override void UnregisterHooks()
     {
         On.RoR2.PurchaseInteraction.Awake -= On_PurchaseInteraction_Awake;
         On.RoR2.PurchaseInteraction.GetInteractability -= On_PurchaseInteraction_GetInteractability;
+        On.RoR2.PurchaseInteraction.OnInteractionBegin -= On_PurchaseInteraction_OnInteractionBegin;
     }
 
     private void On_PurchaseInteraction_Awake(On.RoR2.PurchaseInteraction.orig_Awake orig, PurchaseInteraction self)
@@ -66,5 +68,22 @@ public class PurchaseInteractionHandler : AbstractHookHandler
         }
 
         return interactability;
+    }
+
+    private void On_PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
+    {
+        CharacterBody body = activator.GetComponent<CharacterBody>();
+        if (body != null)
+        {
+            CharacterMaster master = body.master;
+            if (master != null)
+            {
+                PlayerCharacterMasterController player = master.playerCharacterMasterController;
+                if (player)
+                    InstanceInfoTracker.InstanceOverrideInfo.SetOwner(self.gameObject, player);
+            }
+        }
+
+        orig(self, activator);
     }
 }

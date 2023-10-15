@@ -94,6 +94,7 @@ public abstract class AbstractObjectHandler
             {
                 clone.transform.position = gameObject.transform.position;
                 clone.transform.rotation = gameObject.transform.rotation;
+                clone.transform.localScale = gameObject.transform.localScale;
             }
         }
 

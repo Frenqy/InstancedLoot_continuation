@@ -49,7 +49,7 @@ public class ItemHandler : AbstractHookHandler
             if (player && instanceHandler)
             {
                 if (!instanceHandler.Players.Contains(player))
-                    interactability = Interactability.ConditionsNotMet;
+                    interactability = Interactability.Disabled;
             }
         }
 

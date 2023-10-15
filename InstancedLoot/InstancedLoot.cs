@@ -94,6 +94,7 @@ public class InstancedLoot : BaseUnityPlugin
 
         string source = overrideInfo?.ItemSource ?? instanceInfoTracker?.ItemSource;
         PlayerCharacterMasterController owner = overrideInfo?.Owner ?? instanceInfoTracker?.Owner;
+        Logger.LogWarning($"source: {source}, owner: {owner?.GetDisplayName()}");
 
         if (instanceInfoTracker == null && source == null)
             return;
