@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using InstancedLoot.Components;
@@ -18,30 +19,76 @@ public class SyncInstanceHandlerSet : INetMessage
     {
         public GameObject target;
         public bool isInstanced;
-        public IEnumerable<GameObject> players;
+        public GameObject[] players;
         public GameObject origPlayer;
+        public GameObject sourceObject;
         public ObjectInstanceMode objectInstanceMode;
+
+        private NetworkInstanceId _target;
+        private NetworkInstanceId[] _players;
+        private NetworkInstanceId _origPlayer;
+        private NetworkInstanceId _sourceObject;
+        private bool validated;
 
         public InstanceHandlerEntry(InstanceHandler instanceHandler)
         {
             target = instanceHandler.gameObject;
             isInstanced = true;
-            players = instanceHandler.Players.Select(player => player.gameObject);
+            players = instanceHandler.Players.Select(player => player.gameObject).ToArray();
+            sourceObject = instanceHandler.SourceObject;
+            origPlayer = instanceHandler.OrigPlayer.gameObject;
             objectInstanceMode = instanceHandler.ObjectInstanceMode;
+        }
+
+        public bool TryProcess()
+        {
+            if (validated) return true;
+
+            target = Util.FindNetworkObject(_target);
+            if (target == null) return false;
+            Debug.Log(target);
+
+            if (_origPlayer != NetworkInstanceId.Invalid)
+            {
+                origPlayer = Util.FindNetworkObject(_origPlayer);
+                if (origPlayer == null) return false;
+            }
+
+            if (_sourceObject != NetworkInstanceId.Invalid)
+            {
+                sourceObject = Util.FindNetworkObject(_sourceObject);
+                if (sourceObject == null) return false;
+            }
+
+            players = new GameObject[_players.Length];
+            for (int i = 0; i < _players.Length; i++)
+            {
+                var player = Util.FindNetworkObject(_players[i]);
+                if (player == null) return false;
+                players[i] = player;
+            }
+
+            validated = true;
+            return true;
         }
 
         public void Serialize(NetworkWriter writer)
         {
-            writer.Write(target);
+            // writer.Write(target);
+            writer.Write(target.GetComponent<NetworkIdentity>().netId);
             writer.Write(isInstanced);
             if (isInstanced)
             {
-                writer.Write(origPlayer);
+                // writer.Write(origPlayer);
+                writer.Write(origPlayer == null ? NetworkInstanceId.Invalid : origPlayer.GetComponent<NetworkIdentity>().netId);
+                writer.Write(sourceObject == null ? NetworkInstanceId.Invalid : sourceObject.GetComponent<NetworkIdentity>().netId);
                 writer.Write((int)objectInstanceMode);
+                
                 writer.Write((int)players.Count());
                 foreach (var player in players)
                 {
-                    writer.Write(player);
+                    // writer.Write(player);
+                    writer.Write(player.GetComponent<NetworkIdentity>().netId);
                 }
             }
         }
@@ -49,21 +96,28 @@ public class SyncInstanceHandlerSet : INetMessage
         public static InstanceHandlerEntry Deserialize(NetworkReader reader)
         {
             InstanceHandlerEntry entry = new();
-            entry.target = reader.ReadGameObject();
+            entry.validated = false;
+            // entry.target = reader.ReadGameObject();
+            entry._target = reader.ReadNetworkId();
             entry.isInstanced = reader.ReadBoolean();
             if (entry.isInstanced)
             {
-                entry.origPlayer = reader.ReadGameObject();
+                // entry.origPlayer = reader.ReadGameObject();
+                entry._origPlayer = reader.ReadNetworkId();
+                entry._sourceObject = reader.ReadNetworkId();
                 entry.objectInstanceMode = (ObjectInstanceMode)reader.ReadInt32();
                 
                 int count = reader.ReadInt32();
-                GameObject[] players = new GameObject[count];
+                // GameObject[] players = new GameObject[count];
+                NetworkInstanceId[] _players = new NetworkInstanceId[count];
                 for (int i = 0; i < count; i++)
                 {
-                    players[i] = reader.ReadGameObject();
+                    // players[i] = reader.ReadGameObject();
+                    _players[i] = reader.ReadNetworkId();
                 }
                 
-                entry.players = players;
+                // entry.players = players;
+                entry._players = _players;
             }
 
             return entry;
@@ -95,7 +149,7 @@ public class SyncInstanceHandlerSet : INetMessage
             {
                 target = target,
                 isInstanced = hasInstances,
-                players = players
+                players = players.ToArray()
             }
         };
     }
@@ -127,48 +181,71 @@ public class SyncInstanceHandlerSet : INetMessage
             return;
         }
 
-        InstancedLoot.Instance._logger.LogWarning("1");
+        InstancedLoot.Instance.StartCoroutine(HandleMessageInternal());
+    }
+
+    private IEnumerator HandleMessageInternal()
+    {
+        bool validated = false;
+        int retryCount = 0;
+        
+        while (!validated)
+        {
+            if (retryCount > 10)
+            {
+                InstancedLoot.Instance._logger.LogError($"SyncInstanceHandlerSet failed to process too many times; aborting.");
+                yield break;
+            }
+
+            retryCount++;
+            validated = true;
+
+            for(int i = 0; i < instanceHandlerEntries.Length; i++)
+            {
+                validated = validated && instanceHandlerEntries[i].TryProcess();
+            }
+
+            if (!validated) yield return 0;
+        }
+
         foreach (var entry in instanceHandlerEntries)
         {
-            InstancedLoot.Instance._logger.LogWarning("2.1");
             InstanceHandler instanceHandler = entry.target.GetComponent<InstanceHandler>();
             if (entry.isInstanced)
             {
-                InstancedLoot.Instance._logger.LogWarning("2.2");
                 if (instanceHandler == null)
                     instanceHandler = entry.target.AddComponent<InstanceHandler>();
 
-                InstancedLoot.Instance._logger.LogWarning("2.3");
                 instanceHandler.SetPlayers(entry.players.Select(player =>
                     player.GetComponent<PlayerCharacterMasterController>()), false);
 
                 instanceHandler.ObjectInstanceMode = entry.objectInstanceMode;
 
-                InstancedLoot.Instance._logger.LogWarning("2.4");
                 if(entry.origPlayer)
                     instanceHandler.OrigPlayer = entry.origPlayer.GetComponent<PlayerCharacterMasterController>();
+
+                if (entry.sourceObject)
+                {
+                    entry.target.transform.position = entry.sourceObject.transform.position;
+                    entry.target.transform.rotation = entry.sourceObject.transform.rotation;
+                    entry.target.transform.localScale = entry.sourceObject.transform.localScale;
+                }
             }
 
-            InstancedLoot.Instance._logger.LogWarning("2.5");
             if(instanceHandler != null && !entry.isInstanced)
                 UnityEngine.Object.Destroy(instanceHandler);
         }
 
-        InstancedLoot.Instance._logger.LogWarning("3");
         InstanceHandler[] instanceHandlers = instanceHandlerEntries
             .Select(entry => entry.target.GetComponent<InstanceHandler>()).Where(handler => handler != null).ToArray();
 
-        InstancedLoot.Instance._logger.LogWarning("4");
         foreach (var instanceHandler in instanceHandlers)
         {
-            InstancedLoot.Instance._logger.LogWarning("4.1");
             instanceHandler.SetLinkedHandlers(instanceHandlers, false);
         }
 
-        InstancedLoot.Instance._logger.LogWarning("5");
         foreach (var instanceHandler in instanceHandlers)
         {
-            InstancedLoot.Instance._logger.LogWarning("5.1");
             instanceHandler.SyncPlayers();
         }
     }

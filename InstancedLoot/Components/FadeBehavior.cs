@@ -107,8 +107,11 @@ public class FadeBehavior : MonoBehaviour
     {
         RefreshComponentLists();
 
-        if (lastCameraStaticPreCull != null)
-            RefreshInstanceForCamera(lastCameraStaticPreCull);
+        // if (lastCameraStaticPreCull != null)
+        //     RefreshInstanceForCamera(lastCameraStaticPreCull);
+        
+        RefreshForPreCull(PlayerCharacterMasterController.instances[0]);
+        RefreshForPreRender(PlayerCharacterMasterController.instances[0]);
     }
 
     private void OnEnable()
@@ -174,6 +177,10 @@ public class FadeBehavior : MonoBehaviour
         
         //To force refresh:
         lastCamera = null;
+        if(lastCameraStaticPreCull)
+            RefreshForPreCull(lastCameraStaticPreCull);
+        if(lastCameraStaticPreRender)
+            RefreshForPreRender(lastCameraStaticPreRender);
     }
 
     public void RefreshForPreCull(PlayerCharacterMasterController player)

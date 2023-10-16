@@ -4,7 +4,6 @@ using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace InstancedLoot.Hooks;
 
@@ -35,7 +34,7 @@ public class PickupDropletHandler : AbstractHookHandler
     {
         var cursor = new ILCursor(il);
 
-        cursor.GotoNext(MoveType.After, i => i.MatchCall<Object>("Instantiate"));
+        cursor.GotoNext(MoveType.After, i => i.MatchCall<UnityEngine.Object>("Instantiate"));
         cursor.Emit(OpCodes.Dup);
         cursor.EmitDelegate<Action<GameObject>>(obj =>
         {
@@ -59,8 +58,11 @@ public class PickupDropletHandler : AbstractHookHandler
             {
                 var instanceOverride = self.GetComponent<InstanceInfoTracker>();
                 if (instanceOverride)
+                {
+                    Plugin._logger.LogWarning($"(InstanceInfo: {instanceOverride.ItemSource}, {instanceOverride.Owner}, {instanceOverride.SourceItemIndex})");
                     Plugin.HandleInstancing(pickupController.gameObject, instanceOverride.Info);
                     // instanceOverride.Info.AttachTo(pickupController.gameObject);
+                }
             });
     }
 }

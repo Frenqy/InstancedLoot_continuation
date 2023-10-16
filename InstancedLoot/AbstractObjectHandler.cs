@@ -3,7 +3,6 @@ using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using RoR2;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace InstancedLoot;
 
