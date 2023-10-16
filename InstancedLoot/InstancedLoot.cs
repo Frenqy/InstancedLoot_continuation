@@ -22,6 +22,8 @@ using UnityEngine.Networking;
 
 namespace InstancedLoot;
 
+//TODO: Sync instances when a player joins
+
 [BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.0.0")]
 [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.EveryoneNeedSameModVersion)]
 [BepInDependency(NetworkingAPI.PluginGUID)]
@@ -42,18 +44,20 @@ public class InstancedLoot : BaseUnityPlugin
         NetworkingAPI.RegisterMessageType<SyncInstanceHandlerSet>();
     }
 
+    public void Start()
+    {
+        ModConfig.Init();
+    }
+
     public void OnEnable()
     {
         Instance = this;
         // Debug code for local multiplayer testing
         On.RoR2.Networking.NetworkManagerSystemSteam.OnClientConnect += (s, u, t) => { };
+        
+        PlayerCharacterMasterController.onPlayerAdded += OnPlayerAdded;
 
         HookManager.RegisterHooks();
-    }
-
-    public void Start()
-    {
-        ModConfig.Init();
     }
 
     public void OnDisable()
@@ -61,6 +65,8 @@ public class InstancedLoot : BaseUnityPlugin
         if (Instance == this) Instance = null;
         
         HookManager.UnregisterHooks();
+        
+        PlayerCharacterMasterController.onPlayerAdded -= OnPlayerAdded;
 
         // TODO: Check if this works for non-hooks
         // Cleanup any leftover hooks
@@ -70,6 +76,24 @@ public class InstancedLoot : BaseUnityPlugin
         foreach (var instanceHandler in FindObjectsOfType<InstanceHandler>())
         {
             Destroy(instanceHandler);
+        }
+    }
+
+    private void OnPlayerAdded(PlayerCharacterMasterController obj)
+    {
+        if (!NetworkServer.active) return;
+        
+        HashSet<InstanceHandler> instancesToSend = new();
+
+        foreach (var instanceHandler in InstanceHandler.Instances)
+        {
+            InstanceHandler main = instanceHandler.LinkedHandlers?[0] ?? instanceHandler;
+
+            if (!instancesToSend.Contains(main))
+            {
+                instancesToSend.Add(main);
+                main.SyncToPlayer(obj);
+            }
         }
     }
 

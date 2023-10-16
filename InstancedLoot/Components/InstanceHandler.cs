@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using InstancedLoot.Enums;
 using InstancedLoot.Networking;
 using R2API.Networking;
@@ -20,17 +21,20 @@ public class InstanceHandler : MonoBehaviour
     public ObjectInstanceMode ObjectInstanceMode = ObjectInstanceMode.InstancedObject;
     //Set of InstanceHandlers for which this object was instanced.
     //If ObjectInstanceMode is not CopyObject, contains only the current handler.
-    public HashSet<InstanceHandler> LinkedHandlers;
+    public InstanceHandler[] LinkedHandlers;
     //If ObjectInstanceMode is CopyObject, contains the object this is a copy of.
     //Used when instancing to copy information from the source object.
     public GameObject SourceObject;
     //Set of all players that can interact with any of the object's instances
     public HashSet<PlayerCharacterMasterController> AllPlayers;
 
+    public static List<InstanceHandler> Instances = new();
+    
     public void Awake()
     {
         AllPlayers = new();
-        LinkedHandlers = new();
+        LinkedHandlers = new [] {this};
+        Instances.Add(this);
     }
 
     public void OnDestroy()
@@ -39,11 +43,13 @@ public class InstanceHandler : MonoBehaviour
         
         if (fadeBehavior)
             Destroy(fadeBehavior);
+
+        Instances.Remove(this);
     }
 
     public void SetLinkedHandlers(IEnumerable<InstanceHandler> handlers, bool sync = true)
     {
-        LinkedHandlers = new HashSet<InstanceHandler>(handlers);
+        LinkedHandlers = handlers.ToArray();
         if(sync)
             SyncPlayers();
     }
@@ -83,6 +89,15 @@ public class InstanceHandler : MonoBehaviour
         UpdateVisuals();
     }
 
+    public void SyncToPlayer(PlayerCharacterMasterController player)
+    {
+        if (NetworkServer.active)
+        {
+            //TODO: Probably make sure the player has an actual connection, or handle this better
+            new SyncInstanceHandlerSet(LinkedHandlers).Send(player.networkUser.connectionToClient);
+        }
+    }
+
     public void UpdateVisuals()
     {
         AllPlayers.Clear();
@@ -92,7 +107,6 @@ public class InstanceHandler : MonoBehaviour
             AllPlayers.UnionWith(instanceHandler.Players);
         }
         
-        //TODO: Update visuals etc.
         FadeBehavior.Attach(gameObject);
         
         // var localPlayer = PlayerCharacterMasterController.instances[0]; // Seems hacky to me, but it's recommended?
