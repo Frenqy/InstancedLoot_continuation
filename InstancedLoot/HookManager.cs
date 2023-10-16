@@ -49,6 +49,16 @@ public class HookManager
 
     public void UnregisterHooks()
     {
-        foreach (var handler in HookHandlers.Values) handler.UnregisterHooks();
+        foreach (var handler in HookHandlers.Values)
+        {
+            try
+            {
+                handler.UnregisterHooks();
+            }
+            catch (Exception e)
+            {
+                Plugin._logger.LogError($"Error while unloading HookHandler {handler.GetType()}, continuing:\n{e}");
+            }
+        }
     }
 }
