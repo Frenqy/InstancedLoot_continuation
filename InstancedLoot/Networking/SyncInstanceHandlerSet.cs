@@ -36,7 +36,7 @@ public class SyncInstanceHandlerSet : INetMessage
             isInstanced = true;
             players = instanceHandler.Players.Select(player => player.gameObject).ToArray();
             sourceObject = instanceHandler.SourceObject;
-            origPlayer = instanceHandler.OrigPlayer.gameObject;
+            origPlayer = instanceHandler.OrigPlayer != null ? instanceHandler.OrigPlayer.gameObject : null;
             objectInstanceMode = instanceHandler.ObjectInstanceMode;
         }
 
