@@ -25,6 +25,7 @@ public class HookManager
         RegisterHandler<ChestBehaviorHandler>();
         RegisterHandler<SpawnCardHandler>();
         // RegisterHandler<InteractorHandler>();
+        RegisterHandler<HologramProjectorHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractHookHandler, new()

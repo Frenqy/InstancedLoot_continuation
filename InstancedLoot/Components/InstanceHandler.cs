@@ -105,6 +105,17 @@ public class InstanceHandler : MonoBehaviour
         //     FadeBehavior.Attach(gameObject);
     }
 
+    public bool IsObjectInstancedFor(PlayerCharacterMasterController player)
+    {
+        switch (ObjectInstanceMode)
+        {
+            case ObjectInstanceMode.CopyObject: return OrigPlayer == player;
+            case ObjectInstanceMode.InstancedObject: return Players.Contains(player);
+        }
+
+        return true;
+    }
+    
     public bool IsInstancedFor(PlayerCharacterMasterController player)
     {
         return Players.Contains(player);
