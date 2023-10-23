@@ -78,10 +78,13 @@ public class InstancedLoot : BaseUnityPlugin
             Destroy(instanceHandler);
         }
     }
-
-    private void OnPlayerAdded(PlayerCharacterMasterController obj)
+    
+    private void OnPlayerAdded(PlayerCharacterMasterController player)
     {
         if (!NetworkServer.active) return;
+        
+        if (player == null || player.networkUser == null || player.networkUser.connectionToClient == null)
+            return;
         
         HashSet<InstanceHandler> instancesToSend = new();
 
@@ -92,7 +95,7 @@ public class InstancedLoot : BaseUnityPlugin
             if (!instancesToSend.Contains(main))
             {
                 instancesToSend.Add(main);
-                main.SyncToPlayer(obj);
+                main.SyncToPlayer(player);
             }
         }
     }

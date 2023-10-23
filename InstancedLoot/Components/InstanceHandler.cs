@@ -93,8 +93,18 @@ public class InstanceHandler : MonoBehaviour
     {
         if (NetworkServer.active)
         {
-            //TODO: Probably make sure the player has an actual connection, or handle this better
+            if (player == null || player.networkUser == null || player.networkUser.connectionToClient == null)
+                return;
+            //TODO: Am I doing this right? Is there a better way to handle this?
             new SyncInstanceHandlerSet(LinkedHandlers).Send(player.networkUser.connectionToClient);
+        }
+    }
+
+    public void SyncToConnection(NetworkConnection connection)
+    {
+        if (NetworkServer.active)
+        {
+            new SyncInstanceHandlerSet(LinkedHandlers).Send(connection);
         }
     }
 
