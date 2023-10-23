@@ -17,6 +17,8 @@ public class ObjectHandlerManager
         Plugin = pluginInstance;
 
         RegisterHandler<ChestHandler>();
+        RegisterHandler<ShrineChanceHandler>();
+        RegisterHandler<RouletteChestHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractObjectHandler, new()
