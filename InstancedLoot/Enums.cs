@@ -64,6 +64,7 @@ public static class ItemSource
     // public const string OptionPickup = "OptionPickup";
 
     public const string Sacrifice = "Sacrifice";
+    public const string HuntersTricorn = "HuntersTricorn";
     public const string ShrineBoss = "ShrineBoss";
 
     public static SortedSet<string> AllSources = new()

@@ -8,9 +8,6 @@ namespace InstancedLoot.Hooks;
 
 public class ShrineChanceBehaviorHandler : AbstractHookHandler
 {
-    protected FieldInfo Field_ShrineChanceBehavior_rng =
-        typeof(ShrineChanceBehavior).GetField("rng", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-    
     public override void RegisterHooks()
     {
         On.RoR2.ShrineChanceBehavior.AddShrineStack += On_ShrineChanceBehavior_AddShrineStack;
@@ -71,8 +68,8 @@ public class ShrineChanceBehaviorHandler : AbstractHookHandler
                 Plugin._logger.LogInfo("Testing - Start called on ShrineChance with InstanceHandler");
 
                 ShrineChanceBehavior source = instanceHandler.SourceObject.GetComponent<ShrineChanceBehavior>();
-                
-                Field_ShrineChanceBehavior_rng.SetValue(self, Field_ShrineChanceBehavior_rng.GetValue(source));
+
+                self.rng = new Xoroshiro128Plus(source.rng);
             }
 
         }

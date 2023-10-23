@@ -9,9 +9,6 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class ChestHandler : AbstractObjectHandler
 {
-    protected FieldInfo Field_ChestBehavior_rng =
-        typeof(ChestBehavior).GetField("rng", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-    
     public override string[] HandledSources => new string[]
     {
         ItemSource.Chest1, ItemSource.Chest2, ItemSource.GoldChest,
@@ -33,13 +30,4 @@ public class ChestHandler : AbstractObjectHandler
         Plugin.HookManager.RegisterHandler<ChestBehaviorHandler>();
         Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
     }
-
-    // public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target, PlayerCharacterMasterController[] players)
-    // {
-    //     InstanceHandler instanceHandler = base.InstanceSingleObjectFrom(source, target, players);
-    //
-    //     
-    //     
-    //     return instanceHandler;
-    // }
 }

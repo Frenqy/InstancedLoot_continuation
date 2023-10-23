@@ -8,27 +8,17 @@ namespace InstancedLoot.Hooks;
 
 public class RouletteChestControllerHandler : AbstractHookHandler
 {
-    protected FieldInfo Field_RouletteChestController_rng =
-        typeof(RouletteChestController).GetField("rng", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-    
     public override void RegisterHooks()
     {
         On.RoR2.RouletteChestController.EjectPickupServer += On_RouletteChestController_EjectPickupServer;
-        // IL.RoR2.ShrineChanceBehavior.AddShrineStack += IL_ShrineChanceBehavior_AddShrineStack;
         On.RoR2.RouletteChestController.Start += On_RouletteChestController_Start;
     }
 
     public override void UnregisterHooks()
     {
         On.RoR2.RouletteChestController.EjectPickupServer -= On_RouletteChestController_EjectPickupServer;
-        // IL.RoR2.ShrineChanceBehavior.AddShrineStack -= IL_ShrineChanceBehavior_AddShrineStack;
         On.RoR2.RouletteChestController.Start -= On_RouletteChestController_Start;
     }
-
-    // private void IL_ShrineChanceBehavior_AddShrineStack(ILContext il)
-    // {
-    //     ILCursor cursor = new ILCursor(il);
-    // }
 
     private void On_RouletteChestController_EjectPickupServer(On.RoR2.RouletteChestController.orig_EjectPickupServer orig, RouletteChestController self, PickupIndex pickupIndex)
     {
@@ -71,8 +61,8 @@ public class RouletteChestControllerHandler : AbstractHookHandler
                 Plugin._logger.LogInfo("Testing - Start called on ShrineChance with InstanceHandler");
 
                 ShrineChanceBehavior source = instanceHandler.SourceObject.GetComponent<ShrineChanceBehavior>();
-                
-                Field_RouletteChestController_rng.SetValue(self, Field_RouletteChestController_rng.GetValue(source));
+
+                self.rng = new Xoroshiro128Plus(source.rng);
             }
 
         }

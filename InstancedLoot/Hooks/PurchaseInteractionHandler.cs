@@ -50,7 +50,7 @@ public class PurchaseInteractionHandler : AbstractHookHandler
             Plugin._logger.LogInfo($"Copying Networkcost from {source.Networkcost} overriding {self.Networkcost}");
             
             self.Networkcost = source.Networkcost;
-            Field_PurchaseInteraction_rng.SetValue(self, Field_PurchaseInteraction_rng.GetValue(source));
+            self.rng = new Xoroshiro128Plus(source.rng);
         }
     }
 

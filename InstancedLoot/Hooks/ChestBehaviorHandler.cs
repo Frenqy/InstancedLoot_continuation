@@ -7,13 +7,6 @@ namespace InstancedLoot.Hooks;
 
 public class ChestBehaviorHandler : AbstractHookHandler
 {
-    protected FieldInfo Field_ChestBehavior_rng =
-        typeof(ChestBehavior).GetField("rng", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-    protected FieldInfo Field_ChestBehavior_dropCount =
-        typeof(ChestBehavior).GetField("dropCount", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-    protected PropertyInfo Property_ChestBehavior_dropPickup = typeof(ChestBehavior).GetProperty("dropPickup",
-        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-    
     public override void RegisterHooks()
     {
         On.RoR2.ChestBehavior.Awake += On_ChestBehavior_Awake;
@@ -82,10 +75,10 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 Plugin._logger.LogInfo("Testing - Start called on Chest with InstanceHandler");
 
                 ChestBehavior source = instanceHandler.SourceObject.GetComponent<ChestBehavior>();
-                
-                Field_ChestBehavior_rng.SetValue(self, Field_ChestBehavior_rng.GetValue(source));
-                Field_ChestBehavior_dropCount.SetValue(self, Field_ChestBehavior_dropCount.GetValue(source));
-                Property_ChestBehavior_dropPickup.SetValue(self, Property_ChestBehavior_dropPickup.GetValue(source));
+
+                self.rng = new Xoroshiro128Plus(source.rng);
+                self.dropCount = source.dropCount;
+                self.dropPickup = source.dropPickup;
             }
 
         }
