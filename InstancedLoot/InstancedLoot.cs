@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Security.Permissions;
 using InstancedLoot.Configuration;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
@@ -22,7 +23,11 @@ using UnityEngine.Networking;
 
 namespace InstancedLoot;
 
-//TODO: Sync instances when a player joins
+//TODO: Instance effects on use/open
+//TODO: Instance pickup droplets for dithering
+#pragma warning disable CS0618 // Type or member is obsolete
+[assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
+#pragma warning restore CS0618 // Type or member is obsolete
 
 [BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.0.0")]
 [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.EveryoneNeedSameModVersion)]
