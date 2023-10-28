@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using InstancedLoot.Components;
 using InstancedLoot.ObjectHandlers;
 using RoR2;
 using UnityEngine;
@@ -19,6 +20,7 @@ public class ObjectHandlerManager
         RegisterHandler<ChestHandler>();
         RegisterHandler<ShrineChanceHandler>();
         RegisterHandler<RouletteChestHandler>();
+        RegisterHandler<MultiShopHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractObjectHandler, new()
@@ -40,6 +42,11 @@ public class ObjectHandlerManager
     public void InstanceObject(string source, GameObject gameObject, PlayerCharacterMasterController[] players)
     {
         HandlersForSource[source].InstanceObject(source, gameObject, players);
+    }
+
+    public InstanceHandler InstanceSingleObject(string source, GameObject sourceGameObject, GameObject targetGameObject, PlayerCharacterMasterController[] players)
+    {
+        return HandlersForSource[source].InstanceSingleObjectFrom(sourceGameObject, targetGameObject, players);
     }
 
     public bool CanInstanceObject(string source, GameObject gameObject)
