@@ -49,7 +49,7 @@ public class RouletteChestControllerHandler : AbstractHookHandler
                 
                 if(objName.StartsWith("CasinoChest")) source = Enums.ItemSource.CasinoChest;
                 
-                Plugin._logger.LogWarning($"ShrineChanceBehavior registering {source}");
+                Plugin._logger.LogWarning($"RouletteChestController registering {source}");
                 
                 if(source != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(source));
             }
@@ -58,9 +58,9 @@ public class RouletteChestControllerHandler : AbstractHookHandler
         {
             if (instanceHandler.SourceObject != null && NetworkServer.active)
             {
-                Plugin._logger.LogInfo("Testing - Start called on ShrineChance with InstanceHandler");
+                Plugin._logger.LogInfo("Testing - Start called on RouletteChestController with InstanceHandler");
 
-                ShrineChanceBehavior source = instanceHandler.SourceObject.GetComponent<ShrineChanceBehavior>();
+                RouletteChestController source = instanceHandler.SourceObject.GetComponent<RouletteChestController>();
 
                 self.rng = new Xoroshiro128Plus(source.rng);
             }
