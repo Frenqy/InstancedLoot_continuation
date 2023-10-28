@@ -21,13 +21,17 @@ using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace InstancedLoot;
-
 //TODO: Instance effects on use/open
 //TODO: Instance pickup droplets for dithering
+//TODO: Redirect pings
+//TODO: Try to clean up MultiShops - Timing jank
+//TODO: Ways to attach extra description to itemsources and aliases
+//TODO: Rename ItemSource to something else? It'll also include shrines of blood
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618 // Type or member is obsolete
+
+namespace InstancedLoot;
 
 [BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.0.0")]
 [NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.EveryoneNeedSameModVersion)]
