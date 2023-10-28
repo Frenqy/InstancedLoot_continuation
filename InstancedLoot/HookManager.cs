@@ -16,16 +16,18 @@ public class HookManager
         RegisterHandler<PickupDropletHandler>();
         RegisterHandler<PrinterTargetHandler>();
         RegisterHandler<ScrapperTargetHandler>();
+        
         // RegisterHandler<CommandTargetHandler>();
         // RegisterHandler<CommandHandler>();
-        RegisterHandler<ItemHandler>();
         // RegisterHandler<PickupDropletOnCollisionOverrideHandler>();
+        
+        RegisterHandler<ItemHandler>();
         RegisterHandler<PingHandler>();
         RegisterHandler<DitherModelHandler>();
-        RegisterHandler<ChestBehaviorHandler>();
         RegisterHandler<SpawnCardHandler>();
-        // RegisterHandler<InteractorHandler>();
         RegisterHandler<HologramProjectorHandler>();
+        
+        // RegisterHandler<InteractorHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractHookHandler, new()

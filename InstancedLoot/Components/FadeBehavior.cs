@@ -101,6 +101,7 @@ public class FadeBehavior : MonoBehaviour
     private void Awake()
     {
         propertyStorage = new();
+        RefreshComponentLists();
     }
 
     private void Start()
@@ -234,6 +235,7 @@ public class FadeBehavior : MonoBehaviour
     
     public void RefreshForPreRender(PlayerCharacterMasterController player)
     {
+        // return;
         var instanceHandler = GetComponent<InstanceHandler>();
         bool isForCurrentPlayer = instanceHandler.Players.Contains(player);
         float actualFadeLevel = isForCurrentPlayer ? 1.0f : FadeLevel;
