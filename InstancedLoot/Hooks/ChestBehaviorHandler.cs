@@ -56,12 +56,15 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 if(objName.StartsWith("Chest1")) source = Enums.ItemSource.Chest1;
                 if(objName.StartsWith("Chest2")) source = Enums.ItemSource.Chest2;
                 if(objName.StartsWith("GoldChest")) source = Enums.ItemSource.GoldChest;
+                if(objName.StartsWith("Chest1StealthedVariant")) source = Enums.ItemSource.Chest1StealthedVariant;
                 if(objName.StartsWith("CategoryChestDamage")) source = Enums.ItemSource.CategoryChestDamage;
                 if(objName.StartsWith("CategoryChestHealing")) source = Enums.ItemSource.CategoryChestHealing;
                 if(objName.StartsWith("CategoryChestUtility")) source = Enums.ItemSource.CategoryChestUtility;
                 if(objName.StartsWith("CategoryChest2Damage")) source = Enums.ItemSource.CategoryChest2Damage;
                 if(objName.StartsWith("CategoryChest2Healing")) source = Enums.ItemSource.CategoryChest2Healing;
                 if(objName.StartsWith("CategoryChest2Utility")) source = Enums.ItemSource.CategoryChest2Utility;
+                if(objName.StartsWith("EquipmentBarrel")) source = Enums.ItemSource.EquipmentBarrel;
+                if(objName.StartsWith("LunarChest")) source = Enums.ItemSource.LunarChest;
                 
                 Plugin._logger.LogWarning($"ChestBehavior registering {source}");
                 

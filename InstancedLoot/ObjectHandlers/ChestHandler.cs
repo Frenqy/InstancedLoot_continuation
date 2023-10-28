@@ -11,9 +11,11 @@ public class ChestHandler : AbstractObjectHandler
 {
     public override string[] HandledSources => new string[]
     {
-        ItemSource.Chest1, ItemSource.Chest2, ItemSource.GoldChest,
+        ItemSource.Chest1, ItemSource.Chest2, ItemSource.GoldChest, ItemSource.Chest1StealthedVariant,
         ItemSource.CategoryChestDamage, ItemSource.CategoryChestHealing, ItemSource.CategoryChestUtility,
         ItemSource.CategoryChest2Damage, ItemSource.CategoryChest2Healing, ItemSource.CategoryChest2Utility,
+        ItemSource.EquipmentBarrel,
+        ItemSource.LunarChest
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;

@@ -187,6 +187,7 @@ public class Config
         {ItemSource.Chest1, new[]{"Chests", "ChestsSmall"}},
         {ItemSource.Chest2, new[]{"Chests", "ChestsBig"}},
         {ItemSource.GoldChest, new[]{"Chests"}},
+        {ItemSource.Chest1StealthedVariant, new[]{"Chests", "ChestsSmall", "ChestsCloaked"}},
         
         {ItemSource.CategoryChestDamage, new[]{"Chests", "ChestsSmall", "ChestsDamage"}},
         {ItemSource.CategoryChestHealing, new[]{"Chests", "ChestsSmall", "ChestsHealing"}},
@@ -197,9 +198,24 @@ public class Config
         
         {ItemSource.TripleShop, new[]{"Shops"}},
         {ItemSource.TripleShopLarge, new[]{"Shops"}},
-        {ItemSource.TripleShopEquipment, new[]{"Shops"}},
+        {ItemSource.TripleShopEquipment, new[]{"Shops", "Equipment"}},
         
-        {ItemSource.TreasureCache, new[]{"ItemSpawned"}},
+        {ItemSource.EquipmentBarrel, new[]{"Equipment"}},
+        
+        {ItemSource.TreasureCache, new[]{"ItemSpawned", "PaidWithItem"}},
+        {ItemSource.FreeChestMultiShop, new[]{"ItemSpawned"}},
+        {ItemSource.VoidChest, new[]{"ItemSpawned", "PaidWithItem"}},
+        {ItemSource.LunarRecycler, new[]{"PaidWithItem", "Lunar"}},
+        
+        {ItemSource.LunarShopTerminal, new[]{"PaidWithLunarCoin", "Lunar"}},
+        {ItemSource.LunarChest, new[]{"PaidWithLunarCoin", "Lunar"}},
+        
+        {ItemSource.Duplicator, new[]{"Printers"}},
+        {ItemSource.DuplicatorWild, new[]{"Printers"}},
+        
+        {ItemSource.LunarCauldronWhiteToGreen, new[]{"Cauldrons"}},
+        {ItemSource.LunarCauldronGreenToRed, new[]{"Cauldrons"}},
+        {ItemSource.LunarCauldronRedToWhite, new[]{"Cauldrons"}},
     };
 
     private void DefaultGenerateSources(ISet<string> names)
@@ -223,6 +239,15 @@ public class Config
                 modes.Remove(InstanceMode.InstanceBoth);
                 modes.Remove(InstanceMode.InstanceObject);
             }
+        }
+
+        switch (source)
+        {
+            case ItemSource.TripleShopEquipment:
+            case ItemSource.EquipmentBarrel:
+                modes.Remove(InstanceMode.InstanceBoth);
+                modes.Remove(InstanceMode.InstanceItems);
+                break;
         }
     }
 
