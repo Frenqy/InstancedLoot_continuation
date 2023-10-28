@@ -21,11 +21,39 @@ public class HologramProjectorHandler : AbstractHookHandler
     public override void RegisterHooks()
     {
         IL.RoR2.Hologram.HologramProjector.FindViewer += IL_HologramProjector_FindViewer;
+        // IL.RoR2.Hologram.HologramProjector.Update += IL_HologramProjector_Update;
+        On.RoR2.Hologram.HologramProjector.BuildHologram += On_HologramProjector_BuildHologram;
+        On.RoR2.Hologram.HologramProjector.DestroyHologram += On_HologramProjector_DestroyHologram;
     }
 
     public override void UnregisterHooks()
     {
         IL.RoR2.Hologram.HologramProjector.FindViewer -= IL_HologramProjector_FindViewer;
+        // IL.RoR2.Hologram.HologramProjector.Update -= IL_HologramProjector_Update;
+        On.RoR2.Hologram.HologramProjector.BuildHologram -= On_HologramProjector_BuildHologram;
+        On.RoR2.Hologram.HologramProjector.DestroyHologram -= On_HologramProjector_DestroyHologram;
+    }
+
+    private void On_HologramProjector_BuildHologram(On.RoR2.Hologram.HologramProjector.orig_BuildHologram orig, HologramProjector self)
+    {
+        orig(self);
+
+        FadeBehavior fadeBehavior = self.GetComponent<FadeBehavior>();
+        if (fadeBehavior != null)
+        {
+            fadeBehavior.RefreshComponentLists();
+        }
+    }
+
+    private void On_HologramProjector_DestroyHologram(On.RoR2.Hologram.HologramProjector.orig_DestroyHologram orig, HologramProjector self)
+    {
+        orig(self);
+
+        FadeBehavior fadeBehavior = self.GetComponent<FadeBehavior>();
+        if (fadeBehavior != null)
+        {
+            fadeBehavior.RefreshComponentLists();
+        }
     }
 
     private void IL_HologramProjector_FindViewer(ILContext il)
@@ -84,5 +112,22 @@ public class HologramProjectorHandler : AbstractHookHandler
         cursor.Index++;
         cursor.MarkLabel(labelIgnoreSpherecast);
         
+    }
+
+    private void IL_HologramProjector_Update(ILContext il)
+    {
+        ILCursor cursor = new ILCursor(il);
+
+        int varShouldDisplayHologram = -1;
+
+        cursor.GotoNext(i => i.MatchCallOrCallvirt<IHologramContentProvider>("ShouldDisplayHologram"),
+            i => i.MatchStloc(out varShouldDisplayHologram));
+
+        cursor.GotoNext(MoveType.AfterLabel, i => i.MatchLdloc(varShouldDisplayHologram), i => i.MatchBrfalse(out _));
+        cursor.Emit(OpCodes.Ldarg_0);
+        cursor.EmitDelegate<Action<HologramProjector>>(hologramProjector =>
+        {
+            
+        });
     }
 }
