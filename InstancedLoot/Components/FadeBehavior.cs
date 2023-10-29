@@ -166,8 +166,7 @@ public class FadeBehavior : MonoBehaviour
         
         
         HashSet<Behaviour> componentsForPreCull = new(CustomGetComponents<Highlight>(gameObjects));
-        // componentsForPreCull.UnionWith(CustomGetComponents<TextMeshPro>(gameObjects));
-        // componentsForPreCull.UnionWith(CustomGetComponents<CostHologramContent>(gameObjects).Select(hologram => hologram.targetTextMesh));
+        componentsForPreCull.UnionWith(CustomGetComponents<Light>(gameObjects));
         
         ComponentsForPreCull = componentsForPreCull.ToArray();
 
