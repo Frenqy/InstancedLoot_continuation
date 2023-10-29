@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using InstancedLoot.Enums;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using InstancedLoot.Configuration.Attributes;
 using RoR2;
 
 namespace InstancedLoot.Configuration;
@@ -17,17 +19,22 @@ public class Config
 
     public bool Ready => true;
     public event Action OnConfigReady;
-    public ConfigMigrator migrator;
+    public ConfigMigrator Migrator;
 
-    public delegate void SourcesDelegate(ISet<string> names);
-    public delegate void ExtraNamesDelegate(string source, ISet<string> names);
-    public delegate void InstanceModesDelegate(string source, ISet<InstanceMode> modes);
-    public delegate void ObjectInstanceModesDelegate(string source, ISet<ObjectInstanceMode> modes);
+    public delegate void ObjectTypesDelegate(ISet<string> names);
+    public delegate void DescribeObjectTypeDelegate(string objectType, SortedSet<string> description);
+    public delegate void ExtraNamesDelegate(string objectType, ISet<string> names);
+    public delegate void InstanceModesDelegate(string objectType, ISet<InstanceMode> modes);
+    public delegate void ObjectInstanceModesDelegate(string objectType, ISet<ObjectInstanceMode> modes);
 
-    public event SourcesDelegate GenerateSources;
+    public event ObjectTypesDelegate GenerateObjectTypes;
+    public event DescribeObjectTypeDelegate DescribeObjectTypes;
     public event ExtraNamesDelegate GenerateExtraNames;
     public event InstanceModesDelegate LimitInstanceModes;
     public event ObjectInstanceModesDelegate GenerateObjectInstanceModes;
+
+    public Dictionary<string, string[]> DefaultAliases = new();
+    public Dictionary<string, string> DefaultDescriptions = new();
 
     public Dictionary<string, ConfigEntry<InstanceMode>> ConfigEntriesForNames = new();
     public Dictionary<string, SortedSet<string>> ExtraNames = new();
@@ -41,9 +48,10 @@ public class Config
         Plugin = plugin;
         logger = _logger;
 
-        migrator = new(config, this);
+        Migrator = new(config, this);
 
-        GenerateSources += DefaultGenerateSources;
+        GenerateObjectTypes += DefaultGenerateObjectTypes;
+        DescribeObjectTypes += DefaultDescribeObjectTypes;
         GenerateExtraNames += DefaultGenerateExtraNames;
         LimitInstanceModes += DefaultLimitInstanceModes;
         GenerateObjectInstanceModes += DefaultGenerateObjectInstanceModes;
@@ -65,6 +73,27 @@ public class Config
         //      }", new AcceptableValueList<string>(ConfigPresets.Keys.ToArray())));
         // ;
         
+        DefaultDescriptions.Clear();
+        DefaultAliases.Clear();
+        foreach (var field in typeof(ObjectType).GetFields(BindingFlags.Static | BindingFlags.Public))
+        {
+            ObjectTypeDescriptionAttribute descriptionAttribute =
+                field.GetCustomAttributes<ObjectTypeDescriptionAttribute>().FirstOrDefault();
+            ObjectTypeAliasesAttribute aliasesAttribute =
+                field.GetCustomAttributes<ObjectTypeAliasesAttribute>().FirstOrDefault();
+
+            if (field.GetValue(null) is not string objectType) continue;
+            if (descriptionAttribute != null)
+            {
+                DefaultDescriptions.Add(objectType, descriptionAttribute.Description);
+            }
+
+            if (aliasesAttribute != null)
+            {
+                DefaultAliases.Add(objectType, aliasesAttribute.Aliases);
+            }
+        }
+        
         SortedSet<InstanceMode> allInstanceModes = new SortedSet<InstanceMode>
         {
             InstanceMode.Default, InstanceMode.None, InstanceMode.InstanceBoth, InstanceMode.InstanceItems,
@@ -80,7 +109,7 @@ public class Config
         SortedSet<string> allExtraNames = new();
         Dictionary<string, SortedSet<InstanceMode>> instanceModeLimits = new();
         
-        GenerateSources!(sources);
+        GenerateObjectTypes!(sources);
 
         foreach (var source in sources)
         {
@@ -93,8 +122,16 @@ public class Config
             SortedSet<string> extraNames = ExtraNames[source] = new SortedSet<string>();
             GenerateExtraNames!(source, extraNames);
 
+            SortedSet<string> extraDescriptions = new();
+            DescribeObjectTypes!(source, extraDescriptions);
+            string extraDescription = String.Join("\n", extraDescriptions);
+
+            string description = "Configure instancing for specific raw objectType";
+            if (extraDescription != "")
+                description += $"\n{extraDescription}";
+            
             ConfigEntriesForNames[source] = config.Bind("Sources", source, InstanceMode.Default,
-                new ConfigDescription("Configure instancing for specific raw source",
+                new ConfigDescription(description,
                     new AcceptableValuesInstanceMode(instanceModes)));
 
             foreach (var extraName in extraNames)
@@ -133,9 +170,9 @@ public class Config
         return null;
     }
 
-    public SortedSet<string> GetExtraNames(string source)
+    public SortedSet<string> GetExtraNames(string objectType)
     {
-        return ExtraNames.TryGetValue(source, out var extraNames) ? extraNames : null;
+        return ExtraNames.TryGetValue(objectType, out var extraNames) ? extraNames : null;
     }
 
     public void MergeInstanceModes(ref InstanceMode orig, InstanceMode other)
@@ -144,15 +181,15 @@ public class Config
             orig = other;
     }
     
-    public InstanceMode GetInstanceMode(string source)
+    public InstanceMode GetInstanceMode(string objectType)
     {
-        if (source == null) return InstanceMode.None;
+        if (objectType == null) return InstanceMode.None;
         
-        if (CachedInstanceModes.TryGetValue(source, out var mode))
+        if (CachedInstanceModes.TryGetValue(objectType, out var mode))
             return mode;
         
         ConfigPreset preset = GetPreset();
-        SortedSet<string> extraNames = GetExtraNames(source);
+        SortedSet<string> extraNames = GetExtraNames(objectType);
 
         InstanceMode result = InstanceMode.None;
         
@@ -165,7 +202,7 @@ public class Config
                     MergeInstanceModes(ref result, preset.GetPresetForSource(name));
                 }
             }
-            MergeInstanceModes(ref result, preset.GetPresetForSource(source));
+            MergeInstanceModes(ref result, preset.GetPresetForSource(objectType));
         }
         
         if (extraNames != null)
@@ -175,59 +212,28 @@ public class Config
                 MergeInstanceModes(ref result, ConfigEntriesForNames[name].Value);
             }
         }
-        MergeInstanceModes(ref result, ConfigEntriesForNames[source].Value);
+        MergeInstanceModes(ref result, ConfigEntriesForNames[objectType].Value);
 
-        CachedInstanceModes[source] = result;
+        CachedInstanceModes[objectType] = result;
         
         return result;
     }
 
-    private static Dictionary<string, string[]> defaultExtraNames = new()
+    private void DefaultGenerateObjectTypes(ISet<string> names)
     {
-        {ItemSource.Chest1, new[]{"Chests", "ChestsSmall"}},
-        {ItemSource.Chest2, new[]{"Chests", "ChestsBig"}},
-        {ItemSource.GoldChest, new[]{"Chests"}},
-        {ItemSource.Chest1StealthedVariant, new[]{"Chests", "ChestsSmall", "ChestsCloaked"}},
-        
-        {ItemSource.CategoryChestDamage, new[]{"Chests", "ChestsSmall", "ChestsDamage"}},
-        {ItemSource.CategoryChestHealing, new[]{"Chests", "ChestsSmall", "ChestsHealing"}},
-        {ItemSource.CategoryChestUtility, new[]{"Chests", "ChestsSmall", "ChestsUtility"}},
-        {ItemSource.CategoryChest2Damage, new[]{"Chests", "ChestsBig", "ChestsDamage"}},
-        {ItemSource.CategoryChest2Healing, new[]{"Chests", "ChestsBig", "ChestsHealing"}},
-        {ItemSource.CategoryChest2Utility, new[]{"Chests", "ChestsBig", "ChestsUtility"}},
-        
-        {ItemSource.TripleShop, new[]{"Shops"}},
-        {ItemSource.TripleShopLarge, new[]{"Shops"}},
-        {ItemSource.TripleShopEquipment, new[]{"Shops", "Equipment"}},
-        
-        {ItemSource.EquipmentBarrel, new[]{"Equipment"}},
-        
-        {ItemSource.TreasureCache, new[]{"ItemSpawned", "PaidWithItem"}},
-        {ItemSource.FreeChestMultiShop, new[]{"ItemSpawned"}},
-        {ItemSource.VoidChest, new[]{"ItemSpawned", "PaidWithItem"}},
-        {ItemSource.LunarRecycler, new[]{"PaidWithItem", "Lunar"}},
-        
-        {ItemSource.LunarShopTerminal, new[]{"PaidWithLunarCoin", "Lunar"}},
-        {ItemSource.LunarChest, new[]{"PaidWithLunarCoin", "Lunar"}},
-        
-        {ItemSource.Duplicator, new[]{"Printers"}},
-        {ItemSource.DuplicatorWild, new[]{"Printers"}},
-        
-        {ItemSource.LunarCauldronWhiteToGreen, new[]{"Cauldrons"}},
-        {ItemSource.LunarCauldronGreenToRed, new[]{"Cauldrons"}},
-        {ItemSource.LunarCauldronRedToWhite, new[]{"Cauldrons"}},
-    };
-
-    private void DefaultGenerateSources(ISet<string> names)
-    {
-        // names.UnionWith(ItemSource.AllSources);
         names.UnionWith(Plugin.ObjectHandlerManager.HandlersForSource.Keys);
     }
-    
-    private void DefaultGenerateExtraNames(string source, ISet<string> names)
+
+    private void DefaultDescribeObjectTypes(string objectType, SortedSet<string> descriptions)
     {
-        if(defaultExtraNames.TryGetValue(source, out var extraNames))
-            names.UnionWith(extraNames);
+        if (DefaultDescriptions.TryGetValue(objectType, out var description))
+            descriptions.Add(description);
+    }
+    
+    private void DefaultGenerateExtraNames(string objectType, ISet<string> names)
+    {
+        if(DefaultAliases.TryGetValue(objectType, out var aliases))
+            names.UnionWith(aliases);
     }
 
     private void DefaultLimitInstanceModes(string source, ISet<InstanceMode> modes)
@@ -243,8 +249,8 @@ public class Config
 
         switch (source)
         {
-            case ItemSource.TripleShopEquipment:
-            case ItemSource.EquipmentBarrel:
+            case ObjectType.TripleShopEquipment:
+            case ObjectType.EquipmentBarrel:
                 modes.Remove(InstanceMode.InstanceBoth);
                 modes.Remove(InstanceMode.InstanceItems);
                 break;
@@ -267,9 +273,9 @@ public class Config
 
     private void DoMigrationIfReady()
     {
-        if (Ready && migrator.NeedsMigration)
+        if (Ready && Migrator.NeedsMigration)
         {
-            migrator.DoMigration();
+            Migrator.DoMigration();
         }
     }
 

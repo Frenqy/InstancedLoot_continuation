@@ -12,10 +12,10 @@ public class MultiShopHandler : AbstractObjectHandler
 {
     public override string[] HandledSources => new[]
     {
-        ItemSource.TripleShop,
-        // ItemSource.TripleShopLarge, // As far as I'm aware, this one's unused.
-        ItemSource.TripleShopEquipment,
-        ItemSource.FreeChestMultiShop
+        ObjectType.TripleShop,
+        // ObjectType.TripleShopLarge, // As far as I'm aware, this one's unused.
+        ObjectType.TripleShopEquipment,
+        ObjectType.FreeChestMultiShop
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;

@@ -43,9 +43,9 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
                 string source = null;
                 
                 //TODO: Get the actual names lol
-                if(objName.StartsWith("TripleShop")) source = Enums.ItemSource.TripleShop;
-                if(objName.StartsWith("TripleShopLarge")) source = Enums.ItemSource.TripleShopLarge;
-                if(objName.StartsWith("TripleShopEquipment")) source = Enums.ItemSource.TripleShopEquipment;
+                if(objName.StartsWith("TripleShop")) source = Enums.ObjectType.TripleShop;
+                if(objName.StartsWith("TripleShopLarge")) source = Enums.ObjectType.TripleShopLarge;
+                if(objName.StartsWith("TripleShopEquipment")) source = Enums.ObjectType.TripleShopEquipment;
                 
                 Plugin._logger.LogWarning($"ShopTerminalBehavior registering {source}");
                 

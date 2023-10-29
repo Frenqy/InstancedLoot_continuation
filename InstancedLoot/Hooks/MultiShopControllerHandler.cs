@@ -47,10 +47,10 @@ public class MultiShopControllerHandler : AbstractHookHandler
                 string objName = self.name;
                 string source = null;
                 
-                if(objName.StartsWith("TripleShop")) source = Enums.ItemSource.TripleShop;
-                // if(objName.StartsWith("TripleShopLarge")) source = Enums.ItemSource.TripleShopLarge;
-                if(objName.StartsWith("TripleShopEquipment")) source = Enums.ItemSource.TripleShopEquipment;
-                if(objName.StartsWith("FreeChestMultiShop")) source = Enums.ItemSource.FreeChestMultiShop;
+                if(objName.StartsWith("TripleShop")) source = Enums.ObjectType.TripleShop;
+                // if(objName.StartsWith("TripleShopLarge")) source = Enums.ObjectType.TripleShopLarge;
+                if(objName.StartsWith("TripleShopEquipment")) source = Enums.ObjectType.TripleShopEquipment;
+                if(objName.StartsWith("FreeChestMultiShop")) source = Enums.ObjectType.FreeChestMultiShop;
                 
                 Plugin._logger.LogWarning($"MultiShopController registering {source}");
                 

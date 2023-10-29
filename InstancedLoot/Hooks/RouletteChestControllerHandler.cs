@@ -47,7 +47,7 @@ public class RouletteChestControllerHandler : AbstractHookHandler
                 string objName = self.name;
                 string source = null;
                 
-                if(objName.StartsWith("CasinoChest")) source = Enums.ItemSource.CasinoChest;
+                if(objName.StartsWith("CasinoChest")) source = Enums.ObjectType.CasinoChest;
                 
                 Plugin._logger.LogWarning($"RouletteChestController registering {source}");
                 

@@ -54,7 +54,7 @@ public class ShrineChanceBehaviorHandler : AbstractHookHandler
                 string objName = self.name;
                 string source = null;
                 
-                if(objName.StartsWith("ShrineChance")) source = Enums.ItemSource.ShrineChance;
+                if(objName.StartsWith("ShrineChance")) source = Enums.ObjectType.ShrineChance;
                 
                 Plugin._logger.LogWarning($"ShrineChanceBehavior registering {source}");
                 

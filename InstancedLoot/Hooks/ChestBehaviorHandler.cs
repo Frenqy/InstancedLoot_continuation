@@ -53,19 +53,19 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 string objName = self.name;
                 string source = null;
                 
-                if(objName.StartsWith("Chest1")) source = Enums.ItemSource.Chest1;
-                if(objName.StartsWith("Chest2")) source = Enums.ItemSource.Chest2;
-                if(objName.StartsWith("GoldChest")) source = Enums.ItemSource.GoldChest;
-                if(objName.StartsWith("Chest1StealthedVariant")) source = Enums.ItemSource.Chest1StealthedVariant;
-                if(objName.StartsWith("CategoryChestDamage")) source = Enums.ItemSource.CategoryChestDamage;
-                if(objName.StartsWith("CategoryChestHealing")) source = Enums.ItemSource.CategoryChestHealing;
-                if(objName.StartsWith("CategoryChestUtility")) source = Enums.ItemSource.CategoryChestUtility;
-                if(objName.StartsWith("CategoryChest2Damage")) source = Enums.ItemSource.CategoryChest2Damage;
-                if(objName.StartsWith("CategoryChest2Healing")) source = Enums.ItemSource.CategoryChest2Healing;
-                if(objName.StartsWith("CategoryChest2Utility")) source = Enums.ItemSource.CategoryChest2Utility;
-                if(objName.StartsWith("EquipmentBarrel")) source = Enums.ItemSource.EquipmentBarrel;
-                if(objName.StartsWith("LunarChest")) source = Enums.ItemSource.LunarChest;
-                if(objName.StartsWith("VoidChest")) source = Enums.ItemSource.VoidChest;
+                if(objName.StartsWith("Chest1")) source = Enums.ObjectType.Chest1;
+                if(objName.StartsWith("Chest2")) source = Enums.ObjectType.Chest2;
+                if(objName.StartsWith("GoldChest")) source = Enums.ObjectType.GoldChest;
+                if(objName.StartsWith("Chest1StealthedVariant")) source = Enums.ObjectType.Chest1StealthedVariant;
+                if(objName.StartsWith("CategoryChestDamage")) source = Enums.ObjectType.CategoryChestDamage;
+                if(objName.StartsWith("CategoryChestHealing")) source = Enums.ObjectType.CategoryChestHealing;
+                if(objName.StartsWith("CategoryChestUtility")) source = Enums.ObjectType.CategoryChestUtility;
+                if(objName.StartsWith("CategoryChest2Damage")) source = Enums.ObjectType.CategoryChest2Damage;
+                if(objName.StartsWith("CategoryChest2Healing")) source = Enums.ObjectType.CategoryChest2Healing;
+                if(objName.StartsWith("CategoryChest2Utility")) source = Enums.ObjectType.CategoryChest2Utility;
+                if(objName.StartsWith("EquipmentBarrel")) source = Enums.ObjectType.EquipmentBarrel;
+                if(objName.StartsWith("LunarChest")) source = Enums.ObjectType.LunarChest;
+                if(objName.StartsWith("VoidChest")) source = Enums.ObjectType.VoidChest;
                 
                 Plugin._logger.LogWarning($"ChestBehavior registering {source}");
                 

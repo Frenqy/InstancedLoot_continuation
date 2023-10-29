@@ -17,7 +17,7 @@ public class InstanceInfoTracker : MonoBehaviour
 
         public PlayerCharacterMasterController Owner;
 
-        //If ItemSource is SpecificItem
+        //If ObjectType is SpecificItem
         public ItemIndex SourceItemIndex;
 
         public InstanceOverrideInfo(string source = null, PlayerCharacterMasterController owner = null, ItemIndex sourceItemIndex = ItemIndex.None)
