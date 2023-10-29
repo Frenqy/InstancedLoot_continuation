@@ -15,7 +15,7 @@ public class ChestHandler : AbstractObjectHandler
         ItemSource.CategoryChestDamage, ItemSource.CategoryChestHealing, ItemSource.CategoryChestUtility,
         ItemSource.CategoryChest2Damage, ItemSource.CategoryChest2Healing, ItemSource.CategoryChest2Utility,
         ItemSource.EquipmentBarrel,
-        ItemSource.LunarChest
+        ItemSource.LunarChest, ItemSource.VoidChest
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;

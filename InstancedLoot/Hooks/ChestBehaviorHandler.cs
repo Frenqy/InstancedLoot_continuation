@@ -65,6 +65,7 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 if(objName.StartsWith("CategoryChest2Utility")) source = Enums.ItemSource.CategoryChest2Utility;
                 if(objName.StartsWith("EquipmentBarrel")) source = Enums.ItemSource.EquipmentBarrel;
                 if(objName.StartsWith("LunarChest")) source = Enums.ItemSource.LunarChest;
+                if(objName.StartsWith("VoidChest")) source = Enums.ItemSource.VoidChest;
                 
                 Plugin._logger.LogWarning($"ChestBehavior registering {source}");
                 
