@@ -41,13 +41,13 @@
             <Private>False</Private>
         </Reference>
         <Reference Include="R2API">
-          <HintPath>..\..\libs\R2API.dll</HintPath>
+          <HintPath>..\libs\R2API.dll</HintPath>
         </Reference>
         <Reference Include="R2API.Core">
-          <HintPath>..\..\libs\R2API.Core.dll</HintPath>
+          <HintPath>..\libs\R2API.Core.dll</HintPath>
         </Reference>
         <Reference Include="R2API.Networking">
-          <HintPath>..\..\libs\R2API.Networking.dll</HintPath>
+          <HintPath>..\libs\R2API.Networking.dll</HintPath>
         </Reference>
         <Reference Include="RoR2">
             <HintPath>..\libs\RoR2.dll</HintPath>
