@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using InstancedLoot.Enums;
@@ -15,6 +17,8 @@ public class FadeBehavior : MonoBehaviour
     
     public float FadeLevel = 0.3f;
     private float lastFadeLevel = 1.0f;
+
+    private bool needsRefresh = true;
     
     public HashSet<Renderer> Renderers;
     public HashSet<Renderer> DitherModelRenderers;
@@ -101,12 +105,13 @@ public class FadeBehavior : MonoBehaviour
     private void Awake()
     {
         propertyStorage = new();
-        RefreshComponentLists();
+        // RefreshComponentLists();
     }
 
     private void Start()
     {
-        RefreshComponentLists();
+        // RefreshComponentLists();
+        Refresh();
 
         // if (lastCameraStaticPreCull != null)
         //     RefreshInstanceForCamera(lastCameraStaticPreCull);
@@ -153,8 +158,27 @@ public class FadeBehavior : MonoBehaviour
         return gameObjects.SelectMany(obj => obj.GetComponentsInChildren<T>());
     }
 
+    public void Refresh()
+    {
+        // InstancedLoot.Instance._logger.LogWarning(Environment.StackTrace);
+        needsRefresh = true;
+        lastCamera = null;
+
+        StartCoroutine(RefreshNextTick());
+
+        IEnumerator RefreshNextTick()
+        {
+            yield return 0;
+            
+            if(needsRefresh && lastCameraStaticPreRender != null)
+                RefreshInstanceForCamera(lastCameraStaticPreRender);
+        }
+    }
+
     public void RefreshComponentLists()
     {
+        needsRefresh = false; 
+            
         HashSet<GameObject> gameObjects = new(){gameObject};
         ModelLocator[] modelLocators = GetComponentsInChildren<ModelLocator>();
         gameObjects.UnionWith(modelLocators.Select(modelLocator => modelLocator.modelTransform.gameObject));
@@ -163,12 +187,20 @@ public class FadeBehavior : MonoBehaviour
         DitherModels = CustomGetComponents<DitherModel>(gameObjects).ToArray();
         DitherModelRenderers = new HashSet<Renderer>(DitherModels.SelectMany(ditherModel => ditherModel.renderers));
         Renderers = new HashSet<Renderer>(CustomGetComponents<Renderer>(gameObjects).Where(renderer => !DitherModelRenderers.Contains(renderer)));
-        
+
+        foreach (var renderer in Renderers)
+        {
+            if (renderer == null) 
+                InstancedLoot.Instance._logger.LogWarning($"FadeBehavior - RefreshComponentLists - Renderers has null");
+        }
+        // InstancedLoot.Instance._logger.LogWarning($"FadeBehavior - RefreshComponentLists - Renderers {ComponentsForPreCull.Contains(null)}");
         
         HashSet<Behaviour> componentsForPreCull = new(CustomGetComponents<Highlight>(gameObjects));
         componentsForPreCull.UnionWith(CustomGetComponents<Light>(gameObjects));
         
         ComponentsForPreCull = componentsForPreCull.ToArray();
+        
+        // InstancedLoot.Instance._logger.LogWarning($"FadeBehavior - RefreshComponentLists - ComponentsForPreCull {ComponentsForPreCull.Contains(null)}");
 
         HashSet<Behaviour> componentsForPreRender = new();//CustomGetComponents<CostHologramContent>(gameObjects).Select(hologram => hologram.targetTextMesh));
         // componentsForPreRender.UnionWith(CustomGetComponents<TextMeshPro>(gameObjects));
@@ -176,11 +208,11 @@ public class FadeBehavior : MonoBehaviour
         ComponentsForPreRender = componentsForPreRender.ToArray();
         
         //To force refresh:
-        lastCamera = null;
-        if(lastCameraStaticPreCull)
-            RefreshForPreCull(lastCameraStaticPreCull);
-        if(lastCameraStaticPreRender)
-            RefreshForPreRender(lastCameraStaticPreRender);
+        // lastCamera = null;
+        // if(lastCameraStaticPreCull)
+        //     RefreshForPreCull(lastCameraStaticPreCull);
+        // if(lastCameraStaticPreRender)
+        //     RefreshForPreRender(lastCameraStaticPreRender);
     }
 
     public void RefreshForPreCull(PlayerCharacterMasterController player)
@@ -188,9 +220,13 @@ public class FadeBehavior : MonoBehaviour
         // return;
         if (gameObject == null)
         {
-            Debug.LogError("gameObject is null on Visibility");
+            Debug.LogError("gameObject is null on PreCull");
             return;
         }
+
+        if (needsRefresh)
+            RefreshComponentLists();
+        
         var instanceHandler = GetComponent<InstanceHandler>();
         bool isCopyObject = instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject;
 
@@ -201,7 +237,7 @@ public class FadeBehavior : MonoBehaviour
             {
                 if (renderer == null)
                 {
-                    Debug.LogError("renderer is null on Fade");
+                    Debug.LogError("renderer is null on PreCull");
                     RefreshComponentLists();
                     return;
                 }
@@ -212,7 +248,7 @@ public class FadeBehavior : MonoBehaviour
             {
                 if (renderer == null)
                 {
-                    Debug.LogError("ditherModelRenderer is null on Fade");
+                    Debug.LogError("ditherModelRenderer is null on PreCull");
                     RefreshComponentLists();
                     return;
                 }
@@ -223,7 +259,7 @@ public class FadeBehavior : MonoBehaviour
             {
                 if (component == null)
                 {
-                    Debug.LogError("renderingComponent is null on Fade");
+                    Debug.LogError("renderingComponent is null on PreCull");
                     RefreshComponentLists();
                     return;
                 }
@@ -238,12 +274,15 @@ public class FadeBehavior : MonoBehaviour
         var instanceHandler = GetComponent<InstanceHandler>();
         bool isForCurrentPlayer = instanceHandler.Players.Contains(player);
         float actualFadeLevel = isForCurrentPlayer ? 1.0f : FadeLevel;
+
+        if (needsRefresh)
+            RefreshComponentLists();
         
         foreach (var renderer in Renderers)
         {
             if (renderer == null)
             {
-                Debug.LogError("renderer is null on Fade");
+                Debug.LogError("renderer is null on PreRender");
                 RefreshComponentLists();
                 return;
             }
@@ -276,7 +315,8 @@ public class FadeBehavior : MonoBehaviour
         FadeBehavior fadeBehavior = obj.GetComponent<FadeBehavior>();
         if (fadeBehavior != null)
         {
-            fadeBehavior.lastCamera = null;
+            fadeBehavior.Refresh();
+            // fadeBehavior.lastCamera = null;
             // if(lastCameraStaticPreCull != null)
             //     fadeBehavior.RefreshInstanceForCamera(lastCameraStaticPreCull);
             return fadeBehavior;

@@ -18,7 +18,6 @@ public class PurchaseInteractionHandler : AbstractHookHandler
         On.RoR2.PurchaseInteraction.Awake += On_PurchaseInteraction_Awake;
         On.RoR2.PurchaseInteraction.GetInteractability += On_PurchaseInteraction_GetInteractability;
         On.RoR2.PurchaseInteraction.OnInteractionBegin += On_PurchaseInteraction_OnInteractionBegin;
-        On.RoR2.PurchaseInteraction.UpdateHologramContent += On_PurchaseInteraction_UpdateHologramContent;
     }
 
     public override void UnregisterHooks()
@@ -26,7 +25,6 @@ public class PurchaseInteractionHandler : AbstractHookHandler
         On.RoR2.PurchaseInteraction.Awake -= On_PurchaseInteraction_Awake;
         On.RoR2.PurchaseInteraction.GetInteractability -= On_PurchaseInteraction_GetInteractability;
         On.RoR2.PurchaseInteraction.OnInteractionBegin -= On_PurchaseInteraction_OnInteractionBegin;
-        On.RoR2.PurchaseInteraction.UpdateHologramContent -= On_PurchaseInteraction_UpdateHologramContent;
     }
 
     private void On_PurchaseInteraction_Awake(On.RoR2.PurchaseInteraction.orig_Awake orig, PurchaseInteraction self)
@@ -91,17 +89,5 @@ public class PurchaseInteractionHandler : AbstractHookHandler
         }
 
         orig(self, activator);
-    }
-
-    private void On_PurchaseInteraction_UpdateHologramContent(On.RoR2.PurchaseInteraction.orig_UpdateHologramContent orig, PurchaseInteraction self, GameObject hologramcontentobject)
-    {
-        orig(self, hologramcontentobject);
-        
-        FadeBehavior fadeBehavior = self.GetComponent<FadeBehavior>();
-
-        if (fadeBehavior != null)
-        {
-            fadeBehavior.RefreshComponentLists();
-        }
     }
 }

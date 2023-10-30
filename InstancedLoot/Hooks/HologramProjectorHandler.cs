@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
@@ -41,18 +42,20 @@ public class HologramProjectorHandler : AbstractHookHandler
         FadeBehavior fadeBehavior = self.GetComponent<FadeBehavior>();
         if (fadeBehavior != null)
         {
-            fadeBehavior.RefreshComponentLists();
+            fadeBehavior.Refresh();
         }
     }
 
     private void On_HologramProjector_DestroyHologram(On.RoR2.Hologram.HologramProjector.orig_DestroyHologram orig, HologramProjector self)
     {
+        bool shouldRun = self.hologramContentInstance != null;
+        
         orig(self);
 
         FadeBehavior fadeBehavior = self.GetComponent<FadeBehavior>();
-        if (fadeBehavior != null)
+        if (shouldRun && fadeBehavior != null)
         {
-            fadeBehavior.RefreshComponentLists();
+            fadeBehavior.Refresh();
         }
     }
 
