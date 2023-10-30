@@ -121,25 +121,25 @@ public class InstancedLoot : BaseUnityPlugin
 
     public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null)
     {
-        Logger.LogWarning($"Called for {obj}");
+        Logger.LogDebug($"Called for {obj}");
         InstanceInfoTracker instanceInfoTracker = obj.GetComponent<InstanceInfoTracker>();
 
         // Unity overrides null comparison, shouldn't matter here, but the IDE keeps yelling at me, so just to be safe...
         if (instanceInfoTracker == null) instanceInfoTracker = null;
 
-        string source = overrideInfo?.ItemSource ?? instanceInfoTracker?.ItemSource;
+        string objectType = overrideInfo?.ObjectType ?? instanceInfoTracker?.ObjectType;
         PlayerCharacterMasterController owner = overrideInfo?.Owner ?? instanceInfoTracker?.Owner;
-        Logger.LogWarning($"source: {source}, owner: {owner?.GetDisplayName()}");
+        Logger.LogDebug($"source: {objectType}, owner: {owner?.GetDisplayName()}");
 
-        if (instanceInfoTracker == null && source == null)
+        if (instanceInfoTracker == null && objectType == null)
             return;
         
-        InstanceMode instanceMode = ModConfig.GetInstanceMode(source ?? instanceInfoTracker.ItemSource);
+        InstanceMode instanceMode = ModConfig.GetInstanceMode(objectType ?? instanceInfoTracker.ObjectType);
         
         if (instanceMode == InstanceMode.None)
             return;
 
-        Logger.LogWarning($"Handling: {obj} as {instanceMode}");
+        Logger.LogDebug($"Handling: {obj} as {instanceMode}");
         
         bool shouldInstance = false;
         bool ownerOnly = false;
@@ -160,7 +160,7 @@ public class InstancedLoot : BaseUnityPlugin
         if (instanceInfoTracker != null && obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null)
         {
             isItem = true;
-            Logger.LogWarning($"It's an item!");
+            Logger.LogDebug($"It's an item!");
             switch (instanceMode)
             {
                 case InstanceMode.InstanceObject:
@@ -180,24 +180,24 @@ public class InstancedLoot : BaseUnityPlugin
 
         if (!isItem && shouldInstance)
         {
-            shouldInstance = ObjectHandlerManager.CanInstanceObject(source, obj);
+            shouldInstance = ObjectHandlerManager.CanInstanceObject(objectType, obj);
         }
 
         if (instanceInfoTracker == null && overrideInfo != null)
         {
-            Logger.LogWarning($"Propagating overrideInfo");
+            Logger.LogDebug($"Propagating overrideInfo");
             overrideInfo.Value.AttachTo(obj);
         } else if (instanceInfoTracker != null && owner != null)
         {
-            Logger.LogWarning($"Fixing owner on InstanceInfoTracker");
+            Logger.LogDebug($"Fixing owner on InstanceInfoTracker");
             instanceInfoTracker.Info.Owner = owner;
         }
         
-        Logger.LogWarning($"ShouldInstance: {shouldInstance}, OwnerOnly: {ownerOnly}");
+        Logger.LogDebug($"ShouldInstance: {shouldInstance}, OwnerOnly: {ownerOnly}");
         
         if (shouldInstance)
         {
-            Logger.LogWarning($"Instancing!");
+            Logger.LogDebug($"Instancing!");
             //If instancing should happen only for owner but owner is missing, don't instance to avoid duplication exploits
             if (ownerOnly && owner == null)
                 return;
@@ -217,13 +217,13 @@ public class InstancedLoot : BaseUnityPlugin
             {
                 InstanceHandler handler = obj.AddComponent<InstanceHandler>();
 
-                Logger.LogWarning($"Instancing {obj} as item for {players}");
+                Logger.LogDebug($"Instancing {obj} as item for {String.Join(", ", players.Select(player => player.GetDisplayName()))}");
                 handler.SetPlayers(players);
             }
             else
             {
-                Logger.LogWarning($"Instancing {obj} as object for {players}");
-                ObjectHandlerManager.InstanceObject(source, obj, players.ToArray());
+                Logger.LogDebug($"Instancing {obj} as object for {String.Join(", ", players.Select(player => player.GetDisplayName()))}");
+                ObjectHandlerManager.InstanceObject(objectType, obj, players.ToArray());
             }
         }
     }

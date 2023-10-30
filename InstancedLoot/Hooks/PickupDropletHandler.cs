@@ -59,7 +59,7 @@ public class PickupDropletHandler : AbstractHookHandler
                 var instanceOverride = self.GetComponent<InstanceInfoTracker>();
                 if (instanceOverride)
                 {
-                    Plugin._logger.LogWarning($"(InstanceInfo: {instanceOverride.ItemSource}, {instanceOverride.Owner}, {instanceOverride.SourceItemIndex})");
+                    Plugin._logger.LogWarning($"(InstanceInfo: {instanceOverride.ObjectType}, {instanceOverride.Owner}, {instanceOverride.SourceItemIndex})");
                     Plugin.HandleInstancing(pickupController.gameObject, instanceOverride.Info);
                     // instanceOverride.Info.AttachTo(pickupController.gameObject);
                 }

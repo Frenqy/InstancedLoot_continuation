@@ -96,7 +96,7 @@ public class MultiShopControllerHandler : AbstractHookHandler
                 ShopTerminalBehavior sourceTerminal =
                     sourceShop._terminalGameObjects[terminalIndex].GetComponent<ShopTerminalBehavior>();
                 
-                Plugin.ObjectHandlerManager.InstanceSingleObject(instanceInfoTracker.ItemSource, sourceTerminal.gameObject, targetTerminal.gameObject, targetShopHandler.Players.ToArray());
+                Plugin.ObjectHandlerManager.InstanceSingleObject(instanceInfoTracker.ObjectType, sourceTerminal.gameObject, targetTerminal.gameObject, targetShopHandler.Players.ToArray());
                 
                 targetTerminal.rng = new Xoroshiro128Plus(sourceTerminal.rng);
                 targetTerminal.NetworkpickupIndex = sourceTerminal.NetworkpickupIndex;

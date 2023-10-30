@@ -24,7 +24,7 @@ public class RouletteChestControllerHandler : AbstractHookHandler
     {
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
-            Plugin._logger.LogWarning($"RouletteChestController dropping {instanceInfoTracker.ItemSource}");
+            Plugin._logger.LogWarning($"RouletteChestController dropping {instanceInfoTracker.ObjectType}");
             hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
             orig(self, pickupIndex);
             hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo = null;

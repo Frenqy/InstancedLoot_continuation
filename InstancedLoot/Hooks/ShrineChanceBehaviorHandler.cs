@@ -31,7 +31,7 @@ public class ShrineChanceBehaviorHandler : AbstractHookHandler
     {
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
-            Plugin._logger.LogWarning($"ShrineChanceBehavior dropping {instanceInfoTracker.ItemSource}");
+            Plugin._logger.LogWarning($"ShrineChanceBehavior dropping {instanceInfoTracker.ObjectType}");
             hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
             orig(self, activator);
             hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo = null;

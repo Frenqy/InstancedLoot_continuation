@@ -46,7 +46,7 @@ public class PingHandler : AbstractHookHandler
                     if (instanceInfoTracker)
                     {
                         str =
-                            $"{str} (InstanceInfo: {instanceInfoTracker.ItemSource}, {instanceInfoTracker.Owner}, {instanceInfoTracker.SourceItemIndex})";
+                            $"{str} (InstanceInfo: {instanceInfoTracker.ObjectType}, {instanceInfoTracker.Owner}, {instanceInfoTracker.SourceItemIndex})";
                     }
                 }
                 

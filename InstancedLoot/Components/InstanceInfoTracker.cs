@@ -7,13 +7,13 @@ public class InstanceInfoTracker : MonoBehaviour
 {
     public InstanceOverrideInfo Info;
 
-    public string ItemSource => Info.ItemSource;
+    public string ObjectType => Info.ObjectType;
     public PlayerCharacterMasterController Owner => Info.Owner;
     public ItemIndex SourceItemIndex => Info.SourceItemIndex;
 
     public struct InstanceOverrideInfo
     {
-        public string ItemSource;
+        public string ObjectType;
 
         public PlayerCharacterMasterController Owner;
 
@@ -22,7 +22,7 @@ public class InstanceInfoTracker : MonoBehaviour
 
         public InstanceOverrideInfo(string source = null, PlayerCharacterMasterController owner = null, ItemIndex sourceItemIndex = ItemIndex.None)
         {
-            ItemSource = source;
+            ObjectType = source;
             Owner = owner;
             SourceItemIndex = sourceItemIndex;
         }
