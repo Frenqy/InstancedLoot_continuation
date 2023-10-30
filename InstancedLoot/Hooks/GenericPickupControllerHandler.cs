@@ -10,14 +10,17 @@ using UnityEngine.Networking;
 
 namespace InstancedLoot.Hooks;
 
-public class ItemHandler : AbstractHookHandler
+public class GenericPickupControllerHandler : AbstractHookHandler
 {
+    public InstanceInfoTracker.InstanceOverrideInfo? InstanceOverrideInfo;
+    
     public override void RegisterHooks()
     {
         On.RoR2.GenericPickupController.Start += On_GenericPickupController_Start;
         On.RoR2.GenericPickupController.GetInteractability += On_GenericPickupController_GetInteractability;
         On.RoR2.GenericPickupController.OnTriggerStay += On_GenericPickupController_OnTriggerStay;
         IL.RoR2.GenericPickupController.AttemptGrant += IL_GenericPickupController_AttemptGrant;
+        IL.RoR2.GenericPickupController.CreatePickup += IL_GenericPickupController_CreatePickup;
     }
 
     public override void UnregisterHooks()
@@ -26,6 +29,7 @@ public class ItemHandler : AbstractHookHandler
         On.RoR2.GenericPickupController.GetInteractability -= On_GenericPickupController_GetInteractability;
         On.RoR2.GenericPickupController.OnTriggerStay -= On_GenericPickupController_OnTriggerStay;
         IL.RoR2.GenericPickupController.AttemptGrant -= IL_GenericPickupController_AttemptGrant;
+        IL.RoR2.GenericPickupController.CreatePickup -= IL_GenericPickupController_CreatePickup;
     }
 
     private void On_GenericPickupController_Start(On.RoR2.GenericPickupController.orig_Start orig,
@@ -90,6 +94,23 @@ public class ItemHandler : AbstractHookHandler
             }
             
             return shouldDestroy;
+        });
+    }
+
+    private void IL_GenericPickupController_CreatePickup(ILContext il)
+    {
+        ILCursor cursor = new ILCursor(il);
+
+        cursor.GotoNext(MoveType.After, i => i.MatchCallOrCallvirt<UnityEngine.Object>("Instantiate"));
+
+        cursor.Emit(OpCodes.Dup);
+        cursor.EmitDelegate<Action<GameObject>>(obj =>
+        {
+            if (InstanceOverrideInfo != null)
+            {
+                Plugin._logger.LogDebug($"GenericPickupController_CreatePickup found InstanceOverrideInfo with PlayerOverride={InstanceOverrideInfo.Value.PlayerOverride}");
+                InstanceOverrideInfo.Value.AttachTo(obj);
+            }
         });
     }
 }

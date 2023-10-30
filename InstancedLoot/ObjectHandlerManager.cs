@@ -21,6 +21,7 @@ public class ObjectHandlerManager
         RegisterHandler<ShrineChanceHandler>();
         RegisterHandler<RouletteChestHandler>();
         RegisterHandler<MultiShopHandler>();
+        RegisterHandler<OptionChestHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractObjectHandler, new()

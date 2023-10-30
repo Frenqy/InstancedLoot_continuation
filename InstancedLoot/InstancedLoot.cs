@@ -25,7 +25,7 @@ using UnityEngine.Networking;
 //TODO: Instance pickup droplets for dithering
 //TODO: Redirect pings
 //TODO: Try to clean up MultiShops - Timing jank
-//TODO: Ways to attach extra description to itemsources and aliases
+//TODO: Ways to attach extra description to itemsources and aliases - aliases left
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -157,7 +157,11 @@ public class InstancedLoot : BaseUnityPlugin
             }
         }
 
-        if (instanceInfoTracker != null && obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null)
+        if (instanceInfoTracker != null && (
+                (obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null)
+                || (obj.GetComponent<PickupPickerController>() != null)
+            )
+           )
         {
             isItem = true;
             Logger.LogDebug($"It's an item!");
@@ -199,12 +203,16 @@ public class InstancedLoot : BaseUnityPlugin
         {
             Logger.LogDebug($"Instancing!");
             //If instancing should happen only for owner but owner is missing, don't instance to avoid duplication exploits
-            if (ownerOnly && owner == null)
+            if (ownerOnly && owner == null && instanceInfoTracker?.PlayerOverride == null)
                 return;
 
             HashSet<PlayerCharacterMasterController> players;
 
-            if (ownerOnly)
+            if (instanceInfoTracker?.PlayerOverride != null)
+            {
+                players = new HashSet<PlayerCharacterMasterController>(instanceInfoTracker.PlayerOverride);
+            }
+            else if (ownerOnly)
             {
                 players = new HashSet<PlayerCharacterMasterController> { owner };
             }

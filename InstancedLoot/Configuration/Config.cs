@@ -16,6 +16,7 @@ public class Config
     private readonly ManualLogSource logger;
 
     public ConfigEntry<string> SelectedPreset;
+    public ConfigEntry<bool> SharePickupPickers;
 
     public bool Ready => true;
     public event Action OnConfigReady;
@@ -72,6 +73,9 @@ public class Config
         //          string.Join("\n", ConfigPresets.Select(pair => $"{pair.Key}: {pair.Value.Description}"))
         //      }", new AcceptableValueList<string>(ConfigPresets.Keys.ToArray())));
         // ;
+
+        SharePickupPickers = config.Bind("General", "SharePickupPickers", false,
+            "Should pickup pickers be shared?\nIf true, pickup pickers (such as void orbs and command essences) will be shared among the players they are instanced for.\nA shared pickup picker can only be opened by one player, and will then drop an item that can be picked up separately.\nIf a pickup picker is not shared, then the item can be selected separately by each player.");
         
         DefaultDescriptions.Clear();
         DefaultAliases.Clear();

@@ -11,6 +11,8 @@ public class InstanceInfoTracker : MonoBehaviour
     public PlayerCharacterMasterController Owner => Info.Owner;
     public ItemIndex SourceItemIndex => Info.SourceItemIndex;
 
+    public PlayerCharacterMasterController[] PlayerOverride => Info.PlayerOverride;
+
     public struct InstanceOverrideInfo
     {
         public string ObjectType;
@@ -20,11 +22,14 @@ public class InstanceInfoTracker : MonoBehaviour
         //If ObjectType is SpecificItem
         public ItemIndex SourceItemIndex;
 
-        public InstanceOverrideInfo(string source = null, PlayerCharacterMasterController owner = null, ItemIndex sourceItemIndex = ItemIndex.None)
+        public PlayerCharacterMasterController[] PlayerOverride;
+
+        public InstanceOverrideInfo(string source = null, PlayerCharacterMasterController owner = null, ItemIndex sourceItemIndex = ItemIndex.None, PlayerCharacterMasterController[] playerOverride = null)
         {
             ObjectType = source;
             Owner = owner;
             SourceItemIndex = sourceItemIndex;
+            PlayerOverride = playerOverride;
         }
 
         public void AttachTo(GameObject obj)

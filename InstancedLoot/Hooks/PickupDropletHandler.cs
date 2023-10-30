@@ -20,14 +20,16 @@ public class PickupDropletHandler : AbstractHookHandler
     {
         IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 +=
             IL_PickupDropletController_CreatePickupDroplet;
-        IL.RoR2.PickupDropletController.OnCollisionEnter += ModifyDropletCollision;
+        // IL.RoR2.PickupDropletController.OnCollisionEnter += ModifyDropletCollision;
+        On.RoR2.PickupDropletController.OnCollisionEnter += On_PickupDropletController_OnCollisionEnter;
     }
 
     public override void UnregisterHooks()
     {
         IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 -=
             IL_PickupDropletController_CreatePickupDroplet;
-        IL.RoR2.PickupDropletController.OnCollisionEnter -= ModifyDropletCollision;
+        // IL.RoR2.PickupDropletController.OnCollisionEnter -= ModifyDropletCollision;
+        On.RoR2.PickupDropletController.OnCollisionEnter -= On_PickupDropletController_OnCollisionEnter;
     }
 
     private void IL_PickupDropletController_CreatePickupDroplet(ILContext il)
@@ -64,5 +66,20 @@ public class PickupDropletHandler : AbstractHookHandler
                     // instanceOverride.Info.AttachTo(pickupController.gameObject);
                 }
             });
+    }
+
+    private void On_PickupDropletController_OnCollisionEnter(On.RoR2.PickupDropletController.orig_OnCollisionEnter orig, PickupDropletController self, Collision collision)
+    {
+        if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
+        {
+            GenericPickupControllerHandler otherHandler = hookManager.GetHandler<GenericPickupControllerHandler>();
+            otherHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
+            orig(self, collision);
+            otherHandler.InstanceOverrideInfo = null;
+        }
+        else
+        {
+            orig(self, collision);
+        }
     }
 }

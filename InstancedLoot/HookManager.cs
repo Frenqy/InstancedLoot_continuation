@@ -21,11 +21,13 @@ public class HookManager
         // RegisterHandler<CommandHandler>();
         // RegisterHandler<PickupDropletOnCollisionOverrideHandler>();
         
-        RegisterHandler<ItemHandler>();
+        RegisterHandler<GenericPickupControllerHandler>();
         RegisterHandler<PingHandler>();
         RegisterHandler<DitherModelHandler>();
         RegisterHandler<SpawnCardHandler>();
         RegisterHandler<HologramProjectorHandler>();
+        RegisterHandler<PickupPickerControllerHandler>();
+        RegisterHandler<EventFunctionsHandler>();
         
         // RegisterHandler<InteractorHandler>();
     }
