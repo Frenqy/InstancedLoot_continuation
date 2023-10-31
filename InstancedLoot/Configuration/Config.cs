@@ -138,8 +138,6 @@ public class Config
             }
         }
         
-        Plugin._logger.LogDebug($"Gathered attributes in {sw.Elapsed}");
-        
         SortedSet<InstanceMode> defaultInstanceModes = new SortedSet<InstanceMode>
         {
             InstanceMode.Default, InstanceMode.None, InstanceMode.InstanceBoth, InstanceMode.InstanceItems,
