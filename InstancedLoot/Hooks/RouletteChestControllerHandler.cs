@@ -45,13 +45,13 @@ public class RouletteChestControllerHandler : AbstractHookHandler
             if (NetworkServer.active)
             {
                 string objName = self.name;
-                string source = null;
+                string objectType = null;
                 
-                if(objName.StartsWith("CasinoChest")) source = Enums.ObjectType.CasinoChest;
+                if(objName.StartsWith("CasinoChest")) objectType = Enums.ObjectType.CasinoChest;
                 
-                Plugin._logger.LogWarning($"RouletteChestController registering {source}");
+                Plugin._logger.LogWarning($"RouletteChestController registering {objectType}");
                 
-                if(source != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(source));
+                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

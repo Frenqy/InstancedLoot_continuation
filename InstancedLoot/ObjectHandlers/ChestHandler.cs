@@ -9,7 +9,7 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class ChestHandler : AbstractObjectHandler
 {
-    public override string[] HandledSources => new string[]
+    public override string[] HandledObjectTypes => new string[]
     {
         ObjectType.Chest1, ObjectType.Chest2, ObjectType.GoldChest, ObjectType.Chest1StealthedVariant,
         ObjectType.CategoryChestDamage, ObjectType.CategoryChestHealing, ObjectType.CategoryChestUtility,
@@ -20,7 +20,7 @@ public class ChestHandler : AbstractObjectHandler
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
 
-    public override bool IsValidForObject(string source, GameObject gameObject)
+    public override bool IsValidForObject(string objectType, GameObject gameObject)
     {
         return gameObject.GetComponent<ChestBehavior>() != null;
     }

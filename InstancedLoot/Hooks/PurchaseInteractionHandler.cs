@@ -10,9 +10,6 @@ namespace InstancedLoot.Hooks;
 
 public class PurchaseInteractionHandler : AbstractHookHandler
 {
-    protected FieldInfo Field_PurchaseInteraction_rng =
-        typeof(PurchaseInteraction).GetField("rng", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-    
     public override void RegisterHooks()
     {
         On.RoR2.PurchaseInteraction.Awake += On_PurchaseInteraction_Awake;
@@ -30,6 +27,8 @@ public class PurchaseInteractionHandler : AbstractHookHandler
     private void On_PurchaseInteraction_Awake(On.RoR2.PurchaseInteraction.orig_Awake orig, PurchaseInteraction self)
     {
         orig(self);
+        
+        //Delay instancing until after shop terminals have been created
         self.StartCoroutine(HandleDelayedInstancing(self));
     }
 

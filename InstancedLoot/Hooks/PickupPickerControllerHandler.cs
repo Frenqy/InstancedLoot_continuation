@@ -10,9 +10,6 @@ namespace InstancedLoot.Hooks;
 
 public class PickupPickerControllerHandler : AbstractHookHandler
 {
-    private readonly MethodInfo Method_EventFunctions_DestroySelf =
-        typeof(EventFunctions).GetMethod("DestroySelf", BindingFlags.Instance | BindingFlags.Public);
-    
     public override void RegisterHooks()
     {
         On.RoR2.PickupPickerController.Awake += On_PickupPickerController_Awake;

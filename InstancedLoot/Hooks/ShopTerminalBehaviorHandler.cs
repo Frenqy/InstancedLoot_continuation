@@ -40,20 +40,20 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
                 orig(self);
                 
                 string objName = self.name;
-                string source = null;
+                string objectType = null;
                 
-                if(objName.StartsWith("TripleShop")) source = Enums.ObjectType.TripleShop;
-                if(objName.StartsWith("TripleShopLarge")) source = Enums.ObjectType.TripleShopLarge;
-                if(objName.StartsWith("TripleShopEquipment")) source = Enums.ObjectType.TripleShopEquipment;
+                if(objName.StartsWith("TripleShop")) objectType = Enums.ObjectType.TripleShop;
+                if(objName.StartsWith("TripleShopLarge")) objectType = Enums.ObjectType.TripleShopLarge;
+                if(objName.StartsWith("TripleShopEquipment")) objectType = Enums.ObjectType.TripleShopEquipment;
                 
-                if(objName.StartsWith("Duplicator")) source = Enums.ObjectType.Duplicator;
-                if(objName.StartsWith("DuplicatorLarge")) source = Enums.ObjectType.DuplicatorLarge;
-                if(objName.StartsWith("DuplicatorWild")) source = Enums.ObjectType.DuplicatorWild;
-                if(objName.StartsWith("DuplicatorMilitary")) source = Enums.ObjectType.DuplicatorMilitary;
+                if(objName.StartsWith("Duplicator")) objectType = Enums.ObjectType.Duplicator;
+                if(objName.StartsWith("DuplicatorLarge")) objectType = Enums.ObjectType.DuplicatorLarge;
+                if(objName.StartsWith("DuplicatorWild")) objectType = Enums.ObjectType.DuplicatorWild;
+                if(objName.StartsWith("DuplicatorMilitary")) objectType = Enums.ObjectType.DuplicatorMilitary;
                 
-                Plugin._logger.LogWarning($"ShopTerminalBehavior registering {source}");
+                Plugin._logger.LogWarning($"ShopTerminalBehavior registering {objectType}");
                 
-                if(source != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(source));
+                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

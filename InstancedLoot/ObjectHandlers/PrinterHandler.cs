@@ -6,7 +6,7 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class PrinterHandler : AbstractObjectHandler
 {
-    public override string[] HandledSources => new[]
+    public override string[] HandledObjectTypes => new[]
     {
         ObjectType.Duplicator, ObjectType.DuplicatorLarge, ObjectType.DuplicatorWild, ObjectType.DuplicatorMilitary
     };

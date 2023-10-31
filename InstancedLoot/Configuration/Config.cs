@@ -10,6 +10,20 @@ using RoR2;
 
 namespace InstancedLoot.Configuration;
 
+/*
+ * Terminology:
+ * 
+ * name: A configurable set of instancables, includes object types and aliases.
+ *       Configuration can be queried either for individual object types, or for aliases, names cover both cases.
+ * 
+ * object type/ObjectType: An object that can be instanced and/or a source of items which can be instanced.
+ *                         Includes things such as chests, shrines of blood, and the artifact of sacrifice.
+ * 
+ * aliases: Extra names for object types, which can be shared by multiple object types.
+ *          They serve the purpose of making configuration easier, by letting you change behavior for a class of objects.
+ *          The main example is Chests, which includes different sizes, cloaked chests, and category chests.
+ */
+
 public class Config
 {
     public readonly InstancedLoot Plugin;
@@ -22,25 +36,29 @@ public class Config
     public event Action OnConfigReady;
     public ConfigMigrator Migrator;
 
-    public delegate void ObjectTypesDelegate(ISet<string> names);
-    public delegate void DescribeObjectTypeDelegate(string objectType, SortedSet<string> description);
-    public delegate void ExtraNamesDelegate(string objectType, ISet<string> names);
+    public delegate void ObjectTypesDelegate(ISet<string> objectTypes);
+    public delegate void DescribeObjectTypeDelegate(string objectType, List<string> descriptions);
+    public delegate void GenerateAliasesDelegate(string objectType, ISet<string> aliases);
     public delegate void InstanceModesDelegate(string objectType, ISet<InstanceMode> modes);
     public delegate void ObjectInstanceModesDelegate(string objectType, ISet<ObjectInstanceMode> modes);
+    public delegate void DescribeAliasesDelegate(string alias, List<string> descriptions);
 
     public event ObjectTypesDelegate GenerateObjectTypes;
     public event DescribeObjectTypeDelegate DescribeObjectTypes;
-    public event ExtraNamesDelegate GenerateExtraNames;
+    public event GenerateAliasesDelegate GenerateAliases;
     public event InstanceModesDelegate LimitInstanceModes;
     public event ObjectInstanceModesDelegate GenerateObjectInstanceModes;
+    public event DescribeAliasesDelegate DescribeAliases;
 
-    public Dictionary<string, string[]> DefaultAliases = new();
-    public Dictionary<string, string> DefaultDescriptions = new();
+    public Dictionary<string, string[]> DefaultAliasesForObjectType = new();
+    public Dictionary<string, string> DefaultDescriptionsForObjectType = new();
+    public Dictionary<string, InstanceMode[]> DefaultInstanceModesForObjectType = new();
+    public Dictionary<string, string> DefaultDescriptionsForAliases = new();
 
     public Dictionary<string, ConfigEntry<InstanceMode>> ConfigEntriesForNames = new();
-    public Dictionary<string, SortedSet<string>> ExtraNames = new();
+    public Dictionary<string, SortedSet<string>> AliasesForObjectType = new();
+    public Dictionary<string, ObjectInstanceMode> ObjectInstanceModeForObject = new();
     public Dictionary<string, ConfigPreset> ConfigPresets = new();
-    public Dictionary<string, ObjectInstanceMode> ObjectInstanceModes = new();
 
     private Dictionary<string, InstanceMode> CachedInstanceModes = new();
 
@@ -53,9 +71,10 @@ public class Config
 
         GenerateObjectTypes += DefaultGenerateObjectTypes;
         DescribeObjectTypes += DefaultDescribeObjectTypes;
-        GenerateExtraNames += DefaultGenerateExtraNames;
+        GenerateAliases += DefaultGenerateAliases;
         LimitInstanceModes += DefaultLimitInstanceModes;
         GenerateObjectInstanceModes += DefaultGenerateObjectInstanceModes;
+        DescribeAliases += DefaultDescribeAliases;
         
         config.SettingChanged += ConfigOnSettingChanged;
 
@@ -77,28 +96,51 @@ public class Config
         SharePickupPickers = config.Bind("General", "SharePickupPickers", false,
             "Should pickup pickers be shared?\nIf true, pickup pickers (such as void orbs and command essences) will be shared among the players they are instanced for.\nA shared pickup picker can only be opened by one player, and will then drop an item that can be picked up separately.\nIf a pickup picker is not shared, then the item can be selected separately by each player.");
         
-        DefaultDescriptions.Clear();
-        DefaultAliases.Clear();
+        DefaultDescriptionsForObjectType.Clear();
+        DefaultAliasesForObjectType.Clear();
+        DefaultInstanceModesForObjectType.Clear();
         foreach (var field in typeof(ObjectType).GetFields(BindingFlags.Static | BindingFlags.Public))
         {
-            ObjectTypeDescriptionAttribute descriptionAttribute =
-                field.GetCustomAttributes<ObjectTypeDescriptionAttribute>().FirstOrDefault();
+            DescriptionAttribute descriptionAttribute =
+                field.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault();
             ObjectTypeAliasesAttribute aliasesAttribute =
                 field.GetCustomAttributes<ObjectTypeAliasesAttribute>().FirstOrDefault();
+            ObjectTypeDisableInstanceModesAttribute disableInstanceModesAttribute =
+                field.GetCustomAttributes<ObjectTypeDisableInstanceModesAttribute>().FirstOrDefault();
 
             if (field.GetValue(null) is not string objectType) continue;
             if (descriptionAttribute != null)
             {
-                DefaultDescriptions.Add(objectType, descriptionAttribute.Description);
+                DefaultDescriptionsForObjectType.Add(objectType, descriptionAttribute.Description);
             }
 
             if (aliasesAttribute != null)
             {
-                DefaultAliases.Add(objectType, aliasesAttribute.Aliases);
+                DefaultAliasesForObjectType.Add(objectType, aliasesAttribute.Aliases);
+            }
+
+            if (disableInstanceModesAttribute != null)
+            {
+                DefaultInstanceModesForObjectType.Add(objectType, disableInstanceModesAttribute.DisabledInstanceModes);
             }
         }
         
-        SortedSet<InstanceMode> allInstanceModes = new SortedSet<InstanceMode>
+        DefaultDescriptionsForAliases.Clear();
+        foreach (var field in typeof(ObjectAlias).GetFields(BindingFlags.Static | BindingFlags.Public))
+        {
+            DescriptionAttribute descriptionAttribute =
+                field.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault();
+
+            if (field.GetValue(null) is not string objectAlias) continue;
+            if (descriptionAttribute != null)
+            {
+                DefaultDescriptionsForAliases.Add(objectAlias, descriptionAttribute.Description);
+            }
+        }
+        
+        Plugin._logger.LogDebug($"Gathered attributes in {sw.Elapsed}");
+        
+        SortedSet<InstanceMode> defaultInstanceModes = new SortedSet<InstanceMode>
         {
             InstanceMode.Default, InstanceMode.None, InstanceMode.InstanceBoth, InstanceMode.InstanceItems,
             InstanceMode.InstanceObject, InstanceMode.InstanceItemForOwnerOnly
@@ -109,61 +151,70 @@ public class Config
             ObjectInstanceMode.None // ObjectInstanceMode needs to be explicitly enabled
         };
 
-        SortedSet<string> sources = new();
-        SortedSet<string> allExtraNames = new();
+        SortedSet<string> objectTypes = new();
+        SortedSet<string> allAliases = new();
         Dictionary<string, SortedSet<InstanceMode>> instanceModeLimits = new();
         
-        GenerateObjectTypes!(sources);
+        GenerateObjectTypes!(objectTypes);
 
-        foreach (var source in sources)
+        foreach (var objectType in objectTypes)
         {
             SortedSet<ObjectInstanceMode> objectInstanceModes = new(defaultObjectInstanceModes);
-            GenerateObjectInstanceModes!(source, objectInstanceModes);
-            ObjectInstanceModes[source] = objectInstanceModes.Max;
-            SortedSet<InstanceMode> instanceModes = instanceModeLimits[source] = new(allInstanceModes);
-            LimitInstanceModes!(source, instanceModes);
+            GenerateObjectInstanceModes!(objectType, objectInstanceModes);
+            ObjectInstanceModeForObject[objectType] = objectInstanceModes.Max;
+            SortedSet<InstanceMode> instanceModes = instanceModeLimits[objectType] = new(defaultInstanceModes);
+            LimitInstanceModes!(objectType, instanceModes);
             if (instanceModes.Count == 0) continue;
-            SortedSet<string> extraNames = ExtraNames[source] = new SortedSet<string>();
-            GenerateExtraNames!(source, extraNames);
+            SortedSet<string> aliases = AliasesForObjectType[objectType] = new SortedSet<string>();
+            GenerateAliases!(objectType, aliases);
 
-            SortedSet<string> extraDescriptions = new();
-            DescribeObjectTypes!(source, extraDescriptions);
-            string extraDescription = String.Join("\n", extraDescriptions);
+            List<string> extraDescriptions = new();
+            DescribeObjectTypes!(objectType, extraDescriptions);
 
             string description = "Configure instancing for specific raw objectType";
-            if (extraDescription != "")
-                description += $"\n{extraDescription}";
+            if (extraDescriptions.Count > 0)
+                description += $"\n{String.Join("\n", extraDescriptions)}";
             
-            ConfigEntriesForNames[source] = config.Bind("Sources", source, InstanceMode.Default,
+            ConfigEntriesForNames[objectType] = config.Bind("ObjectTypes", objectType, InstanceMode.Default,
                 new ConfigDescription(description,
                     new AcceptableValuesInstanceMode(instanceModes)));
 
-            foreach (var extraName in extraNames)
+            foreach (var alias in aliases)
             {
-                SortedSet<InstanceMode> extraNameInstanceModes;
-                if (!instanceModeLimits.ContainsKey(extraName))
+                SortedSet<InstanceMode> aliasInstanceModes;
+                if (!instanceModeLimits.ContainsKey(alias))
                 {
-                    extraNameInstanceModes = instanceModeLimits[extraName] = new(instanceModes);
+                    aliasInstanceModes = instanceModeLimits[alias] = new(instanceModes);
                 }
                 else
                 {
-                    extraNameInstanceModes = instanceModeLimits[extraName];
-                    extraNameInstanceModes.IntersectWith(instanceModes);
+                    aliasInstanceModes = instanceModeLimits[alias];
+                    aliasInstanceModes.IntersectWith(instanceModes);
                 }
                 
-                LimitInstanceModes!(extraName, extraNameInstanceModes);
+                LimitInstanceModes!(alias, aliasInstanceModes);
 
-                allExtraNames.Add(extraName);
+                allAliases.Add(alias);
             }
         }
 
-        foreach (var extraName in allExtraNames)
+        foreach (var alias in allAliases)
         {
-            var instanceModeLimit = instanceModeLimits[extraName];
-            if(instanceModeLimit.Count > 0)
-                ConfigEntriesForNames[extraName] = config.Bind("Aliases", extraName, InstanceMode.Default,
-                    new ConfigDescription("Configure instancing for alias/group of sources",
-                        new AcceptableValuesInstanceMode(instanceModeLimits[extraName])));
+            var instanceModeLimit = instanceModeLimits[alias];
+            if (instanceModeLimit.Count > 0)
+            {
+                string description = "Configure instancing for alias/group of sources";
+                
+                List<string> extraDescriptions = new List<string>();
+                DescribeAliases!(alias, extraDescriptions);
+
+                if (extraDescriptions.Count > 0)
+                    description += $"\n{String.Join("\n", extraDescriptions)}";
+                
+                ConfigEntriesForNames[alias] = config.Bind("ObjectAliases", alias, InstanceMode.Default,
+                    new ConfigDescription(description,
+                        new AcceptableValuesInstanceMode(instanceModeLimits[alias])));
+            }
         }
     }
 
@@ -174,9 +225,9 @@ public class Config
         return null;
     }
 
-    public SortedSet<string> GetExtraNames(string objectType)
+    public SortedSet<string> GetAliases(string objectType)
     {
-        return ExtraNames.TryGetValue(objectType, out var extraNames) ? extraNames : null;
+        return AliasesForObjectType.TryGetValue(objectType, out var extraNames) ? extraNames : null;
     }
 
     public void MergeInstanceModes(ref InstanceMode orig, InstanceMode other)
@@ -193,27 +244,27 @@ public class Config
             return mode;
         
         ConfigPreset preset = GetPreset();
-        SortedSet<string> extraNames = GetExtraNames(objectType);
+        SortedSet<string> aliases = GetAliases(objectType);
 
         InstanceMode result = InstanceMode.None;
         
         if (preset != null)
         {
-            if (extraNames != null)
+            if (aliases != null)
             {
-                foreach (var name in extraNames)
+                foreach (var alias in aliases)
                 {
-                    MergeInstanceModes(ref result, preset.GetPresetForSource(name));
+                    MergeInstanceModes(ref result, preset.GetPresetForName(alias));
                 }
             }
-            MergeInstanceModes(ref result, preset.GetPresetForSource(objectType));
+            MergeInstanceModes(ref result, preset.GetPresetForName(objectType));
         }
         
-        if (extraNames != null)
+        if (aliases != null)
         {
-            foreach (var name in extraNames)
+            foreach (var alias in aliases)
             {
-                MergeInstanceModes(ref result, ConfigEntriesForNames[name].Value);
+                MergeInstanceModes(ref result, ConfigEntriesForNames[alias].Value);
             }
         }
         MergeInstanceModes(ref result, ConfigEntriesForNames[objectType].Value);
@@ -223,26 +274,26 @@ public class Config
         return result;
     }
 
-    private void DefaultGenerateObjectTypes(ISet<string> names)
+    private void DefaultGenerateObjectTypes(ISet<string> objectTypes)
     {
-        names.UnionWith(Plugin.ObjectHandlerManager.HandlersForSource.Keys);
+        objectTypes.UnionWith(Plugin.ObjectHandlerManager.HandlersForObjectType.Keys);
     }
 
-    private void DefaultDescribeObjectTypes(string objectType, SortedSet<string> descriptions)
+    private void DefaultDescribeObjectTypes(string objectType, List<string> descriptions)
     {
-        if (DefaultDescriptions.TryGetValue(objectType, out var description))
+        if (DefaultDescriptionsForObjectType.TryGetValue(objectType, out var description))
             descriptions.Add(description);
     }
     
-    private void DefaultGenerateExtraNames(string objectType, ISet<string> names)
+    private void DefaultGenerateAliases(string objectType, ISet<string> names)
     {
-        if(DefaultAliases.TryGetValue(objectType, out var aliases))
+        if(DefaultAliasesForObjectType.TryGetValue(objectType, out var aliases))
             names.UnionWith(aliases);
     }
 
-    private void DefaultLimitInstanceModes(string source, ISet<InstanceMode> modes)
+    private void DefaultLimitInstanceModes(string objectType, ISet<InstanceMode> modes)
     {
-        if (ObjectInstanceModes.TryGetValue(source, out var objectInstanceMode))
+        if (ObjectInstanceModeForObject.TryGetValue(objectType, out var objectInstanceMode))
         {
             if (objectInstanceMode == ObjectInstanceMode.None)
             {
@@ -251,22 +302,41 @@ public class Config
             }
         }
 
-        switch (source)
+        if (DefaultInstanceModesForObjectType.TryGetValue(objectType, out var instanceModes))
         {
-            case ObjectType.TripleShopEquipment:
-            case ObjectType.EquipmentBarrel:
-                modes.Remove(InstanceMode.InstanceBoth);
-                modes.Remove(InstanceMode.InstanceItems);
-                break;
+            modes.IntersectWith(instanceModes);
+        }
+
+        if (Plugin.ObjectHandlerManager.HandlersForObjectType.TryGetValue(objectType, out var objectHandler) && objectHandler.CanObjectBeOwned)
+        {
+            if (modes.Contains(InstanceMode.InstanceBoth))
+                modes.Add(InstanceMode.InstanceBothForOwnerOnly);
+            if (modes.Contains(InstanceMode.InstanceObject))
+                modes.Add(InstanceMode.InstanceObjectForOwnerOnly);
         }
     }
 
-    private void DefaultGenerateObjectInstanceModes(string source, ISet<ObjectInstanceMode> modes)
+    private void DefaultGenerateObjectInstanceModes(string objectType, ISet<ObjectInstanceMode> modes)
     {
-        if (Plugin.ObjectHandlerManager.HandlersForSource.TryGetValue(source, out var objectHandler))
+        if (Plugin.ObjectHandlerManager.HandlersForObjectType.TryGetValue(objectType, out var objectHandler))
         {
             modes.Add(objectHandler.ObjectInstanceMode);
         }
+    }
+
+    private void DefaultDescribeAliases(string alias, List<string> descriptions)
+    {
+        if (DefaultDescriptionsForAliases.TryGetValue(alias, out var description))
+            descriptions.Add(description);
+
+        SortedSet<string> baseNames = new();
+        foreach (var entry in AliasesForObjectType)
+        {
+            if (entry.Value.Contains(alias))
+                baseNames.Add(entry.Key);
+        }
+        
+        descriptions.Add($"Full list of included object types:\n{String.Join(", ", baseNames)}");
     }
 
     private void CheckReadyStatus()

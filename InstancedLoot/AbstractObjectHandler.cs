@@ -23,15 +23,16 @@ public abstract class AbstractObjectHandler
         Manager = manager;
     }
     
-    public abstract string[] HandledSources { get; }
+    public abstract string[] HandledObjectTypes { get; }
     public abstract ObjectInstanceMode ObjectInstanceMode { get; }
+    public virtual bool CanObjectBeOwned => false;
 
-    public virtual bool IsValidForObject(string source, GameObject gameObject)
+    public virtual bool IsValidForObject(string objectType, GameObject gameObject)
     {
         return true;
     }
 
-    public virtual void InstanceObject(string source, GameObject gameObject, PlayerCharacterMasterController[] players)
+    public virtual void InstanceObject(string objectType, GameObject gameObject, PlayerCharacterMasterController[] players)
     {
         InstanceHandler[] instanceHandlers;
         PlayerCharacterMasterController[] primaryPlayers;
@@ -46,7 +47,7 @@ public abstract class AbstractObjectHandler
 
             for (int i = 1; i < players.Length; i++)
             {
-                GameObject newInstance = CloneObject(source, gameObject);
+                GameObject newInstance = CloneObject(objectType, gameObject);
                 instanceHandlers[i] = InstanceSingleObjectFrom(gameObject, newInstance, new[]
                 {
                     players[i]
@@ -76,7 +77,7 @@ public abstract class AbstractObjectHandler
         }
     }
 
-    public virtual GameObject CloneObject(string source, GameObject gameObject)
+    public virtual GameObject CloneObject(string objectType, GameObject gameObject)
     {
         GameObject clone = null;
         

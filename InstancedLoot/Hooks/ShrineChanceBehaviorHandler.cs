@@ -52,13 +52,13 @@ public class ShrineChanceBehaviorHandler : AbstractHookHandler
             if (NetworkServer.active)
             {
                 string objName = self.name;
-                string source = null;
+                string objectType = null;
                 
-                if(objName.StartsWith("ShrineChance")) source = Enums.ObjectType.ShrineChance;
+                if(objName.StartsWith("ShrineChance")) objectType = Enums.ObjectType.ShrineChance;
                 
-                Plugin._logger.LogWarning($"ShrineChanceBehavior registering {source}");
+                Plugin._logger.LogWarning($"ShrineChanceBehavior registering {objectType}");
                 
-                if(source != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(source));
+                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

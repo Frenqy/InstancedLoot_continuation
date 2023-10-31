@@ -7,14 +7,14 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class OptionChestHandler : AbstractObjectHandler
 {
-    public override string[] HandledSources => new string[]
+    public override string[] HandledObjectTypes => new[]
     {
         ObjectType.VoidTriple, ObjectType.LockboxVoid,
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
 
-    public override bool IsValidForObject(string source, GameObject gameObject)
+    public override bool IsValidForObject(string objectType, GameObject gameObject)
     {
         return gameObject.GetComponent<OptionChestBehavior>() != null;
     }

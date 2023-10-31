@@ -24,9 +24,9 @@ public class InstanceInfoTracker : MonoBehaviour
 
         public PlayerCharacterMasterController[] PlayerOverride;
 
-        public InstanceOverrideInfo(string source = null, PlayerCharacterMasterController owner = null, ItemIndex sourceItemIndex = ItemIndex.None, PlayerCharacterMasterController[] playerOverride = null)
+        public InstanceOverrideInfo(string objectType = null, PlayerCharacterMasterController owner = null, ItemIndex sourceItemIndex = ItemIndex.None, PlayerCharacterMasterController[] playerOverride = null)
         {
-            ObjectType = source;
+            ObjectType = objectType;
             Owner = owner;
             SourceItemIndex = sourceItemIndex;
             PlayerOverride = playerOverride;

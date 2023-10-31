@@ -44,14 +44,14 @@ public class OptionChestBehaviorHandler : AbstractHookHandler
             if (NetworkServer.active)
             {
                 string objName = self.name;
-                string source = null;
+                string objectType = null;
                 
-                if(objName.StartsWith("LockboxVoid")) source = Enums.ObjectType.LockboxVoid;
-                if(objName.StartsWith("VoidTriple")) source = Enums.ObjectType.VoidTriple;
+                if(objName.StartsWith("LockboxVoid")) objectType = Enums.ObjectType.LockboxVoid;
+                if(objName.StartsWith("VoidTriple")) objectType = Enums.ObjectType.VoidTriple;
                 
-                Plugin._logger.LogWarning($"OptionChestBehavior registering {source}");
+                Plugin._logger.LogWarning($"OptionChestBehavior registering {objectType}");
                 
-                if(source != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(source));
+                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

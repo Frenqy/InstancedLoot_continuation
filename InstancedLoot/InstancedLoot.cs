@@ -25,7 +25,6 @@ using UnityEngine.Networking;
 //TODO: Instance pickup droplets for dithering
 //TODO: Redirect pings
 //TODO: Try to clean up MultiShops - Timing jank
-//TODO: Ways to attach extra description to itemsources and aliases - aliases left
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -78,8 +77,7 @@ public class InstancedLoot : BaseUnityPlugin
 
         // TODO: Check if this works for non-hooks
         // Cleanup any leftover hooks
-        HookEndpointManager.RemoveAllOwnedBy(
-            HookEndpointManager.GetOwner((Action)OnDisable));
+        HookEndpointManager.RemoveAllOwnedBy(HookEndpointManager.GetOwner((Action)OnDisable));
         
         foreach (var instanceHandler in FindObjectsOfType<InstanceHandler>())
         {
@@ -110,13 +108,13 @@ public class InstancedLoot : BaseUnityPlugin
 
     public void HandleInstancingNextTick(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo)
     {
-        StartCoroutine(HandleInstancingNextTick_Internal(obj, overrideInfo));
-    }
-
-    private IEnumerator HandleInstancingNextTick_Internal(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo)
-    {
-        yield return 0;
-        HandleInstancing(obj, overrideInfo);
+        StartCoroutine(HandleInstancingNextTickInternal());
+        
+        IEnumerator HandleInstancingNextTickInternal()
+        {
+            yield return 0;
+            HandleInstancing(obj, overrideInfo);
+        }
     }
 
     public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null)
@@ -129,7 +127,7 @@ public class InstancedLoot : BaseUnityPlugin
 
         string objectType = overrideInfo?.ObjectType ?? instanceInfoTracker?.ObjectType;
         PlayerCharacterMasterController owner = overrideInfo?.Owner ?? instanceInfoTracker?.Owner;
-        Logger.LogDebug($"source: {objectType}, owner: {owner?.GetDisplayName()}");
+        Logger.LogDebug($"objectType: {objectType}, owner: {owner?.GetDisplayName()}");
 
         if (instanceInfoTracker == null && objectType == null)
             return;
@@ -153,6 +151,11 @@ public class InstancedLoot : BaseUnityPlugin
                 case InstanceMode.InstanceObject:
                     shouldInstance = true;
                     ownerOnly = false;
+                    break;
+                case InstanceMode.InstanceBothForOwnerOnly:
+                case InstanceMode.InstanceObjectForOwnerOnly:
+                    shouldInstance = true;
+                    ownerOnly = true;
                     break;
             }
         }

@@ -1,12 +1,13 @@
 using System;
+using InstancedLoot.Enums;
 
 namespace InstancedLoot.Configuration.Attributes;
 
 [AttributeUsage(AttributeTargets.Field)]
-public class ObjectTypeDescriptionAttribute : Attribute
+public class DescriptionAttribute : Attribute
 {
     public string Description;
-    public ObjectTypeDescriptionAttribute(string description)
+    public DescriptionAttribute(string description)
     {
         Description = description;
     }
@@ -19,5 +20,15 @@ public class ObjectTypeAliasesAttribute : Attribute
     public ObjectTypeAliasesAttribute(string[] aliases)
     {
         Aliases = aliases;
+    }
+}
+
+[AttributeUsage(AttributeTargets.Field)]
+public class ObjectTypeDisableInstanceModesAttribute : Attribute
+{
+    public InstanceMode[] DisabledInstanceModes;
+    public ObjectTypeDisableInstanceModesAttribute(InstanceMode[] disabledInstanceModes)
+    {
+        DisabledInstanceModes = disabledInstanceModes;
     }
 }

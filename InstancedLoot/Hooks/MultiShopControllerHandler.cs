@@ -45,16 +45,16 @@ public class MultiShopControllerHandler : AbstractHookHandler
                 orig(self);
                 
                 string objName = self.name;
-                string source = null;
+                string objectType = null;
                 
-                if(objName.StartsWith("TripleShop")) source = Enums.ObjectType.TripleShop;
+                if(objName.StartsWith("TripleShop")) objectType = Enums.ObjectType.TripleShop;
                 // if(objName.StartsWith("TripleShopLarge")) source = Enums.ObjectType.TripleShopLarge;
-                if(objName.StartsWith("TripleShopEquipment")) source = Enums.ObjectType.TripleShopEquipment;
-                if(objName.StartsWith("FreeChestMultiShop")) source = Enums.ObjectType.FreeChestMultiShop;
+                if(objName.StartsWith("TripleShopEquipment")) objectType = Enums.ObjectType.TripleShopEquipment;
+                if(objName.StartsWith("FreeChestMultiShop")) objectType = Enums.ObjectType.FreeChestMultiShop;
                 
-                Plugin._logger.LogWarning($"MultiShopController registering {source}");
+                Plugin._logger.LogWarning($"MultiShopController registering {objectType}");
                 
-                if(source != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(source));
+                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

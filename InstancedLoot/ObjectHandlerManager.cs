@@ -10,7 +10,7 @@ namespace InstancedLoot;
 public class ObjectHandlerManager
 {
     public readonly Dictionary<Type, AbstractObjectHandler> ObjectHandlers = new();
-    public readonly Dictionary<string, AbstractObjectHandler> HandlersForSource = new();
+    public readonly Dictionary<string, AbstractObjectHandler> HandlersForObjectType = new();
     public readonly InstancedLoot Plugin;
 
     public ObjectHandlerManager(InstancedLoot pluginInstance)
@@ -31,9 +31,9 @@ public class ObjectHandlerManager
         var instance = new T();
         instance.Init(this);
         ObjectHandlers[typeof(T)] = instance;
-        foreach (var source in instance.HandledSources)
+        foreach (var source in instance.HandledObjectTypes)
         {
-            HandlersForSource[source] = instance;
+            HandlersForObjectType[source] = instance;
         }
     }
 
@@ -42,19 +42,19 @@ public class ObjectHandlerManager
         return (T)ObjectHandlers[typeof(T)];
     }
 
-    public void InstanceObject(string source, GameObject gameObject, PlayerCharacterMasterController[] players)
+    public void InstanceObject(string objectType, GameObject gameObject, PlayerCharacterMasterController[] players)
     {
-        HandlersForSource[source].InstanceObject(source, gameObject, players);
+        HandlersForObjectType[objectType].InstanceObject(objectType, gameObject, players);
     }
 
-    public InstanceHandler InstanceSingleObject(string source, GameObject sourceGameObject, GameObject targetGameObject, PlayerCharacterMasterController[] players)
+    public InstanceHandler InstanceSingleObject(string objectType, GameObject sourceGameObject, GameObject targetGameObject, PlayerCharacterMasterController[] players)
     {
-        return HandlersForSource[source].InstanceSingleObjectFrom(sourceGameObject, targetGameObject, players);
+        return HandlersForObjectType[objectType].InstanceSingleObjectFrom(sourceGameObject, targetGameObject, players);
     }
 
-    public bool CanInstanceObject(string source, GameObject gameObject)
+    public bool CanInstanceObject(string objectType, GameObject gameObject)
     {
-        return HandlersForSource.TryGetValue(source, out var objectHandler)
-               && objectHandler.IsValidForObject(source, gameObject);
+        return HandlersForObjectType.TryGetValue(objectType, out var objectHandler)
+               && objectHandler.IsValidForObject(objectType, gameObject);
     }
 }

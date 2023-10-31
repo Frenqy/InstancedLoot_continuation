@@ -17,8 +17,8 @@ public class ConfigPreset
         Configuration = configuration;
     }
 
-    public virtual InstanceMode GetPresetForSource(string source)
+    public virtual InstanceMode GetPresetForName(string name)
     {
-        return Configuration.TryGetValue(source, out var value) ? value : InstanceMode.None;
+        return Configuration.TryGetValue(name, out var value) ? value : InstanceMode.None;
     }
 }

@@ -51,25 +51,25 @@ public class ChestBehaviorHandler : AbstractHookHandler
             if (NetworkServer.active)
             {
                 string objName = self.name;
-                string source = null;
+                string objectType = null;
                 
-                if(objName.StartsWith("Chest1")) source = Enums.ObjectType.Chest1;
-                if(objName.StartsWith("Chest2")) source = Enums.ObjectType.Chest2;
-                if(objName.StartsWith("GoldChest")) source = Enums.ObjectType.GoldChest;
-                if(objName.StartsWith("Chest1StealthedVariant")) source = Enums.ObjectType.Chest1StealthedVariant;
-                if(objName.StartsWith("CategoryChestDamage")) source = Enums.ObjectType.CategoryChestDamage;
-                if(objName.StartsWith("CategoryChestHealing")) source = Enums.ObjectType.CategoryChestHealing;
-                if(objName.StartsWith("CategoryChestUtility")) source = Enums.ObjectType.CategoryChestUtility;
-                if(objName.StartsWith("CategoryChest2Damage")) source = Enums.ObjectType.CategoryChest2Damage;
-                if(objName.StartsWith("CategoryChest2Healing")) source = Enums.ObjectType.CategoryChest2Healing;
-                if(objName.StartsWith("CategoryChest2Utility")) source = Enums.ObjectType.CategoryChest2Utility;
-                if(objName.StartsWith("EquipmentBarrel")) source = Enums.ObjectType.EquipmentBarrel;
-                if(objName.StartsWith("LunarChest")) source = Enums.ObjectType.LunarChest;
-                if(objName.StartsWith("VoidChest")) source = Enums.ObjectType.VoidChest;
+                if(objName.StartsWith("Chest1")) objectType = Enums.ObjectType.Chest1;
+                if(objName.StartsWith("Chest2")) objectType = Enums.ObjectType.Chest2;
+                if(objName.StartsWith("GoldChest")) objectType = Enums.ObjectType.GoldChest;
+                if(objName.StartsWith("Chest1StealthedVariant")) objectType = Enums.ObjectType.Chest1StealthedVariant;
+                if(objName.StartsWith("CategoryChestDamage")) objectType = Enums.ObjectType.CategoryChestDamage;
+                if(objName.StartsWith("CategoryChestHealing")) objectType = Enums.ObjectType.CategoryChestHealing;
+                if(objName.StartsWith("CategoryChestUtility")) objectType = Enums.ObjectType.CategoryChestUtility;
+                if(objName.StartsWith("CategoryChest2Damage")) objectType = Enums.ObjectType.CategoryChest2Damage;
+                if(objName.StartsWith("CategoryChest2Healing")) objectType = Enums.ObjectType.CategoryChest2Healing;
+                if(objName.StartsWith("CategoryChest2Utility")) objectType = Enums.ObjectType.CategoryChest2Utility;
+                if(objName.StartsWith("EquipmentBarrel")) objectType = Enums.ObjectType.EquipmentBarrel;
+                if(objName.StartsWith("LunarChest")) objectType = Enums.ObjectType.LunarChest;
+                if(objName.StartsWith("VoidChest")) objectType = Enums.ObjectType.VoidChest;
                 
-                Plugin._logger.LogWarning($"ChestBehavior registering {source}");
+                Plugin._logger.LogWarning($"ChestBehavior registering {objectType}");
                 
-                if(source != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(source));
+                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

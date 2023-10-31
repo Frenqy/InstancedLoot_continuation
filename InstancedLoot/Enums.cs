@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using InstancedLoot.Configuration.Attributes;
-using DescriptionAttribute = InstancedLoot.Configuration.Attributes.ObjectTypeDescriptionAttribute;
 using AliasesAttribute = InstancedLoot.Configuration.Attributes.ObjectTypeAliasesAttribute;
 
 namespace InstancedLoot.Enums;
@@ -13,7 +12,9 @@ public enum InstanceMode
     InstanceObject,
     InstanceItems,
     InstanceBoth,
-    InstanceItemForOwnerOnly
+    InstanceObjectForOwnerOnly,
+    InstanceItemForOwnerOnly,
+    InstanceBothForOwnerOnly
 }
 
 public enum ObjectInstanceMode
@@ -26,112 +27,113 @@ public enum ObjectInstanceMode
 public static class ObjectType
 {
     [Description("Small chest")]
-    [Aliases(new []{ "Chests", "ChestsSmall" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string Chest1 = "Chest1";
     [Description("Big chest")]
-    [Aliases(new []{ "Chests", "ChestsBig" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsBig })]
     public const string Chest2 = "Chest2";
     [Description("Legendary/golden chest")]
-    [Aliases(new []{ "Chests" })]
+    [Aliases(new []{ ObjectAlias.Chests })]
     public const string GoldChest = "GoldChest";
     [Description("Stealth chest")]
-    [Aliases(new []{ "Chests", "ChestsSmall" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string Chest1StealthedVariant = "Chest1StealthedVariant";
     
     [Description("Adaptive chest")]
-    [Aliases(new []{ "Chests"})]
+    [Aliases(new []{ ObjectAlias.Chests})]
     public const string CasinoChest = "CasinoChest";
     [Description("Shrine of chance")]
-    [Aliases(new []{ "Shrines" })]
+    [Aliases(new []{ ObjectAlias.Shrines })]
     public const string ShrineChance = "ShrineChance";
     
     [Description("Equipment barrel\nNote: Equipment itself currently cannot be instanced due to swapping behavior")]
-    [Aliases(new []{ "Equipment" })]
+    [Aliases(new []{ ObjectAlias.Equipment })]
     public const string EquipmentBarrel = "EquipmentBarrel";
     
     [Description("Multishop/Triple shop")]
-    [Aliases(new []{ "Shops" })]
+    [Aliases(new []{ ObjectAlias.Shops })]
     public const string TripleShop = "TripleShop";
     [Description("Large Multishop/Triple shop")]
-    [Aliases(new []{ "Shops" })]
+    [Aliases(new []{ ObjectAlias.Shops })]
     public const string TripleShopLarge = "TripleShopLarge";
-    [Description("Equipment Multishop/Triple shop\nnNote: Equipment itself currently cannot be instanced due to swapping behavior")]
-    [Aliases(new []{ "Shops", "Equipment" })]
+    [Description("Equipment Multishop/Triple shop\nNote: Equipment itself currently cannot be instanced due to swapping behavior")]
+    [Aliases(new []{ ObjectAlias.Shops, ObjectAlias.Equipment })]
+    [ObjectTypeDisableInstanceModes(new [] { InstanceMode.InstanceItems, InstanceMode.InstanceBoth})]
     public const string TripleShopEquipment = "TripleShopEquipment";
     
     [Description("Scrapper")]
-    // [Aliases(new []{ "Chests", "ChestsSmall" })]
+    // [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string Scrapper = "Scrapper";
     [Description("3D Printer (White items)")]
-    [Aliases(new []{ "Printers" })]
+    [Aliases(new []{ ObjectAlias.Printers })]
     public const string Duplicator = "Duplicator";
     [Description("3D Printer (Green items)")]
-    [Aliases(new []{ "Printers" })]
+    [Aliases(new []{ ObjectAlias.Printers })]
     public const string DuplicatorLarge = "DuplicatorLarge";
     [Description("Mili-tech printer (Red items)")]
-    [Aliases(new []{ "Printers" })]
+    [Aliases(new []{ ObjectAlias.Printers })]
     public const string DuplicatorMilitary = "DuplicatorMilitary";
     [Description("Overgrown 3D printer (Yellow items)")]
-    [Aliases(new []{ "Printers" })]
+    [Aliases(new []{ ObjectAlias.Printers })]
     public const string DuplicatorWild = "DuplicatorWild";
     // public const string Barrel1 = "Barrel1"; // Barrels give benefits to everybody, let's not do this one
     [Description("Lunar coin")]
-    // [Aliases(new []{ "Chests", "ChestsSmall" })]
+    // [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string PickupLunarCoin = "PickupLunarCoin";
     
     [Description("Rusty lockbox (Rusted key lockbox)")]
-    [Aliases(new []{ "ItemSpawned", "PaidWithItem" })]
+    [Aliases(new []{ ObjectAlias.ItemSpawned, ObjectAlias.PaidWithItem })]
     public const string TreasureCache = "TreasureCache";
     [Description("Lunar pod")]
-    [Aliases(new []{ "Lunar" })]
+    [Aliases(new []{ ObjectAlias.Lunar })]
     public const string LunarChest = "LunarChest"; //Lunar pod, ChestBehavior
     [Description("Shipping Request Form delivery")]
-    [Aliases(new []{ "ItemSpawned" })]
+    [Aliases(new []{ ObjectAlias.ItemSpawned })]
     public const string FreeChestMultiShop = "FreeChestMultiShop";
     
     [Description("Lunar cauldron (3 White -> 1 Green)")]
-    [Aliases(new []{ "Cauldrons" })]
+    [Aliases(new []{ ObjectAlias.Cauldrons })]
     public const string LunarCauldronWhiteToGreen = "LunarCauldron_WhiteToGreen";
     [Description("Lunar cauldron (5 Green -> 1 Red)")]
-    [Aliases(new []{ "Cauldrons" })]
+    [Aliases(new []{ ObjectAlias.Cauldrons })]
     public const string LunarCauldronGreenToRed = "LunarCauldron_GreenToRed";
     [Description("Lunar cauldron (1 Red -> 3 White)")]
-    [Aliases(new []{ "Cauldrons" })]
+    [Aliases(new []{ ObjectAlias.Cauldrons })]
     public const string LunarCauldronRedToWhite = "LunarCauldron_RedToWhite";
     [Description("Small chest")]
-    [Aliases(new []{ "Chests", "ChestsSmall" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string LunarRecycler = "LunarRecycler";
     [Description("Small chest")]
-    [Aliases(new []{ "Chests", "ChestsSmall" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string LunarShopTerminal = "LunarShopTerminal"; //ShopTerminalBehavior
     
     [Description("Small damage chest")]
-    [Aliases(new []{ "Chests", "ChestsSmall", "ChestsDamage" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall, ObjectAlias.ChestsDamage })]
     public const string CategoryChestDamage = "CategoryChestDamage";
     [Description("Small healing chest")]
-    [Aliases(new []{ "Chests", "ChestsSmall", "ChestsHealing" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall, ObjectAlias.ChestsHealing })]
     public const string CategoryChestHealing = "CategoryChestHealing";
     [Description("Small utility chest")]
-    [Aliases(new []{ "Chests", "ChestsSmall", "ChestsUtility" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall, ObjectAlias.ChestsUtility })]
     public const string CategoryChestUtility = "CategoryChestUtility";
     [Description("Big damage chest")]
-    [Aliases(new []{ "Chests", "ChestsBig", "ChestsDamage" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsBig, ObjectAlias.ChestsDamage })]
     public const string CategoryChest2Damage = "CategoryChest2Damage";
     [Description("Big healing chest")]
-    [Aliases(new []{ "Chests", "ChestsBig", "ChestsHealing" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsBig, ObjectAlias.ChestsHealing })]
     public const string CategoryChest2Healing = "CategoryChest2Healing";
     [Description("Big utility chest")]
-    [Aliases(new []{ "Chests", "ChestsBig", "ChestsUtility" })]
+    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsBig, ObjectAlias.ChestsUtility })]
     public const string CategoryChest2Utility = "CategoryChest2Utility";
     
     [Description("Void cradle")]
-    [Aliases(new []{ "Void" })]
+    [Aliases(new []{ ObjectAlias.Void })]
     public const string VoidChest = "VoidChest";
-    [Description("Void potential")]
-    [Aliases(new []{ "Void" })]
+    [Description("Void potential (The interactible that costs health, not the orb pickup)")]
+    [Aliases(new []{ ObjectAlias.Void })]
     public const string VoidTriple = "VoidTriple"; // Should probably be handled in a different, special way
     [Description("Encrusted lockbox (Encrusted key lockbox)")]
-    [Aliases(new []{ "Void", "ItemSpawned", "PaidWithItem" })]
+    [Aliases(new []{ ObjectAlias.Void, ObjectAlias.ItemSpawned, ObjectAlias.PaidWithItem })]
     public const string LockboxVoid = "LockboxVoid"; //OptionChestBehavior
     // public const string VoidBarrel = "VoidBarrel"; // Barrels give benefits to everybody, let's not do this one
     
@@ -139,35 +141,58 @@ public static class ObjectType
     // public const string OptionPickup = "OptionPickup";
 
     [Description("Sacrifice item drop")]
-    // [Aliases(new []{ "Special" })]
+    // [Aliases(new []{ ObjectAlias.Special })]
     public const string Sacrifice = "Sacrifice";
     [Description("Trophy Hunter's Tricorn ")]
-    // [Aliases(new []{ "Special" })]
+    // [Aliases(new []{ ObjectAlias.Special })]
     public const string HuntersTricorn = "TrophyHuntersTricorn";
     // public const string ShrineBoss = "ShrineBoss"; //ShrineBossBehavior
     [Description("Shrine of Blood")]
-    [Aliases(new []{ "Shrines" })]
+    [Aliases(new []{ ObjectAlias.Shrines })]
     public const string ShrineBlood = "ShrineBlood"; //ShrineBloodBehavior
     [Description("Void fields item drop")]
-    // [Aliases(new []{ "Chests", "ChestsSmall" })]
+    // [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string VoidFields = "VoidFields";
     [Description("Cleansing pool")]
-    [Aliases(new []{ "PaidWithItem" })]
+    [Aliases(new []{ ObjectAlias.PaidWithItem })]
     public const string ShrineCleanse = "ShrineCleanse"; //ShopTerminalBehavior //Cleansing pool
+}
 
-    // public static SortedSet<string> AllSources = new()
-    // {
-    //     Chest1, Chest2, GoldChest,
-    //     CasinoChest, ShrineChance,
-    //     EquipmentBarrel,
-    //     TripleShop, TripleShopLarge, TripleShopEquipment,
-    //     Scrapper, Barrel1, PickupLunarCoin,
-    //     TreasureCache, LunarChest, FreeChestMultiShop,
-    //     LunarCauldronWhiteToGreen, LunarCauldronGreenToRed, LunarCauldronRedToWhite,
-    //     LunarRecycler, LunarShopTerminal,
-    //     CategoryChestDamage, CategoryChestHealing, CategoryChestUtility,
-    //     CategoryChest2Damage, CategoryChest2Healing, CategoryChest2Utility,
-    //     VoidChest, VoidTriple, LockboxVoid, VoidBarrel,
-    //     Sacrifice, ShrineBoss,
-    // };
+public static class ObjectAlias
+{
+    [Description("All chests")]
+    public const string Chests = "Chests";
+    [Description("Small chests (primarily white items)")]
+    public const string ChestsSmall = "ChestsSmall";
+    [Description("Big chests (primarily green items)")]
+    public const string ChestsBig = "ChestsBig";
+    
+    [Description("Damage chests (only drop damage items)")]
+    public const string ChestsDamage = "ChestsDamage";
+    [Description("Healing chests (only drop healing items)")]
+    public const string ChestsHealing = "ChestsHealing";
+    [Description("Utility chests (only drop utility items)")]
+    public const string ChestsUtility = "ChestsUtility";
+    
+    [Description("Item shops - does not include equipment shops, due to equipment shops not supporting item instancing")]
+    public const string Shops = "Shops";
+    [Description("Item printers, does not include cauldrons")]
+    public const string Printers = "Printers";
+    [Description("Lunar cauldrons, effectively same as printers, but with exchange rates")]
+    public const string Cauldrons = "Cauldrons";
+    
+    [Description("Sources of lunar items")]
+    public const string Lunar = "Lunar";
+    [Description("Void-related objects")]
+    public const string Void = "Void";
+    
+    [Description("Spawned due to a player having an item. Instancing object for everybody not recommended.")]
+    public const string ItemSpawned = "ItemSpawned";
+    [Description("Objects that require item payment. Does not include printers for convenience. Examples include lockboxes and cleansing pools.")]
+    public const string PaidWithItem = "PaidWithItem";
+    
+    [Description("All supported shrines (chance, blood)")]
+    public const string Shrines = "Shrines";
+    [Description("Sources of guaranteed equipment\nNote: Equipment itself currently cannot be instanced due to swapping behavior")]
+    public const string Equipment = "Equipment";
 }

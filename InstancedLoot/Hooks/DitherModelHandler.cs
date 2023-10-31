@@ -65,7 +65,5 @@ public class DitherModelHandler : AbstractHookHandler
         cursor.Emit(OpCodes.Pop);
         
         cursor.MarkLabel(labelDone);
-        
-        // Plugin._logger.LogInfo(il);
     }
 }

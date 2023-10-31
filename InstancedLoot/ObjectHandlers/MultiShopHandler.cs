@@ -10,7 +10,7 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class MultiShopHandler : AbstractObjectHandler
 {
-    public override string[] HandledSources => new[]
+    public override string[] HandledObjectTypes => new[]
     {
         ObjectType.TripleShop,
         // ObjectType.TripleShopLarge, // As far as I'm aware, this one's unused.
@@ -20,7 +20,7 @@ public class MultiShopHandler : AbstractObjectHandler
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
 
-    public override bool IsValidForObject(string source, GameObject gameObject)
+    public override bool IsValidForObject(string objectType, GameObject gameObject)
     {
         return gameObject.GetComponent<MultiShopController>() != null ||
                gameObject.GetComponent<ShopTerminalBehavior>() != null;
@@ -35,11 +35,11 @@ public class MultiShopHandler : AbstractObjectHandler
         Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
     }
 
-    public override void InstanceObject(string source, GameObject gameObject, PlayerCharacterMasterController[] players)
+    public override void InstanceObject(string objectType, GameObject gameObject, PlayerCharacterMasterController[] players)
     {
-        base.InstanceObject(source, gameObject, players);
+        base.InstanceObject(objectType, gameObject, players);
         
-        LateInstanceShop(source, gameObject);
+        LateInstanceShop(objectType, gameObject);
     }
     
     public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
@@ -63,7 +63,7 @@ public class MultiShopHandler : AbstractObjectHandler
         return instanceHandler;
     }
 
-    internal void LateInstanceShop(string source, GameObject gameObject)
+    internal void LateInstanceShop(string objectType, GameObject gameObject)
     {
         InstanceHandler handler = gameObject.GetComponent<InstanceHandler>();
 
