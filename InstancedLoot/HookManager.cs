@@ -15,7 +15,7 @@ public class HookManager
 
         RegisterHandler<PickupDropletHandler>();
         RegisterHandler<PrinterTargetHandler>();
-        RegisterHandler<ScrapperTargetHandler>();
+        // RegisterHandler<ScrapperTargetHandler>();
         
         // RegisterHandler<CommandTargetHandler>();
         // RegisterHandler<CommandHandler>();
