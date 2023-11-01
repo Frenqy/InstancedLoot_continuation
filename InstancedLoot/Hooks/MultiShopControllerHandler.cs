@@ -31,7 +31,7 @@ public class MultiShopControllerHandler : AbstractHookHandler
             if (instanceHandler != null)
             {
                 MultiShopController source = instanceHandler.SourceObject.GetComponent<MultiShopController>();
-                
+
                 //Temporary RNG to create terminals
                 self.rng = new Xoroshiro128Plus(0);
                 
@@ -43,18 +43,19 @@ public class MultiShopControllerHandler : AbstractHookHandler
             else
             {
                 orig(self);
-                
+
                 string objName = self.name;
                 string objectType = null;
-                
-                if(objName.StartsWith("TripleShop")) objectType = Enums.ObjectType.TripleShop;
-                // if(objName.StartsWith("TripleShopLarge")) source = Enums.ObjectType.TripleShopLarge;
-                if(objName.StartsWith("TripleShopEquipment")) objectType = Enums.ObjectType.TripleShopEquipment;
-                if(objName.StartsWith("FreeChestMultiShop")) objectType = Enums.ObjectType.FreeChestMultiShop;
-                
+
+                if (objName.StartsWith("TripleShop")) objectType = Enums.ObjectType.TripleShop;
+                if(objName.StartsWith("TripleShopLarge")) objectType = Enums.ObjectType.TripleShopLarge;
+                if (objName.StartsWith("TripleShopEquipment")) objectType = Enums.ObjectType.TripleShopEquipment;
+                if (objName.StartsWith("FreeChestMultiShop")) objectType = Enums.ObjectType.FreeChestMultiShop;
+
                 Plugin._logger.LogWarning($"MultiShopController registering {objectType}");
-                
-                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
+
+                if (objectType != null)
+                    Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else
@@ -87,8 +88,13 @@ public class MultiShopControllerHandler : AbstractHookHandler
             
             InstanceHandler targetShopHandler = self.GetComponent<InstanceHandler>();
             InstanceInfoTracker instanceInfoTracker = self.GetComponent<InstanceInfoTracker>();
+
+            if (instanceInfoTracker != null)
+            {
+                instanceInfoTracker.Info.AttachTo(targetTerminal.gameObject);
+            }
             
-            if (targetTerminal.selfGeneratePickup && targetShopHandler != null && instanceInfoTracker != null)
+            if (targetShopHandler != null && instanceInfoTracker != null)
             {
                 skipInit = true;
                 

@@ -46,26 +46,28 @@ public class SyncInstanceHandlerSet : INetMessage
 
             target = Util.FindNetworkObject(_target);
             if (target == null) return false;
-            Debug.Log(target);
 
-            if (_origPlayer != NetworkInstanceId.Invalid)
+            if (isInstanced)
             {
-                origPlayer = Util.FindNetworkObject(_origPlayer);
-                if (origPlayer == null) return false;
-            }
+                if (_origPlayer != NetworkInstanceId.Invalid)
+                {
+                    origPlayer = Util.FindNetworkObject(_origPlayer);
+                    if (origPlayer == null) return false;
+                }
 
-            if (_sourceObject != NetworkInstanceId.Invalid)
-            {
-                sourceObject = Util.FindNetworkObject(_sourceObject);
-                if (sourceObject == null) return false;
-            }
+                if (_sourceObject != NetworkInstanceId.Invalid)
+                {
+                    sourceObject = Util.FindNetworkObject(_sourceObject);
+                    if (sourceObject == null) return false;
+                }
 
-            players = new GameObject[_players.Length];
-            for (int i = 0; i < _players.Length; i++)
-            {
-                var player = Util.FindNetworkObject(_players[i]);
-                if (player == null) return false;
-                players[i] = player;
+                players = new GameObject[_players.Length];
+                for (int i = 0; i < _players.Length; i++)
+                {
+                    var player = Util.FindNetworkObject(_players[i]);
+                    if (player == null) return false;
+                    players[i] = player;
+                }
             }
 
             validated = true;
@@ -74,12 +76,10 @@ public class SyncInstanceHandlerSet : INetMessage
 
         public void Serialize(NetworkWriter writer)
         {
-            // writer.Write(target);
             writer.Write(target.GetComponent<NetworkIdentity>().netId);
             writer.Write(isInstanced);
             if (isInstanced)
             {
-                // writer.Write(origPlayer);
                 writer.Write(origPlayer == null ? NetworkInstanceId.Invalid : origPlayer.GetComponent<NetworkIdentity>().netId);
                 writer.Write(sourceObject == null ? NetworkInstanceId.Invalid : sourceObject.GetComponent<NetworkIdentity>().netId);
                 writer.Write((int)objectInstanceMode);
@@ -87,7 +87,6 @@ public class SyncInstanceHandlerSet : INetMessage
                 writer.Write((int)players.Count());
                 foreach (var player in players)
                 {
-                    // writer.Write(player);
                     writer.Write(player.GetComponent<NetworkIdentity>().netId);
                 }
             }
@@ -97,26 +96,21 @@ public class SyncInstanceHandlerSet : INetMessage
         {
             InstanceHandlerEntry entry = new();
             entry.validated = false;
-            // entry.target = reader.ReadGameObject();
             entry._target = reader.ReadNetworkId();
             entry.isInstanced = reader.ReadBoolean();
             if (entry.isInstanced)
             {
-                // entry.origPlayer = reader.ReadGameObject();
                 entry._origPlayer = reader.ReadNetworkId();
                 entry._sourceObject = reader.ReadNetworkId();
                 entry.objectInstanceMode = (ObjectInstanceMode)reader.ReadInt32();
                 
                 int count = reader.ReadInt32();
-                // GameObject[] players = new GameObject[count];
                 NetworkInstanceId[] _players = new NetworkInstanceId[count];
                 for (int i = 0; i < count; i++)
                 {
-                    // players[i] = reader.ReadGameObject();
                     _players[i] = reader.ReadNetworkId();
                 }
                 
-                // entry.players = players;
                 entry._players = _players;
             }
 
@@ -177,38 +171,40 @@ public class SyncInstanceHandlerSet : INetMessage
     {
         if (NetworkServer.active)
         {
-            InstancedLoot.Instance._logger.LogWarning("SyncInstanceHandlerSet ran on Host, ignoring");
+            //This ran a lot, let's just ignore it silently
+            // InstancedLoot.Instance._logger.LogWarning("SyncInstanceHandlerSet ran on Host, ignoring");
             return;
         }
 
-        InstancedLoot.Instance.StartCoroutine(HandleMessageInternal());
+        InstancedLoot.Instance.StartCoroutine(HandleMessageInternal(instanceHandlerEntries));
     }
 
-    private IEnumerator HandleMessageInternal()
+    private IEnumerator HandleMessageInternal(InstanceHandlerEntry[] entries)
     {
         bool validated = false;
         int retryCount = 0;
         
         while (!validated)
         {
-            if (retryCount > 10)
+            if (retryCount > 40)
             {
                 InstancedLoot.Instance._logger.LogError($"SyncInstanceHandlerSet failed to process too many times; aborting.");
+                InstancedLoot.FailedSyncs.Add(entries);
                 yield break;
             }
 
             retryCount++;
             validated = true;
 
-            for(int i = 0; i < instanceHandlerEntries.Length; i++)
+            for(int i = 0; i < entries.Length; i++)
             {
-                validated = validated && instanceHandlerEntries[i].TryProcess();
+                validated = validated && entries[i].TryProcess();
             }
 
             if (!validated) yield return 0;
         }
 
-        foreach (var entry in instanceHandlerEntries)
+        foreach (var entry in entries)
         {
             InstanceHandler instanceHandler = entry.target.GetComponent<InstanceHandler>();
             if (entry.isInstanced)
@@ -236,7 +232,7 @@ public class SyncInstanceHandlerSet : INetMessage
                 UnityEngine.Object.Destroy(instanceHandler);
         }
 
-        InstanceHandler[] instanceHandlers = instanceHandlerEntries
+        InstanceHandler[] instanceHandlers = entries
             .Select(entry => entry.target.GetComponent<InstanceHandler>()).Where(handler => handler != null).ToArray();
 
         foreach (var instanceHandler in instanceHandlers)

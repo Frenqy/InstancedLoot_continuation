@@ -52,6 +52,8 @@ public class InstancedLoot : BaseUnityPlugin
         NetworkingAPI.RegisterMessageType<SyncInstanceHandlerSet>();
     }
 
+    public static List<SyncInstanceHandlerSet.InstanceHandlerEntry[]> FailedSyncs = new();
+
     public void Start()
     {
         ModConfig.Init();

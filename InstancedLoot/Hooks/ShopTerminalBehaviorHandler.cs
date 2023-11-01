@@ -1,3 +1,4 @@
+using System.Collections;
 using InstancedLoot.Components;
 using RoR2;
 using UnityEngine.Networking;
@@ -9,11 +10,13 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
     public override void RegisterHooks()
     {
         On.RoR2.ShopTerminalBehavior.Start += On_ShopTerminalBehavior_Start;
+        On.RoR2.ShopTerminalBehavior.DropPickup += On_ShopTerminalBehavior_DropPickup;
     }
 
     public override void UnregisterHooks()
     {
         On.RoR2.ShopTerminalBehavior.Start -= On_ShopTerminalBehavior_Start;
+        On.RoR2.ShopTerminalBehavior.DropPickup -= On_ShopTerminalBehavior_DropPickup;
     }
 
     private void On_ShopTerminalBehavior_Start(On.RoR2.ShopTerminalBehavior.orig_Start orig, ShopTerminalBehavior self)
@@ -22,29 +25,12 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
         {
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
 
-            if (instanceHandler != null)
-            {
-                ShopTerminalBehavior source = instanceHandler.SourceObject.GetComponent<ShopTerminalBehavior>();
-                
-                self.hasStarted = true;
-                self.rng = new Xoroshiro128Plus(source.rng);
-
-                if (self.selfGeneratePickup)
-                {
-                    self.NetworkpickupIndex = source.NetworkpickupIndex;
-                    self.Networkhidden = source.Networkhidden;
-                }
-            }
-            else
+            if (instanceHandler == null)
             {
                 orig(self);
                 
                 string objName = self.name;
                 string objectType = null;
-                
-                if(objName.StartsWith("TripleShop")) objectType = Enums.ObjectType.TripleShop;
-                if(objName.StartsWith("TripleShopLarge")) objectType = Enums.ObjectType.TripleShopLarge;
-                if(objName.StartsWith("TripleShopEquipment")) objectType = Enums.ObjectType.TripleShopEquipment;
                 
                 if(objName.StartsWith("Duplicator")) objectType = Enums.ObjectType.Duplicator;
                 if(objName.StartsWith("DuplicatorLarge")) objectType = Enums.ObjectType.DuplicatorLarge;
@@ -55,6 +41,24 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
                 
                 if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
+        }
+        else
+        {
+            orig(self);
+        }
+    }
+
+    private void On_ShopTerminalBehavior_DropPickup(On.RoR2.ShopTerminalBehavior.orig_DropPickup orig, ShopTerminalBehavior self)
+    {
+        InstanceInfoTracker instanceInfoTracker = self.GetComponent<InstanceInfoTracker>();
+
+        if (instanceInfoTracker != null)
+        {
+            PickupDropletHandler pickupDropletHandler = hookManager.GetHandler<PickupDropletHandler>();
+            
+            pickupDropletHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
+            orig(self);
+            pickupDropletHandler.InstanceOverrideInfo = null;
         }
         else
         {

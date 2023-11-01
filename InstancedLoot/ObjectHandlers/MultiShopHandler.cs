@@ -5,6 +5,7 @@ using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
 using RoR2;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace InstancedLoot.ObjectHandlers;
 
@@ -45,8 +46,11 @@ public class MultiShopHandler : AbstractObjectHandler
     public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
         PlayerCharacterMasterController[] players)
     {
+        InstanceHandler instanceHandler = base.InstanceSingleObjectFrom(source, target, players);
+        
         if (source == target)
         {
+            InstanceInfoTracker instanceInfoTracker = source.GetComponent<InstanceInfoTracker>();
             MultiShopController multiShopController = source.GetComponent<MultiShopController>();
     
             if (multiShopController != null)
@@ -54,11 +58,12 @@ public class MultiShopHandler : AbstractObjectHandler
                 foreach (var terminalGameObject in multiShopController.terminalGameObjects)
                 {
                     InstanceSingleObjectFrom(terminalGameObject, terminalGameObject, players);
+                    
+                    if(instanceInfoTracker != null)
+                        instanceInfoTracker.Info.AttachTo(terminalGameObject);
                 }
             }
         }
-        
-        InstanceHandler instanceHandler = base.InstanceSingleObjectFrom(source, target, players);
     
         return instanceHandler;
     }
@@ -78,7 +83,7 @@ public class MultiShopHandler : AbstractObjectHandler
             MultiShopController[] shops = handlers.Select(handler => handler.GetComponent<MultiShopController>()).ToArray();
 
             int debugCounter = 10;
-            while (!shops.All(shop => shop.terminalGameObjects.Length > 0))
+            while (shops.Any(shop => shop.terminalGameObjects.Length == 0))
             {
                 yield return 0;
                 debugCounter--;
@@ -101,6 +106,8 @@ public class MultiShopHandler : AbstractObjectHandler
                     linkedHandlers[instanceIndex] = terminals[instanceIndex][i];
                     terminals[instanceIndex][i].LinkedHandlers = linkedHandlers;
                 }
+                
+                terminals[0][i].SyncPlayers();
                 
                 for (int instanceIndex = 0; instanceIndex < terminals.Length; instanceIndex++)
                 {
