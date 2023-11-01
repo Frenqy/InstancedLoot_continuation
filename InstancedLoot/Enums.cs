@@ -14,7 +14,8 @@ public enum InstanceMode
     InstanceBoth,
     InstanceObjectForOwnerOnly,
     InstanceItemForOwnerOnly,
-    InstanceBothForOwnerOnly
+    InstanceBothForOwnerOnly,
+    InstancePreferred
 }
 
 public enum ObjectInstanceMode

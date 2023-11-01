@@ -12,13 +12,14 @@ public class ConfigPreset
     {
     }
 
-    public ConfigPreset(Dictionary<string, InstanceMode> configuration)
+    public ConfigPreset(string description, Dictionary<string, InstanceMode> configuration)
     {
+        Description = description;
         Configuration = configuration;
     }
 
     public virtual InstanceMode GetConfigForName(string name)
     {
-        return Configuration.TryGetValue(name, out var value) ? value : InstanceMode.None;
+        return Configuration.TryGetValue(name, out var value) ? value : InstanceMode.Default;
     }
 }

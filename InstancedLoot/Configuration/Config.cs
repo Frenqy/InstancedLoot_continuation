@@ -7,6 +7,7 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using InstancedLoot.Configuration.Attributes;
 using RoR2;
+using UnityEngine;
 
 namespace InstancedLoot.Configuration;
 
@@ -31,6 +32,8 @@ public class Config
 
     public ConfigEntry<string> SelectedPreset;
     public ConfigEntry<bool> SharePickupPickers;
+    public ConfigEntry<InstanceMode> PreferredInstanceMode;
+    public ConfigEntry<bool> ReduceInteractibleBudget;
 
     public bool Ready => true;
     public event Action OnConfigReady;
@@ -42,6 +45,7 @@ public class Config
     public delegate void InstanceModesDelegate(string objectType, ISet<InstanceMode> modes);
     public delegate void ObjectInstanceModesDelegate(string objectType, ISet<ObjectInstanceMode> modes);
     public delegate void DescribeAliasesDelegate(string alias, List<string> descriptions);
+    public delegate void GenerateConfigPresetsDelegate(Dictionary<string, ConfigPreset> presets);
 
     public event ObjectTypesDelegate GenerateObjectTypes;
     public event DescribeObjectTypeDelegate DescribeObjectTypes;
@@ -49,6 +53,7 @@ public class Config
     public event InstanceModesDelegate LimitInstanceModes;
     public event ObjectInstanceModesDelegate GenerateObjectInstanceModes;
     public event DescribeAliasesDelegate DescribeAliases;
+    public event GenerateConfigPresetsDelegate GenerateConfigPresets;
 
     public Dictionary<string, string[]> DefaultAliasesForObjectType = new();
     public Dictionary<string, string> DefaultDescriptionsForObjectType = new();
@@ -59,6 +64,8 @@ public class Config
     public Dictionary<string, SortedSet<string>> AliasesForObjectType = new();
     public Dictionary<string, ObjectInstanceMode> ObjectInstanceModeForObject = new();
     public Dictionary<string, ConfigPreset> ConfigPresets = new();
+
+    public Dictionary<string, SortedSet<InstanceMode>> AvailableInstanceModesForObjectType = new();
 
     private Dictionary<string, InstanceMode> CachedInstanceModes = new();
 
@@ -75,6 +82,7 @@ public class Config
         LimitInstanceModes += DefaultLimitInstanceModes;
         GenerateObjectInstanceModes += DefaultGenerateObjectInstanceModes;
         DescribeAliases += DefaultDescribeAliases;
+        GenerateConfigPresets += DefaultGenerateConfigPresets;
         
         config.SettingChanged += ConfigOnSettingChanged;
 
@@ -87,14 +95,26 @@ public class Config
 
     public void Init()
     {
-        // SelectedPreset = config.Bind("General", "Preset", "Items",
-        //      new ConfigDescription($"Ready to use presets with sensible defaults.\nAvailable presets:\n{
-        //          string.Join("\n", ConfigPresets.Select(pair => $"{pair.Key}: {pair.Value.Description}"))
-        //      }", new AcceptableValueList<string>(ConfigPresets.Keys.ToArray())));
-        // ;
-
+        PreferredInstanceMode = config.Bind("General", "PreferredInstanceMode", InstanceMode.InstanceObject,
+            new ConfigDescription("Preferred instance mode used by some presets. When an entry specifies InstancePreferred for something, it is replaced with the value specified in this config.\n" +
+                                  "Note: In some cases the mode set here is not available for a specific object type or alias. In those cases, the mode is \"reduced\" to the closest option.\n" +
+                                  "This config entry also serves as an explanation for the available instance modes:\n" +
+                                  "None: Self-explanatory, this object does not get instanced, nor do items spawned from it\n" +
+                                  "Default: Do not override the preset/alias. If every value in the chain is Default, defaults to None.\n" +
+                                  "InstancePreferred: Use the configuration for PreferredInstanceMode for this entry. Provided for convenience and/or experimentation.\n" +
+                                  "InstanceObject: Spawn multiple copies of the object, one for each player, where each can only be opened by the owning player, and from which items can be picked up by any player\n" +
+                                  "InstanceItems: Keep one copy of the object that can be opened by anybody, but instance the spawned item, such that each player can pick it up independently\n" +
+                                  "InstanceBoth: Spawn multiple copies of the object, like InstanceObject, but also limit the resulting item such that it can only be picked up by the player who earned/bought it\n" +
+                                  "InstanceItemForOwnerOnly: Keep one copy of the object, and limit the resulting item to only be picked up by the player who earned/bought it.\n" +
+                                  "InstanceObjectForOwnerOnly: Keep one copy of the object, and limit opening it to only the owning player. This is only meaningful for objects that inherently belong to a player, like lockboxes. The resulting items are not instanced and can be picked up by any player.\n" +
+                                  "InstanceBothForOwnerOnly: Similar to InstanceObjectForOwnerOnly, but the resulting item can only be picked up by the owning player.",
+                new AcceptableValuesInstanceMode(new[] { InstanceMode.None, InstanceMode.InstanceItems, InstanceMode.InstanceBoth, InstanceMode.InstanceObject, InstanceMode.InstanceItemForOwnerOnly})));
         SharePickupPickers = config.Bind("General", "SharePickupPickers", false,
             "Should pickup pickers be shared?\nIf true, pickup pickers (such as void orbs and command essences) will be shared among the players they are instanced for.\nA shared pickup picker can only be opened by one player, and will then drop an item that can be picked up separately.\nIf a pickup picker is not shared, then the item can be selected separately by each player.");
+        ReduceInteractibleBudget = config.Bind("General", "ReduceInteractibleBudget", true,
+            "Should the interactible budget be reduced to singleplayer levels?\n" +
+            "If enabled, the budget used to spawn interactibles (chests, shrines, etc.) in SceneDirector is no longer increased based on player count, and is instead overriden to act as though there's one player.\n" +
+            "If disabled, you might end up having an increased amount of item drops, with each item drop multiplied by the number of players, causing you to become overpowered.");
         
         DefaultDescriptionsForObjectType.Clear();
         DefaultAliasesForObjectType.Clear();
@@ -141,7 +161,7 @@ public class Config
         SortedSet<InstanceMode> defaultInstanceModes = new SortedSet<InstanceMode>
         {
             InstanceMode.Default, InstanceMode.None, InstanceMode.InstanceBoth, InstanceMode.InstanceItems,
-            InstanceMode.InstanceObject, InstanceMode.InstanceItemForOwnerOnly
+            InstanceMode.InstanceObject, InstanceMode.InstanceItemForOwnerOnly, InstanceMode.InstancePreferred
         };
         
         SortedSet<ObjectInstanceMode> defaultObjectInstanceModes = new SortedSet<ObjectInstanceMode>
@@ -162,6 +182,7 @@ public class Config
             ObjectInstanceModeForObject[objectType] = objectInstanceModes.Max;
             SortedSet<InstanceMode> instanceModes = instanceModeLimits[objectType] = new(defaultInstanceModes);
             LimitInstanceModes!(objectType, instanceModes);
+            AvailableInstanceModesForObjectType[objectType] = instanceModes;
             if (instanceModes.Count == 0) continue;
             SortedSet<string> aliases = AliasesForObjectType[objectType] = new SortedSet<string>();
             GenerateAliases!(objectType, aliases);
@@ -214,13 +235,23 @@ public class Config
                         new AcceptableValuesInstanceMode(instanceModeLimits[alias])));
             }
         }
+
+        ConfigPresets = new();
+        GenerateConfigPresets!(ConfigPresets);
+        
+        SelectedPreset = config.Bind("General", "Preset", "Default",
+             new ConfigDescription($"Ready to use presets, mostly with sensible defaults.\n" +
+                                   $"Note: Presets can change in updates.\n" +
+                                   $"Note: If you don't like something about a preset, you can override the instancing for specific aliases/object types\n" +
+                                   $"Available presets:\n{
+                 string.Join("\n", ConfigPresets.Select(pair => $"{pair.Key}: {pair.Value.Description}"))
+             }", new AcceptableValueList<string>(ConfigPresets.Keys.ToArray())));
     }
 
     public ConfigPreset GetPreset()
     {
-        // string presetName = SelectedPreset.Value ?? "";
-        // return ConfigPresets.TryGetValue(presetName, out var preset) ? preset : null;
-        return null;
+        string presetName = SelectedPreset.Value ?? "";
+        return ConfigPresets.TryGetValue(presetName, out var preset) ? preset : null;
     }
 
     public SortedSet<string> GetAliases(string objectType)
@@ -228,8 +259,71 @@ public class Config
         return AliasesForObjectType.TryGetValue(objectType, out var extraNames) ? extraNames : null;
     }
 
+    private static readonly Dictionary<InstanceMode, List<InstanceMode>> InstanceModeReduceMatrix;
+
+    static Config()
+    {
+        Dictionary<InstanceMode, List<InstanceMode>> preferredInstanceModeReductions = new()
+        {
+            { InstanceMode.InstanceBothForOwnerOnly, new() { InstanceMode.InstanceObjectForOwnerOnly, InstanceMode.InstanceItemForOwnerOnly}},
+            { InstanceMode.InstanceObjectForOwnerOnly, new() { InstanceMode.InstanceObject }},
+            { InstanceMode.InstanceBoth, new() { InstanceMode.InstanceObject, InstanceMode.InstanceItems }},
+            { InstanceMode.InstanceObject, new() { InstanceMode.InstanceItems }},
+            { InstanceMode.InstanceItems, new() { InstanceMode.InstanceObject }},
+        };
+
+        InstanceModeReduceMatrix = new();
+
+        foreach (var preferredEntry in preferredInstanceModeReductions)
+        {
+            var fullReductions = preferredEntry.Value.ToList();
+
+            for (int i = 0; i < fullReductions.Count; i++)
+            {
+                InstanceMode current = fullReductions[i];
+
+                if (!preferredInstanceModeReductions.TryGetValue(current, out var preferredNextReductions))
+                    continue;
+
+                foreach (var next in preferredNextReductions)
+                {
+                    if(!fullReductions.Contains(next))
+                        fullReductions.Add(next);
+                }
+            }
+
+            InstanceModeReduceMatrix[preferredEntry.Key] = fullReductions;
+        }
+    }
+    
+    public InstanceMode ReduceInstanceModeForObjectType(string objectType, InstanceMode mode)
+    {
+        if (mode == InstanceMode.InstancePreferred) mode = PreferredInstanceMode.Value;
+        if (mode == InstanceMode.Default) return mode;
+
+        if (!AvailableInstanceModesForObjectType.TryGetValue(objectType, out var availableModes))
+            return InstanceMode.None;
+
+        if (availableModes.Contains(mode)) return mode;
+
+        if (!InstanceModeReduceMatrix.TryGetValue(mode, out var reductions))
+            return InstanceMode.None;
+
+        foreach (var reduction in reductions)
+        {
+            if (availableModes.Contains(reduction))
+                return reduction;
+        }
+        
+        Debug.Log($"Failed to find reduction for {objectType}");
+
+        return InstanceMode.None;
+    }
+
     public void MergeInstanceModes(ref InstanceMode orig, InstanceMode other)
     {
+        if (other == InstanceMode.InstancePreferred)
+            other = PreferredInstanceMode.Value;
         if (other != InstanceMode.Default)
             orig = other;
     }
@@ -255,20 +349,20 @@ public class Config
             {
                 foreach (var alias in aliases)
                 {
-                    MergeInstanceModes(ref result, preset.GetConfigForName(alias));
+                    MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, preset.GetConfigForName(alias)));
                 }
             }
-            MergeInstanceModes(ref result, preset.GetConfigForName(objectType));
+            MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, preset.GetConfigForName(objectType)));
         }
         
         if (aliases != null)
         {
             foreach (var alias in aliases)
             {
-                MergeInstanceModes(ref result, ConfigEntriesForNames[alias].Value);
+                MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, ConfigEntriesForNames[alias].Value));
             }
         }
-        MergeInstanceModes(ref result, ConfigEntriesForNames[objectType].Value);
+        MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, ConfigEntriesForNames[objectType].Value));
 
         CachedInstanceModes[objectType] = result;
         
@@ -340,6 +434,14 @@ public class Config
         descriptions.Add($"Full list of included object types:\n{String.Join(", ", baseNames)}");
     }
 
+    private void DefaultGenerateConfigPresets(Dictionary<string, ConfigPreset> presets)
+    {
+        foreach (var entry in DefaultPresets.Presets)
+        {
+            presets[entry.Key] = entry.Value;
+        }
+    }
+
     private void CheckReadyStatus()
     {
         if (Ready)
@@ -376,5 +478,14 @@ public class Config
     //             logger.LogWarning(error);
     //         }
     //     }
+    }
+
+    private void DebugLogInstanceModeForAllObjectTypes()
+    {
+        Debug.Log("Logging instance modes for all object types:");
+        foreach (var objectType in AvailableInstanceModesForObjectType.Keys)
+        {
+            Debug.Log($"{objectType}: {GetInstanceMode(objectType)}");
+        }
     }
 }
