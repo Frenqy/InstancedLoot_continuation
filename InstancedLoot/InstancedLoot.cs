@@ -23,7 +23,6 @@ using UnityEngine.Networking;
 
 //TODO: Instance effects on use/open
 //TODO: Instance pickup droplets for dithering
-//TODO: Redirect pings
 //TODO: Try to clean up MultiShops - Timing jank
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]

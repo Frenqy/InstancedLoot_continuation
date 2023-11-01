@@ -12,7 +12,6 @@ public class ScrapperHandler : AbstractObjectHandler
     {
         base.Init(manager);
         
-        Plugin.HookManager.RegisterHandler<PickupPickerControllerHandler>();
-        Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
+        Plugin.HookManager.RegisterHandler<ScrapperControllerHandler>();
     }
 }

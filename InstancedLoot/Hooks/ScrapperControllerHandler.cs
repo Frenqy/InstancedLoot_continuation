@@ -9,12 +9,7 @@ using RoR2;
 
 namespace InstancedLoot.Hooks;
 
-/// <summary>
-///     Handler for scrappers.
-///     Patches EntityStates.Scrapper.ScrappingToIdle.OnEnter.
-///     Uses CreatePickupDropletHandler to affect CreatePickupDroplet.
-/// </summary>
-public class ScrapperTargetHandler : AbstractHookHandler
+public class ScrapperControllerHandler : AbstractHookHandler
 {
     internal static FieldInfo Field_ScrapperBaseState_scrapperController = typeof(ScrapperBaseState).GetField(
         "scrapperController",
