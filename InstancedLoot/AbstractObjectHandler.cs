@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using RoR2;
@@ -8,6 +9,31 @@ namespace InstancedLoot;
 
 public abstract class AbstractObjectHandler
 {
+    
+    private static Dictionary<string, SpawnCard> _SpawnCardsForPrefabName;
+
+    public static Dictionary<string, SpawnCard> SpawnCardsForPrefabName
+    {
+        get
+        {
+            if(_SpawnCardsForPrefabName == null)
+                GenerateSpawnCards();
+            return _SpawnCardsForPrefabName;
+        }
+    }
+    public static void GenerateSpawnCards()
+    {
+        var spawnCards = Resources.FindObjectsOfTypeAll<InteractableSpawnCard>();
+        if (_SpawnCardsForPrefabName == null) _SpawnCardsForPrefabName = new();
+
+        foreach (var spawnCard in spawnCards)
+        {
+            string name = spawnCard.prefab.name;
+            if(!_SpawnCardsForPrefabName.ContainsKey(name))
+                _SpawnCardsForPrefabName.Add(name, spawnCard);
+        }
+    }
+    
     protected ObjectHandlerManager Manager;
     protected InstancedLoot Plugin => Manager.Plugin;
 
@@ -80,10 +106,25 @@ public abstract class AbstractObjectHandler
     public virtual GameObject CloneObject(string objectType, GameObject gameObject)
     {
         GameObject clone = null;
-        
+
+        SpawnCard spawnCard = null;
+
+        //Try to use exact SpawnCard used to create object
         if (gameObject.GetComponent<SpawnCardTracker>() is var spawnCardTracker && spawnCardTracker != null)
         {
-            SpawnCard spawnCard = spawnCardTracker.SpawnCard;
+            spawnCard = spawnCardTracker.SpawnCard;
+        }
+
+        //Fall back to scanning SpawnCards
+        if (spawnCard == null)
+        {
+            string name = gameObject.name.Replace("(Cloned)", "");
+
+            SpawnCardsForPrefabName.TryGetValue(name, out spawnCard);
+        }
+
+        if (spawnCard != null)
+        {
             DirectorSpawnRequest spawnRequest = new(spawnCard, null, new Xoroshiro128Plus(0));
             SpawnCard.SpawnResult spawnResult = spawnCard.DoSpawn(gameObject.transform.position,
                 gameObject.transform.rotation, spawnRequest);
@@ -105,7 +146,7 @@ public abstract class AbstractObjectHandler
         PlayerCharacterMasterController[] players)
     {
         InstanceHandler instanceHandler = target.AddComponent<InstanceHandler>();
-        instanceHandler.SetPlayers(players);
+        instanceHandler.SetPlayers(players, false);
         if (ObjectInstanceMode == ObjectInstanceMode.CopyObject)
         {
             instanceHandler.OrigPlayer = players[0];
