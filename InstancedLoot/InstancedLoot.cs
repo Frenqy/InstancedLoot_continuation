@@ -79,9 +79,10 @@ public class InstancedLoot : BaseUnityPlugin
         // Cleanup any leftover hooks
         HookEndpointManager.RemoveAllOwnedBy(HookEndpointManager.GetOwner((Action)OnDisable));
         
-        foreach (var instanceHandler in FindObjectsOfType<InstanceHandler>())
+        foreach (var component in FindObjectsOfType<InstancedLootBehaviour>())
         {
-            Destroy(instanceHandler);
+            if(component != null)
+                Destroy(component);
         }
     }
     

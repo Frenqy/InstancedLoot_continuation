@@ -11,7 +11,7 @@ using UnityEngine.Serialization;
 
 namespace InstancedLoot.Components;
 
-public class FadeBehavior : MonoBehaviour
+public class FadeBehavior : InstancedLootBehaviour
 {
     private static readonly int Fade = Shader.PropertyToID("_Fade");
     

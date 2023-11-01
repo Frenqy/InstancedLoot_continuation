@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace InstancedLoot.Components;
 
-public class InstanceInfoTracker : MonoBehaviour
+public class InstanceInfoTracker : InstancedLootBehaviour
 {
     public InstanceOverrideInfo Info;
 

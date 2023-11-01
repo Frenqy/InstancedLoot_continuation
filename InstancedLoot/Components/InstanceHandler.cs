@@ -11,7 +11,7 @@ using UnityEngine.Serialization;
 
 namespace InstancedLoot.Components;
 
-public class InstanceHandler : MonoBehaviour
+public class InstanceHandler : InstancedLootBehaviour
 {
     //Players that can currently interact with this object instance
     public HashSet<PlayerCharacterMasterController> Players;

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace InstancedLoot.Components;
 
-public class SpawnCardTracker : MonoBehaviour
+public class SpawnCardTracker : InstancedLootBehaviour
 {
     public SpawnCard SpawnCard;
 }
