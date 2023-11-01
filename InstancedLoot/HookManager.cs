@@ -12,6 +12,8 @@ public class HookManager
     public HookManager(InstancedLoot pluginInstance)
     {
         Plugin = pluginInstance;
+        
+        RegisterHandler<DevelopmentHooksHandler>();
 
         RegisterHandler<PickupDropletHandler>();
         RegisterHandler<PrinterTargetHandler>();

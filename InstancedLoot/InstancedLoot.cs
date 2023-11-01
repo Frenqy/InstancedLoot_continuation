@@ -48,6 +48,7 @@ public class InstancedLoot : BaseUnityPlugin
         ModConfig = new Config(this, Logger);
         HookManager = new HookManager(this);
         ObjectHandlerManager = new ObjectHandlerManager(this);
+        
         NetworkingAPI.RegisterMessageType<SyncInstanceHandlerSet>();
     }
 
@@ -59,8 +60,6 @@ public class InstancedLoot : BaseUnityPlugin
     public void OnEnable()
     {
         Instance = this;
-        // Debug code for local multiplayer testing
-        On.RoR2.Networking.NetworkManagerSystemSteam.OnClientConnect += (s, u, t) => { };
         
         PlayerCharacterMasterController.onPlayerAdded += OnPlayerAdded;
 
