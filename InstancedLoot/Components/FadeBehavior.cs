@@ -16,7 +16,6 @@ public class FadeBehavior : InstancedLootBehaviour
     private static readonly int Fade = Shader.PropertyToID("_Fade");
     
     public float FadeLevel = 0.3f;
-    private float lastFadeLevel = 1.0f;
 
     private bool needsRefresh = true;
     
@@ -30,10 +29,9 @@ public class FadeBehavior : InstancedLootBehaviour
 
     public static readonly List<FadeBehavior> InstancesList = new();
     
-    //Stored for optimization purposes
-    private CameraRigController lastCamera;
-    private static SceneCamera lastCameraStaticPreCull;
-    private static SceneCamera lastCameraStaticPreRender;
+    private CameraRigController lastCameraRigController;
+    private PlayerCharacterMasterController lastPlayer;
+    private bool lastVisible;
 
     static FadeBehavior()
     {
@@ -43,19 +41,11 @@ public class FadeBehavior : InstancedLootBehaviour
 
     public static void RefreshForPreCull(SceneCamera sceneCamera)
     {
-        if (lastCameraStaticPreCull == sceneCamera)
-            return;
-        lastCameraStaticPreCull = sceneCamera;
-        
         RefreshAllInstances(sceneCamera, true);
     }
 
     public static void RefreshForPreRender(SceneCamera sceneCamera)
     {
-        if (lastCameraStaticPreRender == sceneCamera)
-            return;
-        lastCameraStaticPreRender = sceneCamera;
-        
         RefreshAllInstances(sceneCamera, false);
     }
 
@@ -105,19 +95,11 @@ public class FadeBehavior : InstancedLootBehaviour
     private void Awake()
     {
         propertyStorage = new();
-        // RefreshComponentLists();
     }
 
     private void Start()
     {
-        // RefreshComponentLists();
         Refresh();
-
-        // if (lastCameraStaticPreCull != null)
-        //     RefreshInstanceForCamera(lastCameraStaticPreCull);
-        
-        RefreshForPreCull(PlayerCharacterMasterController.instances[0]);
-        RefreshForPreRender(PlayerCharacterMasterController.instances[0]);
     }
 
     private void OnEnable()
@@ -130,27 +112,31 @@ public class FadeBehavior : InstancedLootBehaviour
         InstancesList.Remove(this);
     }
 
-    public float GetFadeLevel(PlayerCharacterMasterController player)
-    {
-        var instanceHandler = GetComponent<InstanceHandler>();
-        if (!instanceHandler) return FadeLevel;
-        return instanceHandler.Players.Contains(player) ? 1.0f : FadeLevel;
-    }
-
     public float GetFadeLevelForCameraRigController(CameraRigController cameraRigController)
     {
-        if (lastCamera == cameraRigController) return lastFadeLevel;
+        if(needsRefresh)
+            RefreshComponentLists();
         
-        CharacterBody body = cameraRigController.targetBody;
-        if (!body) return FadeLevel;
+        bool isVisible;
 
-        PlayerCharacterMasterController player = body.master != null ? body.master.playerCharacterMasterController : null;
-        if (!player) return FadeLevel;
+        if (lastCameraRigController == cameraRigController)
+            isVisible = lastVisible;
+        else
+        {
+            CharacterBody body = cameraRigController.targetBody;
+            if (!body) return FadeLevel;
 
-        float fadeLevel = GetFadeLevel(player);
-        lastFadeLevel = fadeLevel;
-        lastCamera = cameraRigController;
-        return fadeLevel;
+            PlayerCharacterMasterController player =
+                body.master != null ? body.master.playerCharacterMasterController : null;
+            if (!player) return FadeLevel;
+
+            isVisible = GetComponent<InstanceHandler>().IsInstancedFor(player);
+            lastVisible = isVisible;
+        }
+
+        lastCameraRigController = cameraRigController;
+
+        return isVisible ? 1.0f : FadeLevel;
     }
 
     private static IEnumerable<T> CustomGetComponents<T>(IEnumerable<GameObject> gameObjects)
@@ -160,24 +146,14 @@ public class FadeBehavior : InstancedLootBehaviour
 
     public void Refresh()
     {
-        // InstancedLoot.Instance._logger.LogWarning(Environment.StackTrace);
         needsRefresh = true;
-        lastCamera = null;
-
-        StartCoroutine(RefreshNextTick());
-
-        IEnumerator RefreshNextTick()
-        {
-            yield return 0;
-            
-            if(needsRefresh && lastCameraStaticPreRender != null)
-                RefreshInstanceForCamera(lastCameraStaticPreRender);
-        }
     }
 
     public void RefreshComponentLists()
     {
-        needsRefresh = false; 
+        needsRefresh = false;
+        lastPlayer = null;
+        lastCameraRigController = null;
             
         HashSet<GameObject> gameObjects = new(){gameObject};
         ModelLocator[] modelLocators = GetComponentsInChildren<ModelLocator>();
@@ -188,11 +164,6 @@ public class FadeBehavior : InstancedLootBehaviour
         DitherModelRenderers = new HashSet<Renderer>(DitherModels.SelectMany(ditherModel => ditherModel.renderers));
         Renderers = new HashSet<Renderer>(CustomGetComponents<Renderer>(gameObjects).Where(renderer => !DitherModelRenderers.Contains(renderer)));
 
-        foreach (var renderer in Renderers)
-        {
-            if (renderer == null) 
-                InstancedLoot.Instance._logger.LogWarning($"FadeBehavior - RefreshComponentLists - Renderers has null");
-        }
         // InstancedLoot.Instance._logger.LogWarning($"FadeBehavior - RefreshComponentLists - Renderers {ComponentsForPreCull.Contains(null)}");
         
         HashSet<Behaviour> componentsForPreCull = new(CustomGetComponents<Highlight>(gameObjects));
@@ -213,19 +184,23 @@ public class FadeBehavior : InstancedLootBehaviour
         //     RefreshForPreCull(lastCameraStaticPreCull);
         // if(lastCameraStaticPreRender)
         //     RefreshForPreRender(lastCameraStaticPreRender);
+
+        foreach (var renderer in Renderers)
+        {
+            foreach (var material in renderer.materials)
+            {
+                material.EnableKeyword("DITHER");
+            }
+        }
     }
 
     public void RefreshForPreCull(PlayerCharacterMasterController player)
     {
-        // return;
-        if (gameObject == null)
-        {
-            Debug.LogError("gameObject is null on PreCull");
-            return;
-        }
-
         if (needsRefresh)
             RefreshComponentLists();
+        
+        if (player == lastPlayer)
+            return;
         
         var instanceHandler = GetComponent<InstanceHandler>();
         bool isCopyObject = instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject;
@@ -270,13 +245,15 @@ public class FadeBehavior : InstancedLootBehaviour
     
     public void RefreshForPreRender(PlayerCharacterMasterController player)
     {
-        // return;
-        var instanceHandler = GetComponent<InstanceHandler>();
-        bool isForCurrentPlayer = instanceHandler.Players.Contains(player);
-        float actualFadeLevel = isForCurrentPlayer ? 1.0f : FadeLevel;
-
         if (needsRefresh)
             RefreshComponentLists();
+        
+        if (player == lastPlayer)
+            return;
+        
+        var instanceHandler = GetComponent<InstanceHandler>();
+        bool isForCurrentPlayer = instanceHandler.IsInstancedFor(player);
+        float actualFadeLevel = isForCurrentPlayer ? 1.0f : FadeLevel;
         
         foreach (var renderer in Renderers)
         {
@@ -290,7 +267,7 @@ public class FadeBehavior : InstancedLootBehaviour
             propertyStorage.SetFloat(Fade, actualFadeLevel);
             renderer.SetPropertyBlock(propertyStorage);
         }
-        
+
         bool isCopyObject = instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject;
 
         if (isCopyObject)
@@ -308,6 +285,8 @@ public class FadeBehavior : InstancedLootBehaviour
                 component.enabled = isOrigForCurrent;
             }
         }
+
+        lastPlayer = player;
     }
 
     public static FadeBehavior Attach(GameObject obj)
@@ -316,9 +295,6 @@ public class FadeBehavior : InstancedLootBehaviour
         if (fadeBehavior != null)
         {
             fadeBehavior.Refresh();
-            // fadeBehavior.lastCamera = null;
-            // if(lastCameraStaticPreCull != null)
-            //     fadeBehavior.RefreshInstanceForCamera(lastCameraStaticPreCull);
             return fadeBehavior;
         }
 
