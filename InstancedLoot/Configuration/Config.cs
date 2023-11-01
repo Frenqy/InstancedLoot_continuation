@@ -240,6 +240,9 @@ public class Config
         
         if (CachedInstanceModes.TryGetValue(objectType, out var mode))
             return mode;
+
+        if (!ConfigEntriesForNames.ContainsKey(objectType))
+            return InstanceMode.None;
         
         ConfigPreset preset = GetPreset();
         SortedSet<string> aliases = GetAliases(objectType);
@@ -252,10 +255,10 @@ public class Config
             {
                 foreach (var alias in aliases)
                 {
-                    MergeInstanceModes(ref result, preset.GetPresetForName(alias));
+                    MergeInstanceModes(ref result, preset.GetConfigForName(alias));
                 }
             }
-            MergeInstanceModes(ref result, preset.GetPresetForName(objectType));
+            MergeInstanceModes(ref result, preset.GetConfigForName(objectType));
         }
         
         if (aliases != null)
