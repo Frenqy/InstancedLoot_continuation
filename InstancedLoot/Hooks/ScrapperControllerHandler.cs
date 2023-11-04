@@ -43,11 +43,11 @@ public class ScrapperControllerHandler : AbstractHookHandler
             var target = body.master;
 
             if (target)
-                hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo =
+                hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo =
                     new InstanceInfoTracker.InstanceOverrideInfo(ObjectType.Scrapper, target.GetComponent<PlayerCharacterMasterController>());
         });
 
         cursor.Index++;
-        cursor.EmitDelegate(() => { hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo = null; });
+        cursor.EmitDelegate(() => { hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = null; });
     }
 }

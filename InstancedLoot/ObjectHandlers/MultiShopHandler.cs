@@ -11,7 +11,7 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class MultiShopHandler : AbstractObjectHandler
 {
-    public override string[] HandledObjectTypes => new[]
+    public override string[] HandledObjectTypes { get; } =
     {
         ObjectType.TripleShop,
         // ObjectType.TripleShopLarge, // As far as I'm aware, this one's unused.
@@ -89,7 +89,7 @@ public class MultiShopHandler : AbstractObjectHandler
                 debugCounter--;
                 if (debugCounter <= 0)
                 {
-                    Plugin._logger.LogError("Error instantiating MultiShopController - An instance doesn't have terminals after 10 ticks.");
+                    Plugin._logger.LogError("Error instancing MultiShopController - An instance doesn't have terminals after 10 ticks.");
                     yield break;
                 }
             }

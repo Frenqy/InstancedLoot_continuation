@@ -34,6 +34,7 @@ public class Config
     public ConfigEntry<bool> SharePickupPickers;
     public ConfigEntry<InstanceMode> PreferredInstanceMode;
     public ConfigEntry<bool> ReduceInteractibleBudget;
+    public ConfigEntry<bool> ReduceSacrificeSpawnChance;
 
     public bool Ready => true;
     public event Action OnConfigReady;
@@ -57,7 +58,7 @@ public class Config
 
     public Dictionary<string, string[]> DefaultAliasesForObjectType = new();
     public Dictionary<string, string> DefaultDescriptionsForObjectType = new();
-    public Dictionary<string, InstanceMode[]> DefaultInstanceModesForObjectType = new();
+    public Dictionary<string, InstanceMode[]> DefaultDisabledInstanceModesForObjectType = new();
     public Dictionary<string, string> DefaultDescriptionsForAliases = new();
 
     public Dictionary<string, ConfigEntry<InstanceMode>> ConfigEntriesForNames = new();
@@ -114,11 +115,16 @@ public class Config
         ReduceInteractibleBudget = config.Bind("General", "ReduceInteractibleBudget", true,
             "Should the interactible budget be reduced to singleplayer levels?\n" +
             "If enabled, the budget used to spawn interactibles (chests, shrines, etc.) in SceneDirector is no longer increased based on player count, and is instead overriden to act as though there's one player.\n" +
-            "If disabled, you might end up having an increased amount of item drops, with each item drop multiplied by the number of players, causing you to become overpowered.");
+            "If disabled, you might end up having an increased amount of item drops, with each item drop multiplied by the number of players, causing you to become overpowered."); 
+        ReduceSacrificeSpawnChance = config.Bind("General", "ReduceSacrificeSpawnChance", true,
+            "Should the spawn chance be reduced by the amount of players?\n" +
+            "If enabled, the chance that an enemy drops an item is divided by the number of players in the game.\n" +
+            "If disabled, you might end up having an increased amount of item drops, due to an increased amount of enemies when playing in multiplayer, combined with items being multiplied by the number of players.\n" +
+            "Note: This is not an accurate method of keeping the amount of items and/or the power level the same as without the mod. I have not checked the formulas or tested the results to ensure fairness, use or don't use this at your own risk.");
         
         DefaultDescriptionsForObjectType.Clear();
         DefaultAliasesForObjectType.Clear();
-        DefaultInstanceModesForObjectType.Clear();
+        DefaultDisabledInstanceModesForObjectType.Clear();
         foreach (var field in typeof(ObjectType).GetFields(BindingFlags.Static | BindingFlags.Public))
         {
             DescriptionAttribute descriptionAttribute =
@@ -141,7 +147,7 @@ public class Config
 
             if (disableInstanceModesAttribute != null)
             {
-                DefaultInstanceModesForObjectType.Add(objectType, disableInstanceModesAttribute.DisabledInstanceModes);
+                DefaultDisabledInstanceModesForObjectType.Add(objectType, disableInstanceModesAttribute.DisabledInstanceModes);
             }
         }
         
@@ -397,9 +403,9 @@ public class Config
             }
         }
 
-        if (DefaultInstanceModesForObjectType.TryGetValue(objectType, out var instanceModes))
+        if (DefaultDisabledInstanceModesForObjectType.TryGetValue(objectType, out var instanceModes))
         {
-            modes.IntersectWith(instanceModes);
+            modes.ExceptWith(instanceModes);
         }
 
         if (Plugin.ObjectHandlerManager.HandlersForObjectType.TryGetValue(objectType, out var objectHandler) && objectHandler.CanObjectBeOwned)

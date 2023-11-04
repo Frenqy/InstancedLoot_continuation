@@ -25,7 +25,17 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
         {
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
 
-            if (instanceHandler == null)
+            if (instanceHandler != null && self.serverMultiShopController == null && instanceHandler.SourceObject != self.gameObject)
+            {
+                ShopTerminalBehavior source = instanceHandler.SourceObject.GetComponent<ShopTerminalBehavior>();
+                
+                self.hasStarted = true;
+                self.rng = new Xoroshiro128Plus(source.rng);
+
+                self.NetworkpickupIndex = source.NetworkpickupIndex;
+                self.Networkhidden = source.Networkhidden;
+            }
+            else if(instanceHandler == null)
             {
                 orig(self);
                 
@@ -36,6 +46,8 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
                 if(objName.StartsWith("DuplicatorLarge")) objectType = Enums.ObjectType.DuplicatorLarge;
                 if(objName.StartsWith("DuplicatorWild")) objectType = Enums.ObjectType.DuplicatorWild;
                 if(objName.StartsWith("DuplicatorMilitary")) objectType = Enums.ObjectType.DuplicatorMilitary;
+
+                if (objName.StartsWith("LunarShopTerminal")) objectType = Enums.ObjectType.LunarShopTerminal;
                 
                 Plugin._logger.LogWarning($"ShopTerminalBehavior registering {objectType}");
                 
@@ -54,11 +66,11 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
 
         if (instanceInfoTracker != null)
         {
-            PickupDropletHandler pickupDropletHandler = hookManager.GetHandler<PickupDropletHandler>();
+            PickupDropletControllerHandler pickupDropletControllerHandler = hookManager.GetHandler<PickupDropletControllerHandler>();
             
-            pickupDropletHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
+            pickupDropletControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
             orig(self);
-            pickupDropletHandler.InstanceOverrideInfo = null;
+            pickupDropletControllerHandler.InstanceOverrideInfo = null;
         }
         else
         {

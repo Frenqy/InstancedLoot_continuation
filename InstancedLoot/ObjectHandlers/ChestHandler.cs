@@ -9,13 +9,14 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class ChestHandler : AbstractObjectHandler
 {
-    public override string[] HandledObjectTypes => new string[]
+    public override string[] HandledObjectTypes { get; } =
     {
         ObjectType.Chest1, ObjectType.Chest2, ObjectType.GoldChest, ObjectType.Chest1StealthedVariant,
         ObjectType.CategoryChestDamage, ObjectType.CategoryChestHealing, ObjectType.CategoryChestUtility,
         ObjectType.CategoryChest2Damage, ObjectType.CategoryChest2Healing, ObjectType.CategoryChest2Utility,
         ObjectType.EquipmentBarrel,
-        ObjectType.LunarChest, ObjectType.VoidChest
+        ObjectType.LunarChest, ObjectType.VoidChest,
+        ObjectType.Lockbox,
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;

@@ -16,7 +16,9 @@ public static class DefaultPresets
                 {ObjectAlias.Shrines, InstanceMode.InstancePreferred},
                 {ObjectAlias.Equipment, InstanceMode.InstanceObject},
                 {ObjectType.LunarChest, InstanceMode.InstancePreferred},
-                {ObjectType.VoidTriple, InstanceMode.InstancePreferred}
+                {ObjectType.VoidTriple, InstanceMode.InstancePreferred},
+                {ObjectType.Sacrifice, InstanceMode.InstanceItems},
+                {ObjectType.HuntersTricorn, InstanceMode.InstanceItems},
             })
         },
         {

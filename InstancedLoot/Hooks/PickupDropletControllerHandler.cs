@@ -12,7 +12,7 @@ namespace InstancedLoot.Hooks;
 ///     Patches RoR2.PickupDropletController.CreatePickupDroplet.
 ///     Uses a global field to override the target.
 /// </summary>
-public class PickupDropletHandler : AbstractHookHandler
+public class PickupDropletControllerHandler : AbstractHookHandler
 {
     public InstanceInfoTracker.InstanceOverrideInfo? InstanceOverrideInfo;
 
@@ -20,7 +20,6 @@ public class PickupDropletHandler : AbstractHookHandler
     {
         IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 +=
             IL_PickupDropletController_CreatePickupDroplet;
-        // IL.RoR2.PickupDropletController.OnCollisionEnter += ModifyDropletCollision;
         On.RoR2.PickupDropletController.OnCollisionEnter += On_PickupDropletController_OnCollisionEnter;
     }
 
@@ -28,7 +27,6 @@ public class PickupDropletHandler : AbstractHookHandler
     {
         IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 -=
             IL_PickupDropletController_CreatePickupDroplet;
-        // IL.RoR2.PickupDropletController.OnCollisionEnter -= ModifyDropletCollision;
         On.RoR2.PickupDropletController.OnCollisionEnter -= On_PickupDropletController_OnCollisionEnter;
     }
 
@@ -48,26 +46,6 @@ public class PickupDropletHandler : AbstractHookHandler
         });
     }
     
-    private void ModifyDropletCollision(ILContext il)
-    {
-        var cursor = new ILCursor(il);
-
-        cursor.GotoNext(MoveType.After, i => i.MatchCall<GenericPickupController>("CreatePickup"));
-        cursor.Emit(OpCodes.Dup);
-        cursor.Emit(OpCodes.Ldarg_0);
-        cursor.EmitDelegate<Action<GenericPickupController, PickupDropletController>>(
-            (pickupController, self) =>
-            {
-                var instanceOverride = self.GetComponent<InstanceInfoTracker>();
-                if (instanceOverride)
-                {
-                    Plugin._logger.LogWarning($"(InstanceInfo: {instanceOverride.ObjectType}, {instanceOverride.Owner}, {instanceOverride.SourceItemIndex})");
-                    Plugin.HandleInstancing(pickupController.gameObject, instanceOverride.Info);
-                    // instanceOverride.Info.AttachTo(pickupController.gameObject);
-                }
-            });
-    }
-
     private void On_PickupDropletController_OnCollisionEnter(On.RoR2.PickupDropletController.orig_OnCollisionEnter orig, PickupDropletController self, Collision collision)
     {
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)

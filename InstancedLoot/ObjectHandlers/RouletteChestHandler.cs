@@ -7,7 +7,7 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class RouletteChestHandler : AbstractObjectHandler
 {
-    public override string[] HandledObjectTypes => new[] { "CasinoChest" };
+    public override string[] HandledObjectTypes { get; } = { "CasinoChest" };
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
     
     public override bool IsValidForObject(string objectType, GameObject gameObject)

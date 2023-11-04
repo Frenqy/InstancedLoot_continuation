@@ -24,6 +24,9 @@ public class ObjectHandlerManager
         RegisterHandler<OptionChestHandler>();
         RegisterHandler<PrinterHandler>();
         RegisterHandler<ScrapperHandler>();
+        
+        RegisterHandler<SpecialItemHandler>();
+        RegisterHandler<SpecialObjectHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractObjectHandler, new()

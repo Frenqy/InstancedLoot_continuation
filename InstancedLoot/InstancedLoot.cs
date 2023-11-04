@@ -24,6 +24,13 @@ using UnityEngine.Networking;
 //TODO: Instance effects on use/open
 //TODO: Instance pickup droplets for dithering
 //TODO: Try to clean up MultiShops - Timing jank
+//TODO: Blood shrine pings use wrong health percentage
+//TODO: Lunar pods are broken in splitscreen, the lunar coin icon in the cost follows the second player, not the first
+//TODO: Test shrine of order RNG. Doesn't really matter, but I'd like it to be consistent.
+//TODO: Pinging instanced items doesn't show the indicator for players that they're instanced for
+//TODO: Scavenger sack
+//TODO: ReduceSacrificeSpawnChance
+//TODO: Test ReduceInteractibleBudget
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618 // Type or member is obsolete

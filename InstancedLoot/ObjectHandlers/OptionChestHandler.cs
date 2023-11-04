@@ -7,7 +7,7 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class OptionChestHandler : AbstractObjectHandler
 {
-    public override string[] HandledObjectTypes => new[]
+    public override string[] HandledObjectTypes { get; } =
     {
         ObjectType.VoidTriple, ObjectType.LockboxVoid,
     };

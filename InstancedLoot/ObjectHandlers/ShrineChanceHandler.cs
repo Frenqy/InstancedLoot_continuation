@@ -8,7 +8,7 @@ namespace InstancedLoot.ObjectHandlers;
 public class ShrineChanceHandler : AbstractObjectHandler
 {
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
-    public override string[] HandledObjectTypes => new[] { ObjectType.ShrineChance };
+    public override string[] HandledObjectTypes { get; } = { ObjectType.ShrineChance };
 
     public override bool IsValidForObject(string objectType, GameObject gameObject)
     {

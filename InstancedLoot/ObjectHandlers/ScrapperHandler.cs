@@ -5,7 +5,7 @@ namespace InstancedLoot.ObjectHandlers;
 
 public class ScrapperHandler : AbstractObjectHandler
 {
-    public override string[] HandledObjectTypes => new[] { ObjectType.Scrapper };
+    public override string[] HandledObjectTypes { get; } = { ObjectType.Scrapper };
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.None;
 
     public override void Init(ObjectHandlerManager manager)

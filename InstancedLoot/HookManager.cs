@@ -15,21 +15,25 @@ public class HookManager
         
         RegisterHandler<DevelopmentHooksHandler>();
 
-        RegisterHandler<PickupDropletHandler>();
-        RegisterHandler<PrinterTargetHandler>();
+        // RegisterHandler<PrinterTargetHandler>();
         // RegisterHandler<ScrapperControllerHandler>();
         
         // RegisterHandler<CommandTargetHandler>();
         // RegisterHandler<CommandHandler>();
         // RegisterHandler<PickupDropletOnCollisionOverrideHandler>();
         
-        RegisterHandler<GenericPickupControllerHandler>();
+        RegisterHandler<SceneDirectorHandler>();
+        RegisterHandler<SpawnCardHandler>();
+        // RegisterHandler<EventFunctionsHandler>();
+        
         RegisterHandler<PingHandler>();
         RegisterHandler<DitherModelHandler>();
-        RegisterHandler<SpawnCardHandler>();
         RegisterHandler<HologramProjectorHandler>();
+        
+        RegisterHandler<GenericPickupControllerHandler>();
         RegisterHandler<PickupPickerControllerHandler>();
-        RegisterHandler<EventFunctionsHandler>();
+        RegisterHandler<PickupDropletControllerHandler>();
+        RegisterHandler<CommandArtifactManagerHandler>();
         
         // RegisterHandler<InteractorHandler>();
     }
@@ -49,7 +53,6 @@ public class HookManager
 
     public void RegisterHooks()
     {
-        Plugin._logger.LogWarning("REGISTERING HOOKS");
         foreach (var handler in HookHandlers.Values) handler.RegisterHooks();
     }
 

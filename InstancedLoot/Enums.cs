@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using InstancedLoot.Configuration.Attributes;
 using AliasesAttribute = InstancedLoot.Configuration.Attributes.ObjectTypeAliasesAttribute;
+using DisableInstanceModesAttribute = InstancedLoot.Configuration.Attributes.ObjectTypeDisableInstanceModesAttribute;
 
 namespace InstancedLoot.Enums;
 
@@ -77,14 +78,10 @@ public static class ObjectType
     [Description("Overgrown 3D printer (Yellow items)")]
     [Aliases(new []{ ObjectAlias.Printers })]
     public const string DuplicatorWild = "DuplicatorWild";
-    // public const string Barrel1 = "Barrel1"; // Barrels give benefits to everybody, let's not do this one
-    [Description("Lunar coin")]
-    // [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
-    public const string PickupLunarCoin = "PickupLunarCoin";
     
-    [Description("Rusty lockbox (Rusted key lockbox)")]
+    [Description("Rusty lockbox")]
     [Aliases(new []{ ObjectAlias.ItemSpawned, ObjectAlias.PaidWithItem })]
-    public const string TreasureCache = "TreasureCache";
+    public const string Lockbox = "Lockbox";
     [Description("Lunar pod")]
     [Aliases(new []{ ObjectAlias.Lunar })]
     public const string LunarChest = "LunarChest"; //Lunar pod, ChestBehavior
@@ -101,11 +98,13 @@ public static class ObjectType
     [Description("Lunar cauldron (1 Red -> 3 White)")]
     [Aliases(new []{ ObjectAlias.Cauldrons })]
     public const string LunarCauldronRedToWhite = "LunarCauldron_RedToWhite";
-    [Description("Small chest")]
-    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
-    public const string LunarRecycler = "LunarRecycler";
-    [Description("Small chest")]
-    [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
+    [Description("Cleansing pool")]
+    [Aliases(new []{ ObjectAlias.PaidWithItem })]
+    public const string ShrineCleanse = "ShrineCleanse"; //ShopTerminalBehavior //Cleansing pool
+    
+    //TODO: Actually handle this one
+    [Description("Bazaar shop terminal\nNote: when instanced as an object, rerolling the shop rerolls it for all players")]
+    // [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string LunarShopTerminal = "LunarShopTerminal"; //ShopTerminalBehavior
     
     [Description("Small damage chest")]
@@ -133,30 +132,39 @@ public static class ObjectType
     [Description("Void potential (The interactible that costs health, not the orb pickup)")]
     [Aliases(new []{ ObjectAlias.Void })]
     public const string VoidTriple = "VoidTriple"; // Should probably be handled in a different, special way
-    [Description("Encrusted lockbox (Encrusted key lockbox)")]
+    [Description("Encrusted lockbox")]
     [Aliases(new []{ ObjectAlias.Void, ObjectAlias.ItemSpawned, ObjectAlias.PaidWithItem })]
     public const string LockboxVoid = "LockboxVoid"; //OptionChestBehavior
-    // public const string VoidBarrel = "VoidBarrel"; // Barrels give benefits to everybody, let's not do this one
     
-    // public const string PickupOrbOnUse = "PickupOrbOnUse";
-    // public const string OptionPickup = "OptionPickup";
 
-    [Description("Sacrifice item drop")]
+    [Description("Sacrifice item drop\nNote: the owner for sacrifice is the player delivering the final blow, as recorded in the DamageReport")]
     // [Aliases(new []{ ObjectAlias.Special })]
     public const string Sacrifice = "Sacrifice";
-    [Description("Trophy Hunter's Tricorn ")]
+    [Description("Trophy Hunter's Tricorn")]
     // [Aliases(new []{ ObjectAlias.Special })]
     public const string HuntersTricorn = "TrophyHuntersTricorn";
     // public const string ShrineBoss = "ShrineBoss"; //ShrineBossBehavior
-    [Description("Shrine of Blood")]
-    [Aliases(new []{ ObjectAlias.Shrines })]
-    public const string ShrineBlood = "ShrineBlood"; //ShrineBloodBehavior
     [Description("Void fields item drop")]
     // [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     public const string VoidFields = "VoidFields";
-    [Description("Cleansing pool")]
-    [Aliases(new []{ ObjectAlias.PaidWithItem })]
-    public const string ShrineCleanse = "ShrineCleanse"; //ShopTerminalBehavior //Cleansing pool
+    
+    [Description("Shrine of Blood")]
+    [Aliases(new []{ ObjectAlias.Shrines })]
+    [DisableInstanceModes(new[] { InstanceMode.InstanceItems, InstanceMode.InstanceBoth, InstanceMode.InstanceItemForOwnerOnly })]
+    public const string ShrineBlood = "ShrineBlood"; //ShrineBloodBehavior
+    [Description("Shrine of Order")]
+    [Aliases(new []{ ObjectAlias.Shrines })]
+    [DisableInstanceModes(new[] { InstanceMode.InstanceItems, InstanceMode.InstanceBoth, InstanceMode.InstanceItemForOwnerOnly })]
+    public const string ShrineRestack = "ShrineRestack"; //ShrineBloodBehavior
+    [Description("Lunar coin")]
+    // [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
+    [DisableInstanceModes(new[] { InstanceMode.InstanceItems, InstanceMode.InstanceBoth, InstanceMode.InstanceItemForOwnerOnly })]
+    public const string PickupLunarCoin = "PickupLunarCoin";
+    
+    // public const string Barrel1 = "Barrel1"; // Barrels give benefits to everybody, let's not do this one
+    // public const string VoidBarrel = "VoidBarrel"; // Barrels give benefits to everybody, let's not do this one
+    // public const string PickupOrbOnUse = "PickupOrbOnUse"; // Weird thing, looks like brass shop filled with void goop
+    // public const string OptionPickup = "OptionPickup"; // Handled as an item
 }
 
 public static class ObjectAlias

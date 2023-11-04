@@ -31,9 +31,9 @@ public class ChestBehaviorHandler : AbstractHookHandler
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
             Plugin._logger.LogWarning($"ChestBehavior dropping {instanceInfoTracker.ObjectType}");
-            hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
+            hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
             orig(self);
-            hookManager.GetHandler<PickupDropletHandler>().InstanceOverrideInfo = null;
+            hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = null;
         }
         else
         {
