@@ -5,6 +5,7 @@ using InstancedLoot.Components;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
+using RoR2.ConVar;
 using RoR2.UI;
 using UnityEngine;
 
@@ -43,6 +44,7 @@ public class PingHandler : AbstractHookHandler
         On.RoR2.PingerController.RebuildPing += On_PingerController_RebuildPing;
         IL.RoR2.UI.PingIndicator.RebuildPing += IL_PingIndicator_RebuildPing;
         IL.RoR2.UI.PingIndicator.Update += IL_PingIndicator_Update;
+        IL.RoR2.PositionIndicator.UpdatePositions += IL_PositionIndicator_UpdatePositions;
     }
 
     public override void UnregisterHooks()
@@ -50,6 +52,7 @@ public class PingHandler : AbstractHookHandler
         On.RoR2.PingerController.RebuildPing -= On_PingerController_RebuildPing;
         IL.RoR2.UI.PingIndicator.RebuildPing -= IL_PingIndicator_RebuildPing;
         IL.RoR2.UI.PingIndicator.Update -= IL_PingIndicator_Update;
+        IL.RoR2.PositionIndicator.UpdatePositions -= IL_PositionIndicator_UpdatePositions;
     }
 
     private void On_PingerController_RebuildPing(On.RoR2.PingerController.orig_RebuildPing orig, PingerController self, PingerController.PingInfo pingInfo)
@@ -188,5 +191,41 @@ public class PingHandler : AbstractHookHandler
 
             return shouldKeepAlive;
         });
+    }
+
+    private void IL_PositionIndicator_UpdatePositions(ILContext il)
+    {
+        ILCursor cursor = new ILCursor(il);
+
+        int variablePositionIndicator = -1;
+        ILLabel labelNoRender = il.DefineLabel();
+        ILLabel labelContinueAsNormal = il.DefineLabel();
+        ILLabel labelPopAndContinueAsNormal = il.DefineLabel();
+
+        cursor.GotoNext(i => i.MatchLdloc(out variablePositionIndicator),
+            i => i.MatchLdfld<PositionIndicator>(nameof(PositionIndicator.insideViewObject)));
+
+        cursor.Goto(0);
+        cursor.GotoNext(MoveType.Before, i => i.MatchLdsfld<HUD>(nameof(HUD.cvHudEnable)),
+            i => i.MatchCallOrCallvirt<BoolConVar>("get_value"));
+
+        cursor.Emit(OpCodes.Ldloc, variablePositionIndicator);
+        cursor.Emit<PositionIndicator>(OpCodes.Ldfld, nameof(PositionIndicator.targetTransform));
+        cursor.Emit(OpCodes.Dup);
+        cursor.Emit(OpCodes.Brfalse, labelPopAndContinueAsNormal);
+        cursor.Emit<Component>(OpCodes.Call, "get_gameObject");
+        cursor.Emit(OpCodes.Ldarg_0);
+        cursor.Emit<SceneCamera>(OpCodes.Call, "get_cameraRigController");
+        cursor.Emit<Utils>(OpCodes.Call, nameof(Utils.IsObjectInteractibleForCameraRigController));
+        cursor.Emit(OpCodes.Brfalse, labelNoRender);
+        cursor.Emit(OpCodes.Br, labelContinueAsNormal);
+
+        cursor.MarkLabel(labelPopAndContinueAsNormal);
+        cursor.Emit(OpCodes.Pop);
+        cursor.MarkLabel(labelContinueAsNormal);
+
+        cursor.Index += 3;
+
+        cursor.MarkLabel(labelNoRender);
     }
 }

@@ -105,8 +105,6 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
             {
                 renderer.enabled = shouldRender;
             }
-
-            pingIndicator.positionIndicator.gameObject.SetActive(shouldRender);
         }
     }
 
