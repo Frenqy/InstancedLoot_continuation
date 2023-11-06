@@ -43,38 +43,40 @@ public class ChestBehaviorHandler : AbstractHookHandler
 
     private void On_ChestBehavior_Start(On.RoR2.ChestBehavior.orig_Start orig, ChestBehavior self)
     {
-        InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
-        if (instanceHandler == null)
+        if (NetworkServer.active)
         {
-            orig(self);
-
-            if (NetworkServer.active)
+            InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
+            if (instanceHandler == null)
             {
+                orig(self);
+
                 string objName = self.name;
                 string objectType = null;
-                
-                if(objName.StartsWith("Chest1")) objectType = Enums.ObjectType.Chest1;
-                if(objName.StartsWith("Chest2")) objectType = Enums.ObjectType.Chest2;
-                if(objName.StartsWith("GoldChest")) objectType = Enums.ObjectType.GoldChest;
-                if(objName.StartsWith("Chest1StealthedVariant")) objectType = Enums.ObjectType.Chest1StealthedVariant;
-                if(objName.StartsWith("CategoryChestDamage")) objectType = Enums.ObjectType.CategoryChestDamage;
-                if(objName.StartsWith("CategoryChestHealing")) objectType = Enums.ObjectType.CategoryChestHealing;
-                if(objName.StartsWith("CategoryChestUtility")) objectType = Enums.ObjectType.CategoryChestUtility;
-                if(objName.StartsWith("CategoryChest2Damage")) objectType = Enums.ObjectType.CategoryChest2Damage;
-                if(objName.StartsWith("CategoryChest2Healing")) objectType = Enums.ObjectType.CategoryChest2Healing;
-                if(objName.StartsWith("CategoryChest2Utility")) objectType = Enums.ObjectType.CategoryChest2Utility;
-                if(objName.StartsWith("EquipmentBarrel")) objectType = Enums.ObjectType.EquipmentBarrel;
-                if(objName.StartsWith("LunarChest")) objectType = Enums.ObjectType.LunarChest;
-                if(objName.StartsWith("VoidChest")) objectType = Enums.ObjectType.VoidChest;
-                
+
+                if (objName.StartsWith("Chest1")) objectType = Enums.ObjectType.Chest1;
+                if (objName.StartsWith("Chest2")) objectType = Enums.ObjectType.Chest2;
+                if (objName.StartsWith("GoldChest")) objectType = Enums.ObjectType.GoldChest;
+                if (objName.StartsWith("Chest1StealthedVariant"))
+                    objectType = Enums.ObjectType.Chest1StealthedVariant;
+                if (objName.StartsWith("CategoryChestDamage")) objectType = Enums.ObjectType.CategoryChestDamage;
+                if (objName.StartsWith("CategoryChestHealing")) objectType = Enums.ObjectType.CategoryChestHealing;
+                if (objName.StartsWith("CategoryChestUtility")) objectType = Enums.ObjectType.CategoryChestUtility;
+                if (objName.StartsWith("CategoryChest2Damage")) objectType = Enums.ObjectType.CategoryChest2Damage;
+                if (objName.StartsWith("CategoryChest2Healing"))
+                    objectType = Enums.ObjectType.CategoryChest2Healing;
+                if (objName.StartsWith("CategoryChest2Utility"))
+                    objectType = Enums.ObjectType.CategoryChest2Utility;
+                if (objName.StartsWith("EquipmentBarrel")) objectType = Enums.ObjectType.EquipmentBarrel;
+                if (objName.StartsWith("LunarChest")) objectType = Enums.ObjectType.LunarChest;
+                if (objName.StartsWith("VoidChest")) objectType = Enums.ObjectType.VoidChest;
+
                 Plugin._logger.LogWarning($"ChestBehavior registering {objectType}");
-                
-                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
+
+                if (objectType != null)
+                    Plugin.HandleInstancingNextTick(self.gameObject,
+                        new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
-        }
-        else
-        {
-            if (instanceHandler.SourceObject != null && NetworkServer.active)
+            else if (instanceHandler.SourceObject != null)
             {
                 Plugin._logger.LogInfo("Testing - Start called on Chest with InstanceHandler");
 
@@ -84,7 +86,10 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 self.dropCount = source.dropCount;
                 self.dropPickup = source.dropPickup;
             }
-
+        }
+        else
+        {
+            orig(self);
         }
     }
 }

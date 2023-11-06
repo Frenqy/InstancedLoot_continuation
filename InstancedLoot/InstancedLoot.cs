@@ -28,7 +28,7 @@ using UnityEngine.Networking;
 //TODO: Lunar pods are broken in splitscreen, the lunar coin icon in the cost follows the second player, not the first
 //TODO: Test shrine of order RNG. Doesn't really matter, but I'd like it to be consistent.
 //TODO: Pinging instanced items doesn't show the indicator for players that they're instanced for
-//TODO: Scavenger sack
+//TODO: Scavenger sack - ScavBackpackBehavior
 //TODO: ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
 #pragma warning disable CS0618 // Type or member is obsolete
