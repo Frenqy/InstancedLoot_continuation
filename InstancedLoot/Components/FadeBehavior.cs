@@ -168,6 +168,7 @@ public class FadeBehavior : InstancedLootBehaviour
         
         HashSet<Behaviour> componentsForPreCull = new(CustomGetComponents<Highlight>(gameObjects));
         componentsForPreCull.UnionWith(CustomGetComponents<Light>(gameObjects));
+        componentsForPreCull.UnionWith(CustomGetComponents<TMP_SubMesh>(gameObjects));
         
         ComponentsForPreCull = componentsForPreCull.ToArray();
         

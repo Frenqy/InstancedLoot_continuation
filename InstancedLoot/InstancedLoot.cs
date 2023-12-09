@@ -25,12 +25,17 @@ using UnityEngine.Networking;
 //TODO: Instance pickup droplets for dithering
 //TODO: Try to clean up MultiShops - Timing jank
 //TODO: Blood shrine pings use wrong health percentage
-//TODO: Lunar pods are broken in splitscreen, the lunar coin icon in the cost follows the second player, not the first
+//TODO: Lunar pods are broken in splitscreen, the lunar coin icon in the cost follows the second player, not the first - TMP_Submesh using MeshRenderer - FadeBehavior works if refreshed, might need to refresh on submesh creation
+//      Might need to refactor FadeBehavior
 //TODO: Test shrine of order RNG. Doesn't really matter, but I'd like it to be consistent.
-//TODO: Pinging instanced items doesn't show the indicator for players that they're instanced for
 //TODO: Scavenger sack - ScavBackpackBehavior
 //TODO: ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
+//TODO: Should I refactor object handlers to handle the actual data copying? Provide an additional method that's called on Start from InstanceHandler?
+//      Upside: Code is more centralized in the actual object handlers, which would hopefully lead to it being easier to understand
+//      Downside: Copying data might have to happen late, needing extra synchronization
+//      Potential blocker: Shops are funky and might need extra special behavior
+//TODO: Teleporter item instancing, with a config option to reduce item drops when the items are not owner-only
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -149,7 +154,7 @@ public class InstancedLoot : BaseUnityPlugin
         
         bool shouldInstance = false;
         bool ownerOnly = false;
-        bool isItem = false;
+        bool isSimple = false;
 
         if (instanceInfoTracker == null)
         {
@@ -168,13 +173,14 @@ public class InstancedLoot : BaseUnityPlugin
             }
         }
 
-        if (instanceInfoTracker != null && (
+        if (//(instanceInfoTracker != null) && (
                 (obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null)
                 || (obj.GetComponent<PickupPickerController>() != null)
+                || (obj.GetComponent<PickupDropletController>() != null)
             )
-           )
+           //)
         {
-            isItem = true;
+            isSimple = true;
             Logger.LogDebug($"It's an item!");
             switch (instanceMode)
             {
@@ -193,7 +199,7 @@ public class InstancedLoot : BaseUnityPlugin
             }
         }
 
-        if (!isItem && shouldInstance)
+        if (!isSimple && shouldInstance)
         {
             shouldInstance = ObjectHandlerManager.CanInstanceObject(objectType, obj);
         }
@@ -232,11 +238,11 @@ public class InstancedLoot : BaseUnityPlugin
                 players = ModConfig.GetValidPlayersSet();
             }
 
-            if (isItem)
+            if (isSimple)
             {
                 InstanceHandler handler = obj.AddComponent<InstanceHandler>();
 
-                Logger.LogDebug($"Instancing {obj} as item for {String.Join(", ", players.Select(player => player.GetDisplayName()))}");
+                Logger.LogDebug($"Instancing {obj} as simple object for {String.Join(", ", players.Select(player => player.GetDisplayName()))}");
                 handler.SetPlayers(players);
             }
             else

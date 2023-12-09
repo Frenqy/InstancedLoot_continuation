@@ -41,6 +41,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
             if (InstanceOverrideInfo.HasValue)
             {
                 Plugin.HandleInstancing(obj, InstanceOverrideInfo);
+                Plugin._logger.LogDebug($"PickupDropletController: {obj.GetComponent<PickupDropletController>()?.ToString() ?? "null"}");
                 // InstanceOverrideInfo.Value.AttachTo(obj);
             }
         });
