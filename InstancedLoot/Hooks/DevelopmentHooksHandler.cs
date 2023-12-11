@@ -11,7 +11,7 @@ namespace InstancedLoot.Hooks;
 
 public class DevelopmentHooksHandler : AbstractHookHandler
 {
-    private static Type syncInstanceHandlerSetType = typeof(SyncInstanceHandlerSet);
+    private static Type syncInstanceHandlerSetType = typeof(SyncInstances);
 
     private IDetour getNetworkHashDetour;
     
@@ -25,7 +25,7 @@ public class DevelopmentHooksHandler : AbstractHookHandler
                 BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic),
             GetNetworkHash
         );
-        NetworkingAPI.RegisterMessageType<SyncInstanceHandlerSet>();
+        NetworkingAPI.RegisterMessageType<SyncInstances>();
     }
 
     public override void UnregisterHooks()

@@ -23,7 +23,6 @@ using UnityEngine.Networking;
 
 //TODO: Instance effects on use/open
 //TODO: Instance pickup droplets for dithering
-//TODO: Try to clean up MultiShops - Timing jank
 //TODO: Blood shrine pings use wrong health percentage
 //TODO: Lunar pods are broken in splitscreen, the lunar coin icon in the cost follows the second player, not the first - TMP_Submesh using MeshRenderer - FadeBehavior works if refreshed, might need to refresh on submesh creation
 //      Might need to refactor FadeBehavior
@@ -31,11 +30,9 @@ using UnityEngine.Networking;
 //TODO: Scavenger sack - ScavBackpackBehavior
 //TODO: ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
-//TODO: Should I refactor object handlers to handle the actual data copying? Provide an additional method that's called on Start from InstanceHandler?
-//      Upside: Code is more centralized in the actual object handlers, which would hopefully lead to it being easier to understand
-//      Downside: Copying data might have to happen late, needing extra synchronization
-//      Potential blocker: Shops are funky and might need extra special behavior
 //TODO: Teleporter item instancing, with a config option to reduce item drops when the items are not owner-only
+//TODO: Test networking
+//TODO: Try ripping out coroutines
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618 // Type or member is obsolete
@@ -60,10 +57,10 @@ public class InstancedLoot : BaseUnityPlugin
         HookManager = new HookManager(this);
         ObjectHandlerManager = new ObjectHandlerManager(this);
         
-        NetworkingAPI.RegisterMessageType<SyncInstanceHandlerSet>();
+        NetworkingAPI.RegisterMessageType<SyncInstances>();
     }
 
-    public static List<SyncInstanceHandlerSet.InstanceHandlerEntry[]> FailedSyncs = new();
+    public static List<SyncInstances.InstanceHandlerEntry[]> FailedSyncs = new();
 
     public void Start()
     {
@@ -241,6 +238,11 @@ public class InstancedLoot : BaseUnityPlugin
             if (isSimple)
             {
                 InstanceHandler handler = obj.AddComponent<InstanceHandler>();
+
+                handler.SharedInfo = new InstanceHandler.SharedInstanceInfo
+                {
+                    ObjectInstanceMode = ObjectInstanceMode.InstancedObject,
+                };
 
                 Logger.LogDebug($"Instancing {obj} as simple object for {String.Join(", ", players.Select(player => player.GetDisplayName()))}");
                 handler.SetPlayers(players);

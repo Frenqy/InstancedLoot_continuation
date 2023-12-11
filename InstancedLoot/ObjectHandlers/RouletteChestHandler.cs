@@ -1,3 +1,4 @@
+using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
 using RoR2;
@@ -21,5 +22,16 @@ public class RouletteChestHandler : AbstractObjectHandler
         
         Plugin.HookManager.RegisterHandler<RouletteChestControllerHandler>();
         Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
+    }
+
+    public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
+        PlayerCharacterMasterController[] players)
+    {
+        RouletteChestController sourceChest = source.GetComponent<RouletteChestController>();
+        RouletteChestController targetChest = target.GetComponent<RouletteChestController>();
+
+        targetChest.rng = new Xoroshiro128Plus(sourceChest.rng);
+        
+        return base.InstanceSingleObjectFrom(source, target, players);
     }
 }

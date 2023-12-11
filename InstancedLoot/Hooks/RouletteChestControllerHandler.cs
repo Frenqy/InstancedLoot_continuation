@@ -37,13 +37,16 @@ public class RouletteChestControllerHandler : AbstractHookHandler
 
     private void On_RouletteChestController_Start(On.RoR2.RouletteChestController.orig_Start orig, RouletteChestController self)
     {
-        InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
-        if (instanceHandler == null)
+        if (NetworkServer.active)
         {
-            orig(self);
-
-            if (NetworkServer.active)
+            if (Plugin.ObjectHandlerManager.HandleAwaitedObject(self.gameObject))
+                return;
+            
+            InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
+            if (instanceHandler == null)
             {
+                orig(self);
+
                 string objName = self.name;
                 string objectType = null;
                 
@@ -56,15 +59,7 @@ public class RouletteChestControllerHandler : AbstractHookHandler
         }
         else
         {
-            if (instanceHandler.SourceObject != null && NetworkServer.active)
-            {
-                Plugin._logger.LogInfo("Testing - Start called on RouletteChestController with InstanceHandler");
-
-                RouletteChestController source = instanceHandler.SourceObject.GetComponent<RouletteChestController>();
-
-                self.rng = new Xoroshiro128Plus(source.rng);
-            }
-
+            orig(self);
         }
     }
     

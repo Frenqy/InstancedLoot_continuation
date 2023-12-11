@@ -14,27 +14,89 @@ namespace InstancedLoot.Components;
 public class InstanceHandler : InstancedLootBehaviour
 {
     //Players that can currently interact with this object instance
-    public HashSet<PlayerCharacterMasterController> Players;
+    public HashSet<PlayerCharacterMasterController> Players = new();
     //If ObjectInstanceMode is CopyObject, player for which the object instance was originally instanced
     public PlayerCharacterMasterController OrigPlayer;
     //Mode of instancing used for the object
-    public ObjectInstanceMode ObjectInstanceMode = ObjectInstanceMode.InstancedObject;
+    public ObjectInstanceMode ObjectInstanceMode => sharedInfo?.ObjectInstanceMode ?? ObjectInstanceMode.None;
     //Set of InstanceHandlers for which this object was instanced.
     //If ObjectInstanceMode is not CopyObject, contains only the current handler.
-    public InstanceHandler[] LinkedHandlers;
+    public List<InstanceHandler> LinkedHandlers => sharedInfo?.LinkedHandlers;
     //If ObjectInstanceMode is CopyObject, contains the object this is a copy of.
     //Used when instancing to copy information from the source object.
-    public GameObject SourceObject;
+    public GameObject SourceObject => sharedInfo?.SourceObject;
     //Set of all players that can interact with any of the object's instances
-    public HashSet<PlayerCharacterMasterController> AllPlayers;
+    public HashSet<PlayerCharacterMasterController> AllPlayers => sharedInfo.AllPlayers;
+
+    private SharedInstanceInfo sharedInfo;
+    public SharedInstanceInfo SharedInfo
+    {
+        get => sharedInfo;
+        set
+        {
+            if (sharedInfo == value) return;
+            
+            if (sharedInfo != null)
+            {
+                sharedInfo.LinkedHandlers.Remove(this);
+                sharedInfo.RecalculateAllPlayers();
+            }
+
+            sharedInfo = value;
+            
+            if (sharedInfo != null)
+            {
+                sharedInfo.LinkedHandlers.Add(this);
+                sharedInfo.AllPlayers.UnionWith(Players); //Don't have to recalculate when adding
+            }
+        }
+    }
+
+    public class SharedInstanceInfo
+    {
+        //Set of InstanceHandlers for which this object was instanced.
+        //If ObjectInstanceMode is not CopyObject, contains only the current handler.
+        public List<InstanceHandler> LinkedHandlers = new();
+        //If ObjectInstanceMode is CopyObject, contains the object this is a copy of.
+        //Used when instancing to copy information from the source object.
+        public GameObject SourceObject;
+        //Set of all players that can interact with any of the object's instances
+        public readonly HashSet<PlayerCharacterMasterController> AllPlayers = new();
+        //Mode of instancing used for the object
+        public ObjectInstanceMode ObjectInstanceMode;
+
+        public void RecalculateAllPlayers()
+        {
+            AllPlayers.Clear();
+            foreach (var instanceHandler in LinkedHandlers)
+            {
+                AllPlayers.UnionWith(instanceHandler.Players);
+            }
+        }
+
+        public void SyncTo(NetworkConnection connection)
+        {
+            if (NetworkServer.active)
+            {
+                new SyncInstances(LinkedHandlers).Send(connection);
+            }
+        }
+
+        public void SyncToAll()
+        {
+            if (NetworkServer.active)
+            {
+                new SyncInstances(LinkedHandlers).Send(NetworkDestination.Clients);
+            }
+        }
+    }
 
     public static List<InstanceHandler> Instances = new();
     
     public void Awake()
     {
-        AllPlayers = new();
-        LinkedHandlers = new [] {this};
         Instances.Add(this);
+        FadeBehavior.Attach(gameObject);
     }
 
     public void OnDestroy()
@@ -47,24 +109,15 @@ public class InstanceHandler : InstancedLootBehaviour
         Instances.Remove(this);
     }
 
-    public void SetLinkedHandlers(IEnumerable<InstanceHandler> handlers, bool sync = true)
-    {
-        LinkedHandlers = handlers.ToArray();
-        if(sync)
-            SyncPlayers();
-    }
-
     public void SetPlayers(IEnumerable<PlayerCharacterMasterController> players, bool sync = true)
     {
-        Players = new HashSet<PlayerCharacterMasterController>(players);
+        Players = [..players];
         if(sync)
             SyncPlayers();
     }
 
     public void RemovePlayer(PlayerCharacterMasterController player, bool sync = true)
     {
-        if (Players == null)
-            return;
         Players.Remove(player);
         if(sync)
             SyncPlayers();
@@ -72,8 +125,6 @@ public class InstanceHandler : InstancedLootBehaviour
     
     public void AddPlayer(PlayerCharacterMasterController player, bool sync = true)
     {
-        if (Players == null)
-            Players = new();
         Players.Add(player);
         if(sync)
             SyncPlayers();
@@ -83,7 +134,8 @@ public class InstanceHandler : InstancedLootBehaviour
     {
         if (NetworkServer.active)
         {
-            new SyncInstanceHandlerSet(LinkedHandlers).Send(NetworkDestination.Clients);
+            sharedInfo.RecalculateAllPlayers();
+            sharedInfo.SyncToAll();
         }
         
         UpdateVisuals();
@@ -96,7 +148,7 @@ public class InstanceHandler : InstancedLootBehaviour
             if (player == null || player.networkUser == null || player.networkUser.connectionToClient == null)
                 return;
             //TODO: Am I doing this right? Is there a better way to handle this?
-            new SyncInstanceHandlerSet(LinkedHandlers).Send(player.networkUser.connectionToClient);
+            sharedInfo.SyncTo(player.networkUser.connectionToClient);
         }
     }
 
@@ -104,29 +156,13 @@ public class InstanceHandler : InstancedLootBehaviour
     {
         if (NetworkServer.active)
         {
-            new SyncInstanceHandlerSet(LinkedHandlers).Send(connection);
+            sharedInfo.SyncTo(connection);
         }
     }
 
     public void UpdateVisuals()
     {
-        AllPlayers.Clear();
-        AllPlayers.UnionWith(Players);
-        foreach (var instanceHandler in LinkedHandlers)
-        {
-            AllPlayers.UnionWith(instanceHandler.Players);
-        }
-        
         FadeBehavior.Attach(gameObject);
-        
-        // var localPlayer = PlayerCharacterMasterController.instances[0]; // Seems hacky to me, but it's recommended?
-        // var fadeBehavior = GetComponent<FadeBehavior>();
-        //
-        // if (Players.Contains(localPlayer) && fadeBehavior)
-        //     Destroy(fadeBehavior);
-        //
-        // if (!Players.Contains(localPlayer))
-        //     FadeBehavior.Attach(gameObject);
     }
 
     public bool IsObjectInstancedFor(PlayerCharacterMasterController player)

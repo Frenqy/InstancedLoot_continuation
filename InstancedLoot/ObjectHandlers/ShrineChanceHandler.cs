@@ -1,3 +1,4 @@
+using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
 using RoR2;
@@ -21,5 +22,16 @@ public class ShrineChanceHandler : AbstractObjectHandler
         
         Plugin.HookManager.RegisterHandler<ShrineChanceBehaviorHandler>();
         Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
+    }
+
+    public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
+        PlayerCharacterMasterController[] players)
+    {
+        ShrineChanceBehavior sourceShrine = source.GetComponent<ShrineChanceBehavior>();
+        ShrineChanceBehavior targetShrine = target.GetComponent<ShrineChanceBehavior>();
+        
+        targetShrine.rng = new Xoroshiro128Plus(sourceShrine.rng);
+        
+        return base.InstanceSingleObjectFrom(source, target, players);
     }
 }

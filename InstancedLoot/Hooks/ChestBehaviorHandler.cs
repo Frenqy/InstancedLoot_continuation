@@ -9,21 +9,14 @@ public class ChestBehaviorHandler : AbstractHookHandler
 {
     public override void RegisterHooks()
     {
-        On.RoR2.ChestBehavior.Awake += On_ChestBehavior_Awake;
         On.RoR2.ChestBehavior.ItemDrop += On_ChestBehavior_ItemDrop;
         On.RoR2.ChestBehavior.Start += On_ChestBehavior_Start;
     }
 
     public override void UnregisterHooks()
     {
-        On.RoR2.ChestBehavior.Awake -= On_ChestBehavior_Awake;
         On.RoR2.ChestBehavior.ItemDrop -= On_ChestBehavior_ItemDrop;
         On.RoR2.ChestBehavior.Start -= On_ChestBehavior_Start;
-    }
-
-    private void On_ChestBehavior_Awake(On.RoR2.ChestBehavior.orig_Awake orig, ChestBehavior self)
-    {
-        orig(self);
     }
 
     private void On_ChestBehavior_ItemDrop(On.RoR2.ChestBehavior.orig_ItemDrop orig, ChestBehavior self)
@@ -31,9 +24,11 @@ public class ChestBehaviorHandler : AbstractHookHandler
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
             Plugin._logger.LogWarning($"ChestBehavior dropping {instanceInfoTracker.ObjectType}");
-            hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
+            PickupDropletControllerHandler pickupDropletControllerHandler =
+                hookManager.GetHandler<PickupDropletControllerHandler>();
+            pickupDropletControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
             orig(self);
-            hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = null;
+            pickupDropletControllerHandler.InstanceOverrideInfo = null;
         }
         else
         {
@@ -45,6 +40,9 @@ public class ChestBehaviorHandler : AbstractHookHandler
     {
         if (NetworkServer.active)
         {
+            if (Plugin.ObjectHandlerManager.HandleAwaitedObject(self.gameObject))
+                return;
+            
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
             if (instanceHandler == null)
             {
@@ -75,16 +73,6 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 if (objectType != null)
                     Plugin.HandleInstancingNextTick(self.gameObject,
                         new InstanceInfoTracker.InstanceOverrideInfo(objectType));
-            }
-            else if (instanceHandler.SourceObject != null)
-            {
-                Plugin._logger.LogInfo("Testing - Start called on Chest with InstanceHandler");
-
-                ChestBehavior source = instanceHandler.SourceObject.GetComponent<ChestBehavior>();
-
-                self.rng = new Xoroshiro128Plus(source.rng);
-                self.dropCount = source.dropCount;
-                self.dropPickup = source.dropPickup;
             }
         }
         else

@@ -1,5 +1,8 @@
+using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
+using RoR2;
+using UnityEngine;
 
 namespace InstancedLoot.ObjectHandlers;
 
@@ -19,5 +22,18 @@ public class SpecialObjectHandler : AbstractObjectHandler
         
         Plugin.HookManager.RegisterHandler<ShrineBloodBehaviorHandler>();
         Plugin.HookManager.RegisterHandler<ShrineRestackBehaviorHandler>();
+    }
+
+    public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
+        PlayerCharacterMasterController[] players)
+    {
+        if (target.GetComponent<ShrineRestackBehavior>() is var targetShrine && targetShrine != null)
+        {
+            var sourceShrine = source.GetComponent<ShrineRestackBehavior>();
+
+            targetShrine.rng = new Xoroshiro128Plus(sourceShrine.rng);
+        }
+        
+        return base.InstanceSingleObjectFrom(source, target, players);
     }
 }

@@ -23,19 +23,12 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
     {
         if (NetworkServer.active)
         {
+            if (Plugin.ObjectHandlerManager.HandleAwaitedObject(self.gameObject))
+                return;
+            
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
 
-            if (instanceHandler != null && self.serverMultiShopController == null && instanceHandler.SourceObject != self.gameObject)
-            {
-                ShopTerminalBehavior source = instanceHandler.SourceObject.GetComponent<ShopTerminalBehavior>();
-                
-                self.hasStarted = true;
-                self.rng = new Xoroshiro128Plus(source.rng);
-
-                self.NetworkpickupIndex = source.NetworkpickupIndex;
-                self.Networkhidden = source.Networkhidden;
-            }
-            else if(instanceHandler == null)
+            if(instanceHandler == null)
             {
                 orig(self);
                 

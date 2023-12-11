@@ -1,4 +1,5 @@
 using System.Reflection;
+using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
 using MonoMod.Utils;
@@ -32,5 +33,18 @@ public class ChestHandler : AbstractObjectHandler
         
         Plugin.HookManager.RegisterHandler<ChestBehaviorHandler>();
         Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
+    }
+
+    public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
+        PlayerCharacterMasterController[] players)
+    {
+        ChestBehavior sourceChest = source.GetComponent<ChestBehavior>();
+        ChestBehavior targetChest = target.GetComponent<ChestBehavior>();
+        
+        targetChest.rng = new Xoroshiro128Plus(sourceChest.rng);
+        targetChest.dropCount = sourceChest.dropCount;
+        targetChest.dropPickup = sourceChest.dropPickup;
+        
+        return base.InstanceSingleObjectFrom(source, target, players);
     }
 }

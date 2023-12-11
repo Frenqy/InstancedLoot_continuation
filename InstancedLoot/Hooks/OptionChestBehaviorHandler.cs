@@ -24,9 +24,11 @@ public class OptionChestBehaviorHandler : AbstractHookHandler
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
             Plugin._logger.LogWarning($"OptionChestBehavior dropping {instanceInfoTracker.ObjectType}");
-            hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
+            PickupDropletControllerHandler pickupDropletControllerHandler =
+                hookManager.GetHandler<PickupDropletControllerHandler>();
+            pickupDropletControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
             orig(self);
-            hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = null;
+            pickupDropletControllerHandler.InstanceOverrideInfo = null;
         }
         else
         {
@@ -36,13 +38,16 @@ public class OptionChestBehaviorHandler : AbstractHookHandler
 
     private void On_OptionChestBehavior_Start(On.RoR2.OptionChestBehavior.orig_Start orig, OptionChestBehavior self)
     {
-        InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
-        if (instanceHandler == null)
+        if (NetworkServer.active)
         {
-            orig(self);
-
-            if (NetworkServer.active)
+            if (Plugin.ObjectHandlerManager.HandleAwaitedObject(self.gameObject))
+                return;
+            
+            InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
+            if (instanceHandler == null)
             {
+                orig(self);
+
                 string objName = self.name;
                 string objectType = null;
                 
@@ -56,15 +61,7 @@ public class OptionChestBehaviorHandler : AbstractHookHandler
         }
         else
         {
-            if (instanceHandler.SourceObject != null && NetworkServer.active)
-            {
-                Plugin._logger.LogInfo("Testing - Start called on OptionChest with InstanceHandler");
-
-                OptionChestBehavior source = instanceHandler.SourceObject.GetComponent<OptionChestBehavior>();
-
-                self.rng = new Xoroshiro128Plus(source.rng);
-                self.generatedDrops = source.generatedDrops.ToArray();
-            }
+            orig(self);
         }
     }
 }

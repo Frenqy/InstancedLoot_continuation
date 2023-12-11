@@ -11,6 +11,7 @@ public class ObjectHandlerManager
 {
     public readonly Dictionary<Type, AbstractObjectHandler> ObjectHandlers = new();
     public readonly Dictionary<string, AbstractObjectHandler> HandlersForObjectType = new();
+    public readonly Dictionary<GameObject, AbstractObjectHandler> AwaitedObjects = new();
     public readonly InstancedLoot Plugin;
 
     public ObjectHandlerManager(InstancedLoot pluginInstance)
@@ -59,5 +60,22 @@ public class ObjectHandlerManager
     {
         return HandlersForObjectType.TryGetValue(objectType, out var objectHandler)
                && objectHandler.IsValidForObject(objectType, gameObject);
+    }
+
+    public void RegisterAwaitedObject(GameObject gameObject, AbstractObjectHandler owningHandler)
+    {
+        AwaitedObjects.Add(gameObject, owningHandler);
+    }
+
+    public bool HandleAwaitedObject(GameObject gameObject)
+    {
+        if (AwaitedObjects.TryGetValue(gameObject, out var owningHandler))
+        {
+            AwaitedObjects.Remove(gameObject);
+            owningHandler.HandleAwaitedObject(gameObject);
+            return true;
+        }
+
+        return false;
     }
 }

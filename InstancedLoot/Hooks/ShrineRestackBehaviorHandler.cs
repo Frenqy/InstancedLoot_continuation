@@ -21,22 +21,25 @@ public class ShrineRestackBehaviorHandler : AbstractHookHandler
     {
         if (NetworkServer.active)
         {
+            if (Plugin.ObjectHandlerManager.HandleAwaitedObject(self.gameObject))
+                return;
+            
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
 
-            if (instanceHandler != null && instanceHandler.SourceObject != null && instanceHandler.SourceObject != self.gameObject)
-            {
-                Plugin._logger.LogInfo("Testing - Start called on Chest with InstanceHandler");
-
-                ShrineRestackBehavior source = instanceHandler.SourceObject.GetComponent<ShrineRestackBehavior>();
-
-                self.rng = new Xoroshiro128Plus(source.rng);
-            }
-            else if(instanceHandler == null)
+            if (instanceHandler == null)
             {
                 orig(self);
-                
-                Plugin.HandleInstancing(self.gameObject,
-                    new InstanceInfoTracker.InstanceOverrideInfo(ObjectType.ShrineRestack));
+
+                string objName = self.name;
+                string objectType = null;
+
+                if (objName.StartsWith("ShrineRestack")) objectType = Enums.ObjectType.ShrineRestack;
+
+                Plugin._logger.LogWarning($"ShrineRestack registering {objectType}");
+
+                if (objectType != null)
+                    Plugin.HandleInstancing(self.gameObject,
+                        new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

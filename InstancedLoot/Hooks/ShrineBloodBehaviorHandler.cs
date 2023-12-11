@@ -19,17 +19,32 @@ public class ShrineBloodBehaviorHandler : AbstractHookHandler
 
     private void On_ShrineBloodBehavior_Start(On.RoR2.ShrineBloodBehavior.orig_Start orig, ShrineBloodBehavior self)
     {
-        orig(self);
-
         if (NetworkServer.active)
         {
+            if (Plugin.ObjectHandlerManager.HandleAwaitedObject(self.gameObject))
+                return;
+            
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
 
             if (instanceHandler == null)
             {
-                Plugin.HandleInstancing(self.gameObject,
-                    new InstanceInfoTracker.InstanceOverrideInfo(ObjectType.ShrineBlood));
+                orig(self);
+
+                string objName = self.name;
+                string objectType = null;
+
+                if (objName.StartsWith("ShrineBlood")) objectType = Enums.ObjectType.ShrineBlood;
+
+                Plugin._logger.LogWarning($"ShrineBlood registering {objectType}");
+
+                if (objectType != null)
+                    Plugin.HandleInstancing(self.gameObject,
+                        new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
+        }
+        else
+        {
+            orig(self);
         }
     }
 }

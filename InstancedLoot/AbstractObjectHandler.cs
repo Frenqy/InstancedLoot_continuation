@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using RoR2;
@@ -9,9 +10,7 @@ namespace InstancedLoot;
 
 public abstract class AbstractObjectHandler
 {
-    
     private static Dictionary<string, SpawnCard> _SpawnCardsForPrefabName;
-
     public static Dictionary<string, SpawnCard> SpawnCardsForPrefabName
     {
         get
@@ -52,6 +51,14 @@ public abstract class AbstractObjectHandler
     public abstract string[] HandledObjectTypes { get; }
     public abstract ObjectInstanceMode ObjectInstanceMode { get; }
     public virtual bool CanObjectBeOwned => false;
+    public readonly Dictionary<GameObject, AwaitedObjectInfo> InfoForAwaitedObjects = new();
+
+    public struct AwaitedObjectInfo
+    {
+        public GameObject SourceObject;
+        public PlayerCharacterMasterController[] Players;
+        public object ExtraInfo; // Just in case, to store anything
+    }
 
     public virtual bool IsValidForObject(string objectType, GameObject gameObject)
     {
@@ -62,45 +69,45 @@ public abstract class AbstractObjectHandler
     {
         InstanceHandler[] instanceHandlers;
         PlayerCharacterMasterController[] primaryPlayers;
-        if (ObjectInstanceMode == ObjectInstanceMode.InstancedObject)
+        InstanceHandler.SharedInstanceInfo sharedInstanceInfo = new InstanceHandler.SharedInstanceInfo();
+        sharedInstanceInfo.SourceObject = gameObject;
+        sharedInstanceInfo.ObjectInstanceMode = ObjectInstanceMode;
+        
+        switch (ObjectInstanceMode)
         {
-            instanceHandlers = new InstanceHandler[1];
-            primaryPlayers = players;
-        }
-        else if (ObjectInstanceMode == ObjectInstanceMode.CopyObject)
-        {
-            instanceHandlers = new InstanceHandler[players.Length];
-
-            for (int i = 1; i < players.Length; i++)
-            {
-                GameObject newInstance = CloneObject(objectType, gameObject);
-                instanceHandlers[i] = InstanceSingleObjectFrom(gameObject, newInstance, new[]
-                {
-                    players[i]
-                });
-            }
-
-            primaryPlayers = new[] { players[0] };
-        }
-        else
-        {
-            throw new InvalidOperationException("Object handler doesn't support instancing objects (?)");
+            case ObjectInstanceMode.InstancedObject:
+                instanceHandlers = new InstanceHandler[1];
+                primaryPlayers = players;
+                break;
+            case ObjectInstanceMode.CopyObject:
+                instanceHandlers = new InstanceHandler[players.Length];
+                primaryPlayers = new[] { players[0] };
+                break;
+            default:
+                throw new InvalidOperationException("Object handler doesn't support instancing objects (?)");
         }
 
         InstanceHandler primary =
             instanceHandlers[0] = InstanceSingleObjectFrom(gameObject, gameObject, primaryPlayers);
+        primary.SharedInfo = sharedInstanceInfo;
 
-        foreach (var instanceHandler in instanceHandlers)
-        {
-            instanceHandler.SetLinkedHandlers(instanceHandlers, false);
+        if (ObjectInstanceMode == ObjectInstanceMode.CopyObject) {
+            for (int i = 1; i < players.Length; i++)
+            {
+                GameObject newInstance = CloneObject(objectType, gameObject);
+
+                if (newInstance != null)
+                    AwaitObjectFor(newInstance, new AwaitedObjectInfo
+                    {
+                        SourceObject = gameObject, Players = new[]
+                        {
+                            players[i]
+                        }
+                    });
+            }
         }
-
-        primary.SyncPlayers();
-
-        foreach (var instanceHandler in instanceHandlers)
-        {
-            instanceHandler.UpdateVisuals();
-        }
+        
+        FinalizeSourceObjectIfNotAwaited(gameObject);
     }
 
     public virtual GameObject CloneObject(string objectType, GameObject gameObject)
@@ -150,15 +157,51 @@ public abstract class AbstractObjectHandler
         if (ObjectInstanceMode == ObjectInstanceMode.CopyObject)
         {
             instanceHandler.OrigPlayer = players[0];
-            instanceHandler.SourceObject = source;
 
             InstanceInfoTracker instanceInfoTracker = source.GetComponent<InstanceInfoTracker>();
             if (instanceInfoTracker != null)
             {
                 instanceInfoTracker.Info.AttachTo(target);
             }
+
+            InstanceHandler sourceHandler = source.GetComponent<InstanceHandler>();
+            instanceHandler.SharedInfo = sourceHandler.SharedInfo;
         }
-        instanceHandler.ObjectInstanceMode = ObjectInstanceMode;
         return instanceHandler;
+    }
+
+    public virtual void FinalizeSourceObjectIfNotAwaited(GameObject sourceObject)
+    {
+        if (InfoForAwaitedObjects.All(pair => pair.Value.SourceObject != sourceObject))
+        {
+            FinalizeObject(sourceObject);
+        }
+    }
+
+    public virtual void FinalizeObject(GameObject sourceObject)
+    {
+        InstanceHandler sourceHandler = sourceObject.GetComponent<InstanceHandler>();
+        
+        sourceHandler.SharedInfo.SyncToAll();
+
+        foreach (var instanceHandler in sourceHandler.SharedInfo.LinkedHandlers)
+        {
+            instanceHandler.UpdateVisuals();
+        }
+        
+    }
+
+    public virtual void AwaitObjectFor(GameObject target, AwaitedObjectInfo info)
+    {
+        InfoForAwaitedObjects.Add(target, info);
+        Manager.RegisterAwaitedObject(target, this);
+    }
+
+    public virtual void HandleAwaitedObject(GameObject target)
+    {
+        AwaitedObjectInfo awaitedObjectInfo = InfoForAwaitedObjects[target];
+        InfoForAwaitedObjects.Remove(target);
+        InstanceSingleObjectFrom(awaitedObjectInfo.SourceObject, target, awaitedObjectInfo.Players);
+        FinalizeSourceObjectIfNotAwaited(awaitedObjectInfo.SourceObject);
     }
 }

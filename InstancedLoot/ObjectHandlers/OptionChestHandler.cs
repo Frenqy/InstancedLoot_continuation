@@ -1,3 +1,5 @@
+using System.Linq;
+using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
 using RoR2;
@@ -26,5 +28,16 @@ public class OptionChestHandler : AbstractObjectHandler
         Plugin.HookManager.RegisterHandler<OptionChestBehaviorHandler>();
         Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
     }
-    
+
+    public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
+        PlayerCharacterMasterController[] players)
+    {
+        OptionChestBehavior sourceChest = source.GetComponent<OptionChestBehavior>();
+        OptionChestBehavior targetChest = target.GetComponent<OptionChestBehavior>();
+        
+        targetChest.rng = new Xoroshiro128Plus(sourceChest.rng); 
+        targetChest.generatedDrops = sourceChest.generatedDrops.ToArray();
+        
+        return base.InstanceSingleObjectFrom(source, target, players);
+    }
 }

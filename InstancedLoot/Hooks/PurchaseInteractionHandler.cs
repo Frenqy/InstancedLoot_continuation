@@ -12,43 +12,14 @@ public class PurchaseInteractionHandler : AbstractHookHandler
 {
     public override void RegisterHooks()
     {
-        On.RoR2.PurchaseInteraction.Awake += On_PurchaseInteraction_Awake;
         On.RoR2.PurchaseInteraction.GetInteractability += On_PurchaseInteraction_GetInteractability;
         On.RoR2.PurchaseInteraction.OnInteractionBegin += On_PurchaseInteraction_OnInteractionBegin;
     }
 
     public override void UnregisterHooks()
     {
-        On.RoR2.PurchaseInteraction.Awake -= On_PurchaseInteraction_Awake;
         On.RoR2.PurchaseInteraction.GetInteractability -= On_PurchaseInteraction_GetInteractability;
         On.RoR2.PurchaseInteraction.OnInteractionBegin -= On_PurchaseInteraction_OnInteractionBegin;
-    }
-
-    private void On_PurchaseInteraction_Awake(On.RoR2.PurchaseInteraction.orig_Awake orig, PurchaseInteraction self)
-    {
-        orig(self);
-        
-        //Delay instancing until after shop terminals have been created
-        self.StartCoroutine(HandleDelayedInstancing(self));
-    }
-
-    private IEnumerator HandleDelayedInstancing(PurchaseInteraction self)
-    {
-        yield return 0;
-        
-        InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
-        
-        if (instanceHandler != null && instanceHandler.SourceObject != null && NetworkServer.active)
-        {
-            Plugin._logger.LogInfo("Testing - Awake called on PurchaseInteraction with InstanceHandler");
-
-            PurchaseInteraction source = instanceHandler.SourceObject.GetComponent<PurchaseInteraction>();
-            
-            Plugin._logger.LogInfo($"Copying Networkcost from {source.Networkcost} overriding {self.Networkcost}");
-            
-            self.Networkcost = source.Networkcost;
-            self.rng = new Xoroshiro128Plus(source.rng);
-        }
     }
 
     private Interactability On_PurchaseInteraction_GetInteractability(On.RoR2.PurchaseInteraction.orig_GetInteractability orig, PurchaseInteraction self, Interactor activator)

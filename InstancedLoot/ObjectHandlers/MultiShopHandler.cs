@@ -36,13 +36,6 @@ public class MultiShopHandler : AbstractObjectHandler
         Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
     }
 
-    public override void InstanceObject(string objectType, GameObject gameObject, PlayerCharacterMasterController[] players)
-    {
-        base.InstanceObject(objectType, gameObject, players);
-        
-        LateInstanceShop(objectType, gameObject);
-    }
-    
     public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
         PlayerCharacterMasterController[] players)
     {
@@ -52,6 +45,7 @@ public class MultiShopHandler : AbstractObjectHandler
         {
             InstanceInfoTracker instanceInfoTracker = source.GetComponent<InstanceInfoTracker>();
             MultiShopController multiShopController = source.GetComponent<MultiShopController>();
+            ShopTerminalBehavior shopTerminalBehavior = source.GetComponent<ShopTerminalBehavior>();
     
             if (multiShopController != null)
             {
@@ -63,59 +57,63 @@ public class MultiShopHandler : AbstractObjectHandler
                         instanceInfoTracker.Info.AttachTo(terminalGameObject);
                 }
             }
+
+            if (shopTerminalBehavior != null)
+            {
+                instanceHandler.SharedInfo = new()
+                {
+                    SourceObject = target,
+                    ObjectInstanceMode = ObjectInstanceMode,
+                };
+            }
         }
-    
-        return instanceHandler;
-    }
-
-    internal void LateInstanceShop(string objectType, GameObject gameObject)
-    {
-        InstanceHandler handler = gameObject.GetComponent<InstanceHandler>();
-
-        handler.StartCoroutine(Coroutine(handler));
-        return;
-
-        IEnumerator Coroutine(InstanceHandler primaryHandler)
+        else
         {
-            yield return 0;
-
-            InstanceHandler[] handlers = primaryHandler.LinkedHandlers;
-            MultiShopController[] shops = handlers.Select(handler => handler.GetComponent<MultiShopController>()).ToArray();
-
-            int debugCounter = 10;
-            while (shops.Any(shop => shop.terminalGameObjects.Length == 0))
+            MultiShopController targetMultiShopController = target.GetComponent<MultiShopController>();
+            if (targetMultiShopController != null)
             {
-                yield return 0;
-                debugCounter--;
-                if (debugCounter <= 0)
-                {
-                    Plugin._logger.LogError("Error instancing MultiShopController - An instance doesn't have terminals after 10 ticks.");
-                    yield break;
-                }
-            }
+                MultiShopController sourceMultiShopController = source.GetComponent<MultiShopController>();
 
-            InstanceHandler[][] terminals = shops.Select(shop =>
-                    shop._terminalGameObjects.Select(terminal => terminal.GetComponent<InstanceHandler>()).ToArray())
-                .ToArray();
-            
-            for (int i = 0; i < terminals[0].Length; i++)
-            {
-                InstanceHandler[] linkedHandlers = new InstanceHandler[terminals.Length];
-                for (int instanceIndex = 0; instanceIndex < terminals.Length; instanceIndex++)
+                targetMultiShopController.rng = new(0); //Temporary RNG
+                targetMultiShopController.CreateTerminals();
+                targetMultiShopController.Networkcost = sourceMultiShopController.Networkcost;
+                targetMultiShopController.rng = new Xoroshiro128Plus(sourceMultiShopController.rng);
+
+                var sourceTerminalGameObjects = sourceMultiShopController._terminalGameObjects;
+                var targetTerminalGameObjects = targetMultiShopController._terminalGameObjects;
+
+                for (int i = 0; i < targetTerminalGameObjects.Length; i++)
                 {
-                    linkedHandlers[instanceIndex] = terminals[instanceIndex][i];
-                    terminals[instanceIndex][i].LinkedHandlers = linkedHandlers;
-                }
-                
-                terminals[0][i].SyncPlayers();
-                
-                for (int instanceIndex = 0; instanceIndex < terminals.Length; instanceIndex++)
-                {
-                    terminals[instanceIndex][i].UpdateVisuals();
+                    AwaitObjectFor(targetTerminalGameObjects[i],
+                        new AwaitedObjectInfo
+                        {
+                            SourceObject = sourceTerminalGameObjects[i],
+                            Players = players
+                        });
                 }
             }
             
-            primaryHandler.SyncPlayers();
+            ShopTerminalBehavior targetShopTerminalBehavior = target.GetComponent<ShopTerminalBehavior>();
+            if (targetShopTerminalBehavior != null)
+            {
+                ShopTerminalBehavior sourceShopTerminalBehavior = source.GetComponent<ShopTerminalBehavior>();
+
+                targetShopTerminalBehavior.hasStarted = true;
+                targetShopTerminalBehavior.rng = new Xoroshiro128Plus(sourceShopTerminalBehavior.rng);
+                targetShopTerminalBehavior.NetworkpickupIndex = sourceShopTerminalBehavior.NetworkpickupIndex;
+                targetShopTerminalBehavior.Networkhidden = sourceShopTerminalBehavior.Networkhidden;
+            }
+
+            PurchaseInteraction targetPurchaseInteraction = target.GetComponent<PurchaseInteraction>();
+            if (targetPurchaseInteraction != null)
+            {
+                PurchaseInteraction sourcePurchaseInteraction = source.GetComponent<PurchaseInteraction>();
+
+                targetPurchaseInteraction.rng = sourcePurchaseInteraction.rng;
+                targetPurchaseInteraction.Networkcost = sourcePurchaseInteraction.Networkcost;
+            }
         }
+
+        return instanceHandler;
     }
 }
