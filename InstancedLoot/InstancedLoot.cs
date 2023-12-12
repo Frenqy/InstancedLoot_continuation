@@ -26,13 +26,11 @@ using UnityEngine.Networking;
 //TODO: Blood shrine pings use wrong health percentage
 //TODO: Lunar pods are broken in splitscreen, the lunar coin icon in the cost follows the second player, not the first - TMP_Submesh using MeshRenderer - FadeBehavior works if refreshed, might need to refresh on submesh creation
 //      Might need to refactor FadeBehavior
-//TODO: Test shrine of order RNG. Doesn't really matter, but I'd like it to be consistent.
 //TODO: Scavenger sack - ScavBackpackBehavior
-//TODO: ReduceSacrificeSpawnChance
+//TODO: Test ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
-//TODO: Teleporter item instancing, with a config option to reduce item drops when the items are not owner-only
 //TODO: Test networking
-//TODO: Try ripping out coroutines
+
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
 #pragma warning restore CS0618 // Type or member is obsolete
