@@ -55,7 +55,7 @@ public class ShrineChanceBehaviorHandler : AbstractHookHandler
                 Plugin._logger.LogWarning($"ShrineChanceBehavior registering {objectType}");
 
                 if (objectType != null)
-                    Plugin.HandleInstancingNextTick(self.gameObject,
+                    Plugin.HandleInstancing(self.gameObject,
                         new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }

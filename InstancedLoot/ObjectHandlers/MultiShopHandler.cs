@@ -102,6 +102,7 @@ public class MultiShopHandler : AbstractObjectHandler
                 targetShopTerminalBehavior.rng = new Xoroshiro128Plus(sourceShopTerminalBehavior.rng);
                 targetShopTerminalBehavior.NetworkpickupIndex = sourceShopTerminalBehavior.NetworkpickupIndex;
                 targetShopTerminalBehavior.Networkhidden = sourceShopTerminalBehavior.Networkhidden;
+                targetShopTerminalBehavior.UpdatePickupDisplayAndAnimations();
             }
 
             PurchaseInteraction targetPurchaseInteraction = target.GetComponent<PurchaseInteraction>();

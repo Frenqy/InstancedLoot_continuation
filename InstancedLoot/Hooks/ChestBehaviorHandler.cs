@@ -71,7 +71,7 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 Plugin._logger.LogWarning($"ChestBehavior registering {objectType}");
 
                 if (objectType != null)
-                    Plugin.HandleInstancingNextTick(self.gameObject,
+                    Plugin.HandleInstancing(self.gameObject,
                         new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }

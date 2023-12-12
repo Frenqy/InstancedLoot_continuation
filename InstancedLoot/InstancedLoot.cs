@@ -116,17 +116,6 @@ public class InstancedLoot : BaseUnityPlugin
         }
     }
 
-    public void HandleInstancingNextTick(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo)
-    {
-        StartCoroutine(HandleInstancingNextTickInternal());
-        
-        IEnumerator HandleInstancingNextTickInternal()
-        {
-            yield return 0;
-            HandleInstancing(obj, overrideInfo);
-        }
-    }
-
     public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null)
     {
         Logger.LogDebug($"Called for {obj}");

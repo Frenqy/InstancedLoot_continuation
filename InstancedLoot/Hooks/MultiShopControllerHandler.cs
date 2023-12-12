@@ -44,7 +44,7 @@ public class MultiShopControllerHandler : AbstractHookHandler
                 Plugin._logger.LogWarning($"MultiShopController registering {objectType}");
 
                 if (objectType != null)
-                    Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
+                    Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

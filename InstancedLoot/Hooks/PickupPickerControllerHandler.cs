@@ -48,7 +48,7 @@ public class PickupPickerControllerHandler : AbstractHookHandler
 
         if (NetworkServer.active)
         {
-            Plugin.HandleInstancingNextTick(self.gameObject, null);
+            Plugin.HandleInstancing(self.gameObject);
             
             var onPickupSelected = self.onPickupSelected;
             int eventCount = onPickupSelected.GetPersistentEventCount();
@@ -57,7 +57,7 @@ public class PickupPickerControllerHandler : AbstractHookHandler
             
             for (int i = 0; i < eventCount; i++)
             {
-                if (onPickupSelected.GetPersistentTarget(i) is EventFunctions target &&
+                if (onPickupSelected.GetPersistentTarget(i) is EventFunctions &&
                     onPickupSelected.GetPersistentMethodName(i) == "DestroySelf")
                 {
                     onPickupSelected.SetPersistentListenerState(i, UnityEventCallState.Off);

@@ -54,7 +54,7 @@ public class RouletteChestControllerHandler : AbstractHookHandler
                 
                 Plugin._logger.LogWarning($"RouletteChestController registering {objectType}");
                 
-                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
+                if(objectType != null) Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else

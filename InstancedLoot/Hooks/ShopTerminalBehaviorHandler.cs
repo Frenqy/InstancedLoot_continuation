@@ -26,12 +26,12 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
             if (Plugin.ObjectHandlerManager.HandleAwaitedObject(self.gameObject))
                 return;
             
+            orig(self);
+            
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
 
             if(instanceHandler == null)
             {
-                orig(self);
-                
                 string objName = self.name;
                 string objectType = null;
                 
@@ -44,7 +44,7 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
                 
                 Plugin._logger.LogWarning($"ShopTerminalBehavior registering {objectType}");
                 
-                if(objectType != null) Plugin.HandleInstancingNextTick(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
+                if(objectType != null) Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }
         else
