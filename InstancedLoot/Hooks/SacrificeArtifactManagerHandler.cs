@@ -1,3 +1,4 @@
+using System;
 using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using MonoMod.Cil;
@@ -11,12 +12,16 @@ public class SacrificeArtifactManagerHandler : AbstractHookHandler
     {
         On.RoR2.Artifacts.SacrificeArtifactManager.OnServerCharacterDeath +=
             On_SacrificeArtifactManager_OnServerCharacterDeath;
+        IL.RoR2.Artifacts.SacrificeArtifactManager.OnServerCharacterDeath +=
+            IL_SacrificeArtifactManager_OnServerCharacterDeath;
     }
 
     public override void UnregisterHooks()
     {
         On.RoR2.Artifacts.SacrificeArtifactManager.OnServerCharacterDeath -=
             On_SacrificeArtifactManager_OnServerCharacterDeath;
+        IL.RoR2.Artifacts.SacrificeArtifactManager.OnServerCharacterDeath +=
+            IL_SacrificeArtifactManager_OnServerCharacterDeath;
     }
 
     private void On_SacrificeArtifactManager_OnServerCharacterDeath(On.RoR2.Artifacts.SacrificeArtifactManager.orig_OnServerCharacterDeath orig, DamageReport damagereport)
@@ -33,5 +38,21 @@ public class SacrificeArtifactManagerHandler : AbstractHookHandler
         pickupDropletHandler.InstanceOverrideInfo = new InstanceInfoTracker.InstanceOverrideInfo(ObjectType.Sacrifice, owner: owner);
         orig(damagereport);
         pickupDropletHandler.InstanceOverrideInfo = null;
+    }
+
+    private void IL_SacrificeArtifactManager_OnServerCharacterDeath(ILContext il)
+    {
+        ILCursor cursor = new ILCursor(il);
+
+        cursor.GotoNext(MoveType.After,
+            i => i.MatchCallOrCallvirt(typeof(RoR2.Util), "GetExpAdjustedDropChancePercent"));
+
+        cursor.EmitDelegate<Func<float, float>>((dropChance) =>
+        {
+            if (ModConfig.ReduceSacrificeSpawnChance.Value)
+                dropChance /= Run.instance.participatingPlayerCount;
+
+            return dropChance;
+        });
     }
 }
