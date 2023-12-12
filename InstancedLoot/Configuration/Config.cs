@@ -35,6 +35,7 @@ public class Config
     public ConfigEntry<InstanceMode> PreferredInstanceMode;
     public ConfigEntry<bool> ReduceInteractibleBudget;
     public ConfigEntry<bool> ReduceSacrificeSpawnChance;
+    public ConfigEntry<bool> ReduceBossDrops;
 
     public bool Ready => true;
     public event Action OnConfigReady;
@@ -113,14 +114,18 @@ public class Config
         SharePickupPickers = config.Bind("General", "SharePickupPickers", false,
             "Should pickup pickers be shared?\nIf true, pickup pickers (such as void orbs and command essences) will be shared among the players they are instanced for.\nA shared pickup picker can only be opened by one player, and will then drop an item that can be picked up separately.\nIf a pickup picker is not shared, then the item can be selected separately by each player.");
         ReduceInteractibleBudget = config.Bind("General", "ReduceInteractibleBudget", true,
-            "Should the interactible budget be reduced to singleplayer levels?\n" +
+            "Should the interactible budget be reduced to singleplayer levels? (NOTE: Does not account for instance modes)\n" +
             "If enabled, the budget used to spawn interactibles (chests, shrines, etc.) in SceneDirector is no longer increased based on player count, and is instead overriden to act as though there's one player.\n" +
             "If disabled, you might end up having an increased amount of item drops, with each item drop multiplied by the number of players, causing you to become overpowered."); 
         ReduceSacrificeSpawnChance = config.Bind("General", "ReduceSacrificeSpawnChance", true,
-            "Should the spawn chance be reduced by the amount of players?\n" +
+            "Should the spawn chance be reduced by the amount of players, if sacrifice item instancing will yield extra items?\n" +
             "If enabled, the chance that an enemy drops an item is divided by the number of players in the game.\n" +
             "If disabled, you might end up having an increased amount of item drops, due to an increased amount of enemies when playing in multiplayer, combined with items being multiplied by the number of players.\n" +
             "Note: This is not an accurate method of keeping the amount of items and/or the power level the same as without the mod. I have not checked the formulas or tested the results to ensure fairness, use or don't use this at your own risk.");
+        ReduceBossDrops = config.Bind("General", "ReduceBossDrops", true,
+            "Should the boss drop count not scale with player count, if the instancing will yield extra items?\n" +
+            "Applies to teleporter boss drops, as well as the extra boss on Siren's Call, and any other boss drops from BossGroup.\n" +
+            "Recommended when instancing teleporter items, otherwise your boss item drop amount might get increased.");
         
         DefaultDescriptionsForObjectType.Clear();
         DefaultAliasesForObjectType.Clear();

@@ -160,7 +160,14 @@ public static class ObjectType
     // [Aliases(new []{ ObjectAlias.Chests, ObjectAlias.ChestsSmall })]
     [DisableInstanceModes(new[] { InstanceMode.InstanceItems, InstanceMode.InstanceBoth, InstanceMode.InstanceItemForOwnerOnly })]
     public const string PickupLunarCoin = "PickupLunarCoin";
-    
+
+    [Description("Teleporter boss drop")]
+    public const string TeleporterBoss = "TeleporterBoss";
+    [Description("Siren's call boss drop")]
+    public const string SuperRoboBallEncounter = "SuperRoboBallEncounter";
+    [Description("Unknown boss drop")]
+    public const string BossGroup = "BossGroup";
+
     // public const string Barrel1 = "Barrel1"; // Barrels give benefits to everybody, let's not do this one
     // public const string VoidBarrel = "VoidBarrel"; // Barrels give benefits to everybody, let's not do this one
     // public const string PickupOrbOnUse = "PickupOrbOnUse"; // Weird thing, looks like brass shop filled with void goop

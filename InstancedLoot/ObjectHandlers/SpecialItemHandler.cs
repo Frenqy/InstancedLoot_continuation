@@ -8,7 +8,8 @@ public class SpecialItemHandler : AbstractObjectHandler
 {
     public override string[] HandledObjectTypes { get; } =
     {
-        ObjectType.Sacrifice, ObjectType.HuntersTricorn
+        ObjectType.Sacrifice, ObjectType.HuntersTricorn,
+        ObjectType.BossGroup, ObjectType.TeleporterBoss, ObjectType.SuperRoboBallEncounter
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.None;
@@ -19,5 +20,6 @@ public class SpecialItemHandler : AbstractObjectHandler
         
         Plugin.HookManager.RegisterHandler<SacrificeArtifactManagerHandler>();
         Plugin.HookManager.RegisterHandler<BossHunterHandler>();
+        Plugin.HookManager.RegisterHandler<BossGroupHandler>();
     }
 }
