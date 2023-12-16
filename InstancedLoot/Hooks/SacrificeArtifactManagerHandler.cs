@@ -49,7 +49,8 @@ public class SacrificeArtifactManagerHandler : AbstractHookHandler
 
         cursor.EmitDelegate<Func<float, float>>((dropChance) =>
         {
-            if (ModConfig.ReduceSacrificeSpawnChance.Value)
+            if (ModConfig.ReduceSacrificeSpawnChance.Value &&
+                Utils.IncreasesItemCount(ModConfig.GetInstanceMode(ObjectType.Sacrifice)))
                 dropChance /= Run.instance.participatingPlayerCount;
 
             return dropChance;
