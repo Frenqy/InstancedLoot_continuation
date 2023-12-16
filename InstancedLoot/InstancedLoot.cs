@@ -24,12 +24,18 @@ using UnityEngine.Networking;
 //TODO: Instance effects on use/open
 //TODO: Instance pickup droplets for dithering
 //TODO: Blood shrine pings use wrong health percentage
-//TODO: Lunar pods are broken in splitscreen, the lunar coin icon in the cost follows the second player, not the first - TMP_Submesh using MeshRenderer - FadeBehavior works if refreshed, might need to refresh on submesh creation
-//      Might need to refactor FadeBehavior
 //TODO: Scavenger sack - ScavBackpackBehavior
 //TODO: Test ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
 //TODO: Test networking
+//TODO: A way to forfeit an item instanced to you, so that another player may pick them up?
+//      Probably a hotkey to forfeit an item you're looking at, and a button to forfeit all items.
+//TODO: Handle disconnected players?
+//      Compatibility with https://thunderstore.io/package/Moffein/Fix_Playercount/
+//      Teleporter drop counting is going to be off and give items to the wrong players
+//TODO: Implement HideInstancedPickupDroplets
+//TODO: Instance drones (duh), perhaps later though - need to handle drones that broke correctly.
+//TODO: Lunar pods are fixed, but rely on coroutine running next frame.
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]

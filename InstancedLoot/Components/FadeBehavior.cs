@@ -144,6 +144,17 @@ public class FadeBehavior : InstancedLootBehaviour
         return gameObjects.SelectMany(obj => obj.GetComponentsInChildren<T>());
     }
 
+    public void RefreshNextFrame()
+    {
+        StartCoroutine(RefreshNextFrameCoroutine());
+
+        IEnumerator RefreshNextFrameCoroutine()
+        {
+            yield return 0;
+            Refresh();
+        }
+    }
+
     public void Refresh()
     {
         needsRefresh = true;
@@ -168,7 +179,7 @@ public class FadeBehavior : InstancedLootBehaviour
         
         HashSet<Behaviour> componentsForPreCull = new(CustomGetComponents<Highlight>(gameObjects));
         componentsForPreCull.UnionWith(CustomGetComponents<Light>(gameObjects));
-        componentsForPreCull.UnionWith(CustomGetComponents<TMP_SubMesh>(gameObjects));
+        // componentsForPreCull.UnionWith(CustomGetComponents<TMP_SubMesh>(gameObjects));
         
         ComponentsForPreCull = componentsForPreCull.ToArray();
         
