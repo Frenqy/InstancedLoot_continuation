@@ -63,7 +63,7 @@ public class BossGroupHandler : AbstractHookHandler
 
         bool origScaleRewardsByPlayerCount = self.scaleRewardsByPlayerCount;
         
-        if (ModConfig.ReduceBossDrops.Value && instanceMode == InstanceMode.InstanceItems)
+        if (ModConfig.ReduceBossDrops.Value && Utils.IncreasesItemCount(instanceMode))
         {
             self.scaleRewardsByPlayerCount = false;
         }

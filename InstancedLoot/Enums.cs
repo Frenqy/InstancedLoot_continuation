@@ -136,6 +136,8 @@ public static class ObjectType
     [Aliases(new []{ ObjectAlias.Void, ObjectAlias.ItemSpawned, ObjectAlias.PaidWithItem })]
     public const string LockboxVoid = "LockboxVoid"; //OptionChestBehavior
     
+    [Description("Scavenger's sack")]
+    public const string ScavBackpack = "ScavBackpack";
 
     [Description("Sacrifice item drop\nNote: the owner for sacrifice is the player delivering the final blow, as recorded in the DamageReport")]
     // [Aliases(new []{ ObjectAlias.Special })]

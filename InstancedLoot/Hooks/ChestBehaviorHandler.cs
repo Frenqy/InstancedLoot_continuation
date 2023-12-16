@@ -67,6 +67,7 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 if (objName.StartsWith("EquipmentBarrel")) objectType = Enums.ObjectType.EquipmentBarrel;
                 if (objName.StartsWith("LunarChest")) objectType = Enums.ObjectType.LunarChest;
                 if (objName.StartsWith("VoidChest")) objectType = Enums.ObjectType.VoidChest;
+                if (objName.StartsWith("ScavBackpack")) objectType = Enums.ObjectType.ScavBackpack;
 
                 Plugin._logger.LogWarning($"ChestBehavior registering {objectType}");
 

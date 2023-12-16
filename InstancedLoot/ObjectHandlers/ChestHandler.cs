@@ -18,6 +18,7 @@ public class ChestHandler : AbstractObjectHandler
         ObjectType.EquipmentBarrel,
         ObjectType.LunarChest, ObjectType.VoidChest,
         ObjectType.Lockbox,
+        ObjectType.ScavBackpack
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
@@ -33,6 +34,7 @@ public class ChestHandler : AbstractObjectHandler
         
         Plugin.HookManager.RegisterHandler<ChestBehaviorHandler>();
         Plugin.HookManager.RegisterHandler<PurchaseInteractionHandler>();
+        Plugin.HookManager.RegisterHandler<ScavBackpackOpeningHandler>();
     }
 
     public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,

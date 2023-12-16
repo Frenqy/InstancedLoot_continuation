@@ -36,6 +36,8 @@ public class Config
     public ConfigEntry<bool> ReduceInteractibleBudget;
     public ConfigEntry<bool> ReduceSacrificeSpawnChance;
     public ConfigEntry<bool> ReduceBossDrops;
+    public ConfigEntry<bool> ReduceScavengerSackDrops;
+    public ConfigEntry<bool> HideInstancedPickupDroplets;
 
     public bool Ready => true;
     public event Action OnConfigReady;
@@ -125,7 +127,13 @@ public class Config
         ReduceBossDrops = config.Bind("General", "ReduceBossDrops", true,
             "Should the boss drop count not scale with player count, if the instancing will yield extra items?\n" +
             "Applies to teleporter boss drops, as well as the extra boss on Siren's Call, and any other boss drops from BossGroup.\n" +
-            "Recommended when instancing teleporter items, otherwise your boss item drop amount might get increased.");
+            "Recommended when instancing teleporter items, otherwise your boss item drop amount might get increased."); 
+        ReduceScavengerSackDrops = config.Bind("General", "ReduceScavengerSackDrops", false,
+            "Should the amount of items dropped from a Scavenger's Sack be reduced based on the number of players, if the amount of items is increased as an effect of instancing?\n" +
+            "Note: The amount of items might still not be fair - you might get too few or too many items with this option enabled.");
+        HideInstancedPickupDroplets = config.Bind("General", "HideInstancedPickupDroplets", false,
+            "If enabled, pickup droplets that will result in an item that isn't available for you will be hidden for you.\n" +
+            "That means if another player opens a chest, you won't visually see the droplet unless you can also pickup the resulting item.");
         
         DefaultDescriptionsForObjectType.Clear();
         DefaultAliasesForObjectType.Clear();

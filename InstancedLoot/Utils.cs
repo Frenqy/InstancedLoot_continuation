@@ -1,4 +1,5 @@
 using InstancedLoot.Components;
+using InstancedLoot.Enums;
 using RoR2;
 using UnityEngine;
 
@@ -70,5 +71,18 @@ public class Utils
         if (player == null) return true;
 
         return IsObjectInstanceInteractibleForPlayer(gameObject, player);
+    }
+
+    public static bool IncreasesItemCount(InstanceMode instanceMode)
+    {
+        switch (instanceMode)
+        {
+            case InstanceMode.InstanceBoth:
+            case InstanceMode.InstanceItems:
+            case InstanceMode.InstanceObject:
+                return true;
+        }
+
+        return false;
     }
 }
