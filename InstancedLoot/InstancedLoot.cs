@@ -21,17 +21,16 @@ using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 
-//TODO: Blood shrine pings use wrong health percentage
-//TODO: Scavenger sack - ScavBackpackBehavior
 //TODO: Test ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
 //TODO: Handle disconnected players?
 //      Compatibility with https://thunderstore.io/package/Moffein/Fix_Playercount/
 //      Teleporter drop counting is going to be off and give items to the wrong players
-//TODO: Implement HideInstancedPickupDroplets
 //TODO: Instance drones (duh), perhaps later though - need to handle drones that broke correctly.
 //TODO: Lunar pods are fixed, but rely on coroutine running next frame.
+//TODO: Instancing effects isn't complete, some effects don't work, some effects seem to use a different system.
 //TODO: Instance pickup droplets for dithering - Dithering doesn't work, problem with networking, scrapping idea for now.
+//TODO: PickupPickerControllerHandler needs coroutine, due to PickupPickerController only having Awake.
 //TODO: Better way to forfeit items. Currently have only chat commands.
 
 #pragma warning disable CS0618 // Type or member is obsolete

@@ -5,9 +5,11 @@ using System.Reflection;
 using InstancedLoot.Enums;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using InstancedLoot.Components;
 using InstancedLoot.Configuration.Attributes;
 using RoR2;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace InstancedLoot.Configuration;
 
@@ -486,7 +488,17 @@ public class Config
 
     private void ConfigOnSettingChanged(object sender, SettingChangedEventArgs e)
     {
-        CachedInstanceModes.Clear();
+        if(e.ChangedSetting.SettingType == typeof(InstanceMode) || e.ChangedSetting == SelectedPreset)
+            CachedInstanceModes.Clear();
+
+        // if (e.ChangedSetting == HideInstancedPickupDroplets)
+        // {
+        //     foreach (var fadeBehavior in Object.FindObjectsOfType<FadeBehavior>())
+        //     {
+        //         fadeBehavior.Refresh();
+        //     }
+        // }
+        
     //     if (e.ChangedSetting.SettingType == typeof(ItemSet))
     //     {
     //         var entry = (ConfigEntry<ItemSet>)e.ChangedSetting;
