@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Linq;
 using System.Reflection;
 using InstancedLoot.Components;
@@ -48,8 +49,14 @@ public class PickupPickerControllerHandler : AbstractHookHandler
 
         if (NetworkServer.active)
         {
-            Plugin.HandleInstancing(self.gameObject);
-            
+            IEnumerator coroutine()
+            {
+                yield return 0;
+                Plugin.HandleInstancing(self.gameObject);
+            }
+
+            self.StartCoroutine(coroutine());
+
             var onPickupSelected = self.onPickupSelected;
             int eventCount = onPickupSelected.GetPersistentEventCount();
             
