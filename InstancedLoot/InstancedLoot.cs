@@ -21,7 +21,6 @@ using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 
-//TODO: Instance effects on use/open
 //TODO: Instance pickup droplets for dithering
 //TODO: Blood shrine pings use wrong health percentage
 //TODO: Scavenger sack - ScavBackpackBehavior

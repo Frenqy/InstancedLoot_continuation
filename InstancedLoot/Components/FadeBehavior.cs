@@ -18,6 +18,8 @@ public class FadeBehavior : InstancedLootBehaviour
     public float FadeLevel = 0.3f;
 
     private bool needsRefresh = true;
+
+    public HashSet<GameObject> ExtraGameObjects = new();
     
     public HashSet<Renderer> Renderers;
     public HashSet<Renderer> DitherModelRenderers;
@@ -165,8 +167,12 @@ public class FadeBehavior : InstancedLootBehaviour
         needsRefresh = false;
         lastPlayer = null;
         lastCameraRigController = null;
-            
+
+        ExtraGameObjects.RemoveWhere(obj => obj == null);
+        
         HashSet<GameObject> gameObjects = new(){gameObject};
+        gameObjects.UnionWith(ExtraGameObjects);
+        
         ModelLocator[] modelLocators = GetComponentsInChildren<ModelLocator>();
         gameObjects.UnionWith(modelLocators.Select(modelLocator => modelLocator.modelTransform.gameObject));
         gameObjects.UnionWith(CustomGetComponents<CostHologramContent>(gameObjects).ToArray().Select(hologram => hologram.targetTextMesh.gameObject));

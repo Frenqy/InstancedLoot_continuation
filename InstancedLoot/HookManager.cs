@@ -29,6 +29,8 @@ public class HookManager
         RegisterHandler<PingHandler>();
         RegisterHandler<DitherModelHandler>();
         RegisterHandler<HologramProjectorHandler>();
+        RegisterHandler<AnimationEventsHandler>();
+        RegisterHandler<EffectManagerHandler>();
         
         RegisterHandler<GenericPickupControllerHandler>();
         RegisterHandler<PickupPickerControllerHandler>();
