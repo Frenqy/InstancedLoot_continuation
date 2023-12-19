@@ -27,11 +27,17 @@ public class SpecialObjectHandler : AbstractObjectHandler
     public override InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
         PlayerCharacterMasterController[] players)
     {
-        if (target.GetComponent<ShrineRestackBehavior>() is var targetShrine && targetShrine != null)
+        if (target.GetComponent<ShrineRestackBehavior>() is var targetShrineRestack && targetShrineRestack != null)
         {
             var sourceShrine = source.GetComponent<ShrineRestackBehavior>();
 
-            targetShrine.rng = new Xoroshiro128Plus(sourceShrine.rng);
+            targetShrineRestack.purchaseInteraction = targetShrineRestack.GetComponent<PurchaseInteraction>();
+            targetShrineRestack.rng = new Xoroshiro128Plus(sourceShrine.rng);
+        }
+        
+        if (target.GetComponent<ShrineBloodBehavior>() is var targetShrineBlood && targetShrineBlood != null)
+        {
+            targetShrineBlood.purchaseInteraction = targetShrineBlood.GetComponent<PurchaseInteraction>();
         }
         
         return base.InstanceSingleObjectFrom(source, target, players);
