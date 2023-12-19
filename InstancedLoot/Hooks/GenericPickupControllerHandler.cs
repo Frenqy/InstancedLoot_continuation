@@ -97,6 +97,8 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         });
     }
 
+    private delegate void IL_GenericPickupController_CreatePickup_Delegate(GameObject gameObject, ref GenericPickupController.CreatePickupInfo createPickupInfo);
+
     private void IL_GenericPickupController_CreatePickup(ILContext il)
     {
         ILCursor cursor = new ILCursor(il);
@@ -104,12 +106,20 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         cursor.GotoNext(MoveType.After, i => i.MatchCallOrCallvirt<UnityEngine.Object>("Instantiate"));
 
         cursor.Emit(OpCodes.Dup);
-        cursor.EmitDelegate<Action<GameObject>>(obj =>
+        cursor.Emit(OpCodes.Ldarg_0);
+        cursor.EmitDelegate<IL_GenericPickupController_CreatePickup_Delegate>((GameObject obj, ref GenericPickupController.CreatePickupInfo createPickupInfo) =>
         {
             if (InstanceOverrideInfo != null)
             {
                 Plugin._logger.LogDebug($"GenericPickupController_CreatePickup found InstanceOverrideInfo with PlayerOverride={InstanceOverrideInfo.Value.PlayerOverride}");
                 InstanceOverrideInfo.Value.AttachTo(obj);
+            }
+
+            if (obj != null)
+            {
+                CreatePickupInfoTracker createPickupInfoTracker =
+                    obj.gameObject.AddComponent<CreatePickupInfoTracker>();
+                createPickupInfoTracker.CreatePickupInfo = createPickupInfo;
             }
         });
     }

@@ -24,6 +24,7 @@ public class HookManager
         
         RegisterHandler<SceneDirectorHandler>();
         RegisterHandler<SpawnCardHandler>();
+        RegisterHandler<ChatHandler>();
         // RegisterHandler<EventFunctionsHandler>();
         
         RegisterHandler<PingHandler>();

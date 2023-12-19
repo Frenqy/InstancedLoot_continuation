@@ -35,10 +35,20 @@ public class FadeBehavior : InstancedLootBehaviour
     private PlayerCharacterMasterController lastPlayer;
     private bool lastVisible;
 
+    private bool isBeingDestroyed = false;
+
     static FadeBehavior()
     {
         SceneCamera.onSceneCameraPreCull += RefreshForPreCull;
         SceneCamera.onSceneCameraPreRender += RefreshForPreRender;
+    }
+
+    public void OnDestroy()
+    {
+        isBeingDestroyed = true;
+
+        RefreshForPreCull(lastPlayer);
+        RefreshForPreRender(lastPlayer);
     }
 
     public static void RefreshForPreCull(SceneCamera sceneCamera)
@@ -217,19 +227,20 @@ public class FadeBehavior : InstancedLootBehaviour
         if (needsRefresh)
             RefreshComponentLists();
         
-        if (player == lastPlayer)
+        if (player == lastPlayer && !isBeingDestroyed)
             return;
         
         var instanceHandler = GetComponent<InstanceHandler>();
-        bool isCopyObject = instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject;
+        bool isCopyObject = instanceHandler != null ? instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject : true;
 
         if (isCopyObject)
         {
-            bool isOrigForCurrent = instanceHandler.OrigPlayer == player;
+            bool isOrigForCurrent = isBeingDestroyed || instanceHandler.OrigPlayer == player;
             foreach (var renderer in Renderers)
             {
                 if (renderer == null)
                 {
+                    if (isBeingDestroyed) continue;
                     Debug.LogError("renderer is null on PreCull");
                     RefreshComponentLists();
                     return;
@@ -241,6 +252,7 @@ public class FadeBehavior : InstancedLootBehaviour
             {
                 if (renderer == null)
                 {
+                    if (isBeingDestroyed) continue;
                     Debug.LogError("ditherModelRenderer is null on PreCull");
                     RefreshComponentLists();
                     return;
@@ -252,6 +264,7 @@ public class FadeBehavior : InstancedLootBehaviour
             {
                 if (component == null)
                 {
+                    if (isBeingDestroyed) continue;
                     Debug.LogError("renderingComponent is null on PreCull");
                     RefreshComponentLists();
                     return;
@@ -266,17 +279,18 @@ public class FadeBehavior : InstancedLootBehaviour
         if (needsRefresh)
             RefreshComponentLists();
         
-        if (player == lastPlayer)
+        if (player == lastPlayer && !isBeingDestroyed)
             return;
         
         var instanceHandler = GetComponent<InstanceHandler>();
-        bool isForCurrentPlayer = instanceHandler.IsInstancedFor(player);
+        bool isForCurrentPlayer = isBeingDestroyed || instanceHandler.IsInstancedFor(player);
         float actualFadeLevel = isForCurrentPlayer ? 1.0f : FadeLevel;
         
         foreach (var renderer in Renderers)
         {
             if (renderer == null)
             {
+                if (isBeingDestroyed) continue;
                 Debug.LogError("renderer is null on PreRender");
                 RefreshComponentLists();
                 return;
@@ -286,16 +300,17 @@ public class FadeBehavior : InstancedLootBehaviour
             renderer.SetPropertyBlock(propertyStorage);
         }
 
-        bool isCopyObject = instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject;
+        bool isCopyObject = instanceHandler != null ? instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject : true;
 
         if (isCopyObject)
         {
-            bool isOrigForCurrent = instanceHandler.OrigPlayer == player;
+            bool isOrigForCurrent = isBeingDestroyed || instanceHandler.OrigPlayer == player;
             
             foreach (var component in ComponentsForPreRender)
             {
                 if (component == null)
                 {
+                    if (isBeingDestroyed) continue;
                     Debug.LogError("renderingComponent is null on PreRender");
                     RefreshComponentLists();
                     return;

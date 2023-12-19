@@ -25,8 +25,6 @@ using UnityEngine.Networking;
 //TODO: Scavenger sack - ScavBackpackBehavior
 //TODO: Test ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
-//TODO: A way to forfeit an item instanced to you, so that another player may pick them up?
-//      Probably a hotkey to forfeit an item you're looking at, and a button to forfeit all items.
 //TODO: Handle disconnected players?
 //      Compatibility with https://thunderstore.io/package/Moffein/Fix_Playercount/
 //      Teleporter drop counting is going to be off and give items to the wrong players
@@ -34,6 +32,7 @@ using UnityEngine.Networking;
 //TODO: Instance drones (duh), perhaps later though - need to handle drones that broke correctly.
 //TODO: Lunar pods are fixed, but rely on coroutine running next frame.
 //TODO: Instance pickup droplets for dithering - Dithering doesn't work, problem with networking, scrapping idea for now.
+//TODO: Better way to forfeit items. Currently have only chat commands.
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -244,5 +243,51 @@ public class InstancedLoot : BaseUnityPlugin
                 ObjectHandlerManager.InstanceObject(objectType, obj, players.ToArray());
             }
         }
+    }
+
+    public static bool CanUninstance(InstanceHandler instanceHandler, PlayerCharacterMasterController player)
+    {
+        if (!instanceHandler.Players.Contains(player)) return false;
+        if (instanceHandler.AllPlayers.Count == 1) return true;
+        if (instanceHandler.GetComponent<CreatePickupInfoTracker>()) return true;
+
+        return false;
+    }
+
+    public void HandleUninstancing(InstanceHandler instanceHandler, PlayerCharacterMasterController player)
+    {
+        if (!instanceHandler.Players.Contains(player)) return;
+
+        if (instanceHandler.AllPlayers.Count == 1) // This is only instanced for one specific player
+        {
+            Destroy(instanceHandler);
+            return;
+        }
+
+        if (instanceHandler.GetComponent<CreatePickupInfoTracker>() is var createPickupInfoTracker && createPickupInfoTracker)
+        {
+            Vector3 awayVector = instanceHandler.transform.position -
+                                 (player.body != null ? player.body.transform.position : Vector3.zero);
+            awayVector.y = 0.01f;
+            awayVector.Normalize();
+
+            PickupDropletController.CreatePickupDroplet(createPickupInfoTracker.CreatePickupInfo,
+                instanceHandler.transform.position + Vector3.up * 3, Vector3.up * 10 + awayVector * 5);
+            
+            instanceHandler.RemovePlayer(player);
+            return;
+        }
+
+        // if (instanceHandler.GetComponent<GenericPickupController>() is var pickupController && pickupController)
+        // {
+        //     Vector3 awayVector = pickupController.transform.position -
+        //                          (player.body != null ? player.body.transform.position : Vector3.zero);
+        //     awayVector.z = 0.01f;
+        //     awayVector.Normalize();
+        //
+        //     PickupDropletController.CreatePickupDroplet(pickupController.pickupIndex,
+        //         pickupController.transform.position, Vector3.Normalize(Vector3.up * 3 + awayVector * 2));
+        //     return;
+        // }
     }
 }
