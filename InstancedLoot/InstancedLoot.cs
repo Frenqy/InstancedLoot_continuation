@@ -21,12 +21,10 @@ using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 
-//TODO: Instance pickup droplets for dithering
 //TODO: Blood shrine pings use wrong health percentage
 //TODO: Scavenger sack - ScavBackpackBehavior
 //TODO: Test ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
-//TODO: Test networking
 //TODO: A way to forfeit an item instanced to you, so that another player may pick them up?
 //      Probably a hotkey to forfeit an item you're looking at, and a button to forfeit all items.
 //TODO: Handle disconnected players?
@@ -35,6 +33,7 @@ using UnityEngine.Networking;
 //TODO: Implement HideInstancedPickupDroplets
 //TODO: Instance drones (duh), perhaps later though - need to handle drones that broke correctly.
 //TODO: Lunar pods are fixed, but rely on coroutine running next frame.
+//TODO: Instance pickup droplets for dithering - Dithering doesn't work, problem with networking, scrapping idea for now.
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]
@@ -163,9 +162,9 @@ public class InstancedLoot : BaseUnityPlugin
         }
 
         if (//(instanceInfoTracker != null) && (
-                (obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null)
+                (obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null && (PickupCatalog.GetPickupDef(pickupController.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
                 || (obj.GetComponent<PickupPickerController>() != null)
-                || (obj.GetComponent<PickupDropletController>() != null)
+                // || (obj.GetComponent<PickupDropletController>() != null)
             )
            //)
         {

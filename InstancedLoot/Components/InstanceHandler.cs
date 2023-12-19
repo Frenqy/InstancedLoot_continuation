@@ -78,7 +78,7 @@ public class InstanceHandler : InstancedLootBehaviour
         {
             if (NetworkServer.active)
             {
-                new SyncInstances(LinkedHandlers).Send(connection);
+                new SyncInstances(this).Send(connection);
             }
         }
 
@@ -86,7 +86,7 @@ public class InstanceHandler : InstancedLootBehaviour
         {
             if (NetworkServer.active)
             {
-                new SyncInstances(LinkedHandlers).Send(NetworkDestination.Clients);
+                new SyncInstances(this).Send(NetworkDestination.Clients);
             }
         }
     }
