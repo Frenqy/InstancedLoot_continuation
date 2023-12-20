@@ -1,9 +1,6 @@
 using System;
-using InstancedLoot.Components;
-using InstancedLoot.Enums;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
-using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -33,10 +30,7 @@ public class CommandArtifactManagerHandler : AbstractHookHandler
         cursor.EmitDelegate<Action<GameObject>>(gameObject =>
         {
             var genericPickupControllerHandler = hookManager.GetHandler<GenericPickupControllerHandler>();
-            if (genericPickupControllerHandler.InstanceOverrideInfo != null)
-            {
-                Plugin.HandleInstancing(gameObject, genericPickupControllerHandler.InstanceOverrideInfo.Value);
-            }
+            if (genericPickupControllerHandler.InstanceOverrideInfo != null) Plugin.HandleInstancing(gameObject, genericPickupControllerHandler.InstanceOverrideInfo.Value);
         });
     }
 }

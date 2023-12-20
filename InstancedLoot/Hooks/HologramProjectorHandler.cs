@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
@@ -15,7 +13,7 @@ namespace InstancedLoot.Hooks;
 
 public class HologramProjectorHandler : AbstractHookHandler
 {
-    private MethodInfo Method_ReadOnlyCollection_PlayerCharacterMasterController_get_Item =
+    private readonly MethodInfo Method_ReadOnlyCollection_PlayerCharacterMasterController_get_Item =
         typeof(ReadOnlyCollection<PlayerCharacterMasterController>).GetMethod("get_Item",
             BindingFlags.Instance | BindingFlags.Public);
     
@@ -52,10 +50,7 @@ public class HologramProjectorHandler : AbstractHookHandler
         orig(self);
 
         FadeBehavior fadeBehavior = self.GetComponent<FadeBehavior>();
-        if (shouldRun && fadeBehavior != null)
-        {
-            fadeBehavior.Refresh();
-        }
+        if (shouldRun && fadeBehavior != null) fadeBehavior.Refresh();
     }
 
     private void IL_HologramProjector_FindViewer(ILContext il)
@@ -86,10 +81,7 @@ public class HologramProjectorHandler : AbstractHookHandler
             );
 
         cursor.Emit(OpCodes.Ldarg_0);
-        foreach (var incomingLabel in cursor.IncomingLabels)
-        {
-            incomingLabel.Target = cursor.Prev;
-        }
+        foreach (var incomingLabel in cursor.IncomingLabels) incomingLabel.Target = cursor.Prev;
         cursor.Emit(OpCodes.Call, methodGetComponentInstanceHandler);
         cursor.Emit(OpCodes.Dup);
         cursor.Emit(OpCodes.Ldnull);

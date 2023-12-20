@@ -1,8 +1,6 @@
-using System.Reflection;
 using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
-using MonoMod.Utils;
 using RoR2;
 using UnityEngine;
 

@@ -38,10 +38,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
         cursor.Emit(OpCodes.Dup);
         cursor.EmitDelegate<Action<GameObject>>(obj =>
         {
-            if (InstanceOverrideInfo.HasValue)
-            {
-                Plugin.HandleInstancing(obj, InstanceOverrideInfo);
-            }
+            if (InstanceOverrideInfo.HasValue) Plugin.HandleInstancing(obj, InstanceOverrideInfo);
         });
     }
     

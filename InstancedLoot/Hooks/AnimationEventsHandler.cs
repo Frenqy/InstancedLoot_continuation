@@ -43,7 +43,7 @@ public class AnimationEventsHandler : AbstractHookHandler
     {
         ILCursor cursor = new ILCursor(il);
 
-        while (cursor.TryGotoNext(MoveType.After, i => i.MatchCallOrCallvirt<UnityEngine.Object>("Instantiate")))
+        while (cursor.TryGotoNext(MoveType.After, i => i.MatchCallOrCallvirt<Object>("Instantiate")))
         {
             cursor.Emit(OpCodes.Dup);
             cursor.Emit(OpCodes.Ldarg_0);
@@ -67,18 +67,13 @@ public class AnimationEventsHandler : AbstractHookHandler
         FadeBehavior fadeBehavior = parent.GetComponentInParent<FadeBehavior>();
         if (fadeBehavior == null && parent.GetComponent<EntityLocator>() is var entityLocator &&
             entityLocator != null && entityLocator.entity != null)
-        {
             fadeBehavior = entityLocator.entity.GetComponentInParent<FadeBehavior>();
-        }
 
         if (fadeBehavior == null)
             return;
         
-        if (parentTest != parentTransform)
-        {
-            fadeBehavior.ExtraGameObjects.Add(objectToAdd);
-        }
-        
+        if (parentTest != parentTransform) fadeBehavior.ExtraGameObjects.Add(objectToAdd);
+
         fadeBehavior.Refresh();
     }
 }

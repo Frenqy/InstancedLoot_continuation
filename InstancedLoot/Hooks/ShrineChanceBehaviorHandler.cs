@@ -1,6 +1,4 @@
-using System.Reflection;
 using InstancedLoot.Components;
-using MonoMod.Cil;
 using RoR2;
 using UnityEngine.Networking;
 

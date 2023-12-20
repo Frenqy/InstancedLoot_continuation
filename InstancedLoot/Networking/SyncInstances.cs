@@ -6,7 +6,6 @@ using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using R2API.Networking.Interfaces;
 using RoR2;
-using RoR2.Networking;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -62,11 +61,8 @@ public class SyncInstances : INetMessage
             writer.Write(target.GetComponent<NetworkIdentity>().netId);
             writer.Write(origPlayer == null ? NetworkInstanceId.Invalid : origPlayer.GetComponent<NetworkIdentity>().netId);
             
-            writer.Write((int)players.Count());
-            foreach (var player in players)
-            {
-                writer.Write(player.GetComponent<NetworkIdentity>().netId);
-            }
+            writer.Write(players.Count());
+            foreach (var player in players) writer.Write(player.GetComponent<NetworkIdentity>().netId);
         }
 
         public static InstanceHandlerEntry Deserialize(NetworkReader reader)
@@ -78,11 +74,8 @@ public class SyncInstances : INetMessage
             
             int count = reader.ReadInt32();
             NetworkInstanceId[] _players = new NetworkInstanceId[count];
-            for (int i = 0; i < count; i++)
-            {
-                _players[i] = reader.ReadNetworkId();
-            }
-            
+            for (int i = 0; i < count; i++) _players[i] = reader.ReadNetworkId();
+
             entry._players = _players;
 
             return entry;
@@ -116,11 +109,8 @@ public class SyncInstances : INetMessage
     {
         writer.Write((int)objectInstanceMode);
         writer.Write(_sourceObject);
-        writer.Write((int)instanceHandlerEntries.Length);
-        foreach (var entry in instanceHandlerEntries)
-        {
-            entry.Serialize(writer);
-        }
+        writer.Write(instanceHandlerEntries.Length);
+        foreach (var entry in instanceHandlerEntries) entry.Serialize(writer);
     }
 
     public void Deserialize(NetworkReader reader)
@@ -129,20 +119,15 @@ public class SyncInstances : INetMessage
         _sourceObject = reader.ReadNetworkId();
         int entryCount = reader.ReadInt32();
         instanceHandlerEntries = new InstanceHandlerEntry[entryCount];
-        for (int entryIndex = 0; entryIndex < entryCount; entryIndex++)
-        {
-            instanceHandlerEntries[entryIndex] = InstanceHandlerEntry.Deserialize(reader);
-        }
+        for (int entryIndex = 0; entryIndex < entryCount; entryIndex++) instanceHandlerEntries[entryIndex] = InstanceHandlerEntry.Deserialize(reader);
     }
 
     public void OnReceived()
     {
         if (NetworkServer.active)
-        {
             //This ran a lot, let's just ignore it silently
             // InstancedLoot.Instance._logger.LogWarning("SyncInstances ran on Host, ignoring");
             return;
-        }
 
         InstancedLoot.Instance.StartCoroutine(HandleMessageInternal(objectInstanceMode, instanceHandlerEntries, _sourceObject));
     }
@@ -158,7 +143,7 @@ public class SyncInstances : INetMessage
         {
             if (retryCount > 40)
             {
-                InstancedLoot.Instance._logger.LogError($"SyncInstances failed to process too many times; aborting.");
+                InstancedLoot.Instance._logger.LogError("SyncInstances failed to process too many times; aborting.");
                 InstancedLoot.FailedSyncs.Add(entries);
                 yield break;
             }
@@ -166,16 +151,13 @@ public class SyncInstances : INetMessage
             retryCount++;
             validated = true;
 
-            for(int i = 0; i < entries.Length; i++)
-            {
-                validated = validated && entries[i].TryProcess();
-            }
+            for(int i = 0; i < entries.Length; i++) validated = validated && entries[i].TryProcess();
 
             if (sourceObject == null && _sourceObject != NetworkInstanceId.Invalid)
             {
                 sourceObject = Util.FindNetworkObject(_sourceObject);
 
-                validated = validated && (sourceObject == null);
+                validated = validated && sourceObject == null;
             }
 
             if (!validated) yield return 0;
@@ -211,9 +193,6 @@ public class SyncInstances : INetMessage
         InstanceHandler[] instanceHandlers = entries
             .Select(entry => entry.target.GetComponent<InstanceHandler>()).Where(handler => handler != null).ToArray();
 
-        foreach (var instanceHandler in instanceHandlers)
-        {
-            instanceHandler.SyncPlayers();
-        }
+        foreach (var instanceHandler in instanceHandlers) instanceHandler.SyncPlayers();
     }
 }

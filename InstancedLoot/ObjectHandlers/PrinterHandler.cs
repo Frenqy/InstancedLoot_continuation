@@ -1,6 +1,5 @@
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
-using RoR2;
 
 namespace InstancedLoot.ObjectHandlers;
 

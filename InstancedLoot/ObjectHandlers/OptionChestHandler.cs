@@ -11,7 +11,7 @@ public class OptionChestHandler : AbstractObjectHandler
 {
     public override string[] HandledObjectTypes { get; } =
     {
-        ObjectType.VoidTriple, ObjectType.LockboxVoid,
+        ObjectType.VoidTriple, ObjectType.LockboxVoid
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;

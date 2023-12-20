@@ -35,10 +35,7 @@ public class ObjectHandlerManager
         var instance = new T();
         instance.Init(this);
         ObjectHandlers[typeof(T)] = instance;
-        foreach (var source in instance.HandledObjectTypes)
-        {
-            HandlersForObjectType[source] = instance;
-        }
+        foreach (var source in instance.HandledObjectTypes) HandlersForObjectType[source] = instance;
     }
 
     public T GetHandler<T>() where T : AbstractObjectHandler

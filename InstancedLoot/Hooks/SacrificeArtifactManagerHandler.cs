@@ -30,12 +30,9 @@ public class SacrificeArtifactManagerHandler : AbstractHookHandler
         
         var attackerMaster = damagereport.attackerOwnerMaster;
         if (attackerMaster == null) attackerMaster = damagereport.attackerMaster;
-        if (attackerMaster != null && attackerMaster.playerCharacterMasterController != null)
-        {
-            owner = attackerMaster.playerCharacterMasterController;
-        }
+        if (attackerMaster != null && attackerMaster.playerCharacterMasterController != null) owner = attackerMaster.playerCharacterMasterController;
         var pickupDropletHandler = hookManager.GetHandler<PickupDropletControllerHandler>();
-        pickupDropletHandler.InstanceOverrideInfo = new InstanceInfoTracker.InstanceOverrideInfo(ObjectType.Sacrifice, owner: owner);
+        pickupDropletHandler.InstanceOverrideInfo = new InstanceInfoTracker.InstanceOverrideInfo(ObjectType.Sacrifice, owner);
         orig(damagereport);
         pickupDropletHandler.InstanceOverrideInfo = null;
     }
@@ -45,9 +42,9 @@ public class SacrificeArtifactManagerHandler : AbstractHookHandler
         ILCursor cursor = new ILCursor(il);
 
         cursor.GotoNext(MoveType.After,
-            i => i.MatchCallOrCallvirt(typeof(RoR2.Util), "GetExpAdjustedDropChancePercent"));
+            i => i.MatchCallOrCallvirt(typeof(Util), "GetExpAdjustedDropChancePercent"));
 
-        cursor.EmitDelegate<Func<float, float>>((dropChance) =>
+        cursor.EmitDelegate<Func<float, float>>(dropChance =>
         {
             if (ModConfig.ReduceSacrificeSpawnChance.Value &&
                 Utils.IncreasesItemCount(ModConfig.GetInstanceMode(ObjectType.Sacrifice)))

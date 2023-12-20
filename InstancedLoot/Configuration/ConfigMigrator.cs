@@ -2,21 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using InstancedLoot.Enums;
 using BepInEx.Configuration;
-using RoR2;
 
 namespace InstancedLoot.Configuration;
 
 public class ConfigMigrator
 {
-    private static PropertyInfo Property_ConfigFiles_OrphanedEntries =
+    private static readonly PropertyInfo Property_ConfigFiles_OrphanedEntries =
         typeof(ConfigFile).GetProperty("OrphanedEntries",
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
-    private ConfigFile config;
-    private Dictionary<ConfigDefinition, string> OrphanedEntries;
-    private Config ModConfig;
+    private readonly ConfigFile config;
+    private readonly Dictionary<ConfigDefinition, string> OrphanedEntries;
+    private readonly Config ModConfig;
 
     public ConfigMigrator(ConfigFile config, Config modConfig)
     {
@@ -33,7 +31,7 @@ public class ConfigMigrator
     //         set.Remove(tier);
     // }
 
-    private static Dictionary<ConfigDefinition, Action<Config, string>> migrations = new()
+    private static readonly Dictionary<ConfigDefinition, Action<Config, string>> migrations = new()
     {
         // {new("General", "TeleportCommandCubes"), (config, value) =>
         //     config.teleportCommandOnDrop.Value = config.teleportCommandOnTeleport.Value = value == "true"
@@ -78,11 +76,8 @@ public class ConfigMigrator
             }
         }
 
-        foreach (var def in migratedKeys)
-        {
-            OrphanedEntries.Remove(def);
-        }
-        
+        foreach (var def in migratedKeys) OrphanedEntries.Remove(def);
+
         config.Save();
     }
 }

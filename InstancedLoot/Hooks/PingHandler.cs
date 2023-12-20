@@ -57,10 +57,7 @@ public class PingHandler : AbstractHookHandler
 
     private void On_PingerController_RebuildPing(On.RoR2.PingerController.orig_RebuildPing orig, PingerController self, PingerController.PingInfo pingInfo)
     {
-        if (self.GetComponent<PingerControllerRenderBehaviour>() == null)
-        {
-            self.gameObject.AddComponent<PingerControllerRenderBehaviour>();
-        }
+        if (self.GetComponent<PingerControllerRenderBehaviour>() == null) self.gameObject.AddComponent<PingerControllerRenderBehaviour>();
 
         orig(self, pingInfo);
     }
@@ -89,18 +86,14 @@ public class PingHandler : AbstractHookHandler
                     InstanceHandler instanceHandler = target.GetComponent<InstanceHandler>();
 
                     if (instanceHandler)
-                    {
                         str +=
                             $" (Instanced: {string.Join(", ", instanceHandler.AllPlayers.Select(player => player.GetDisplayName()))})";
-                    }
 
                     InstanceInfoTracker instanceInfoTracker = target.GetComponent<InstanceInfoTracker>();
 
                     if (instanceInfoTracker)
-                    {
                         str =
                             $"{str} (InstanceInfo: {instanceInfoTracker.ObjectType}, {instanceInfoTracker.Owner?.GetDisplayName()}, {instanceInfoTracker.SourceItemIndex})";
-                    }
                 }
                 
                 return str;
@@ -121,13 +114,11 @@ public class PingHandler : AbstractHookHandler
                 PlayerCharacterMasterController localPlayer = PlayerCharacterMasterController.instances.FirstOrDefault(player => player.hasAuthority);
 
                 foreach (var linkedHandler in instanceHandler.LinkedHandlers)
-                {
                     if (linkedHandler.Players.Contains(localPlayer))
                     {
                         pingTarget = linkedHandler.gameObject;
                         break;
                     }
-                }
             }
 
             return pingTarget;
@@ -143,13 +134,11 @@ public class PingHandler : AbstractHookHandler
                 PlayerCharacterMasterController localPlayer = PlayerCharacterMasterController.instances.FirstOrDefault(player => player.hasAuthority);
 
                 foreach (var linkedHandler in instanceHandler.LinkedHandlers)
-                {
                     if (linkedHandler.Players.Contains(localPlayer))
                     {
                         pingTarget = linkedHandler.gameObject;
                         break;
                     }
-                }
             }
 
             return pingTarget;
@@ -171,12 +160,9 @@ public class PingHandler : AbstractHookHandler
             InstanceHandler instanceHandler = purchaseInteraction.GetComponent<InstanceHandler>();
 
             if (instanceHandler == null)
-            {
                 //Default behavior
                 shouldKeepAlive = purchaseInteraction.available;
-            }
             else
-            {
                 foreach (var instanceHandler2 in instanceHandler.LinkedHandlers)
                 {
                     PurchaseInteraction purchaseInteraction2 = instanceHandler2.GetComponent<PurchaseInteraction>();
@@ -187,7 +173,6 @@ public class PingHandler : AbstractHookHandler
                         break;
                     }
                 }
-            }
 
             return shouldKeepAlive;
         });

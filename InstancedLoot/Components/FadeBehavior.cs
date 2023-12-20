@@ -1,13 +1,9 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using InstancedLoot.Enums;
 using RoR2;
-using RoR2.Hologram;
-using TMPro;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace InstancedLoot.Components;
 
@@ -35,7 +31,7 @@ public class FadeBehavior : InstancedLootBehaviour
     private PlayerCharacterMasterController lastPlayer;
     private bool lastVisible;
 
-    private bool isBeingDestroyed = false;
+    private bool isBeingDestroyed;
 
     static FadeBehavior()
     {
@@ -97,7 +93,7 @@ public class FadeBehavior : InstancedLootBehaviour
     
     private void Awake()
     {
-        propertyStorage = new();
+        propertyStorage = new MaterialPropertyBlock();
     }
 
     private void Start()
@@ -123,7 +119,9 @@ public class FadeBehavior : InstancedLootBehaviour
         bool isVisible;
 
         if (lastCameraRigController == cameraRigController)
+        {
             isVisible = lastVisible;
+        }
         else
         {
             CharacterBody body = cameraRigController.targetBody;
@@ -194,12 +192,7 @@ public class FadeBehavior : InstancedLootBehaviour
         // ComponentsForPreRender = componentsForPreRender.ToArray();
 
         foreach (var renderer in Renderers)
-        {
-            foreach (var material in renderer.materials)
-            {
-                material.EnableKeyword("DITHER");
-            }
-        }
+        foreach (var material in renderer.materials) material.EnableKeyword("DITHER");
     }
 
     public void RefreshForPreCull(PlayerCharacterMasterController player)

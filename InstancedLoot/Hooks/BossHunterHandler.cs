@@ -24,16 +24,13 @@ public class BossHunterHandler : AbstractHookHandler
         {
             var characterMaster = self.characterBody.master;
 
-            if (characterMaster != null)
-            {
-                owner = characterMaster.playerCharacterMasterController;
-            }
+            if (characterMaster != null) owner = characterMaster.playerCharacterMasterController;
         }
         
         PickupDropletControllerHandler pickupDropletControllerHandler = hookManager.GetHandler<PickupDropletControllerHandler>();
         
         pickupDropletControllerHandler.InstanceOverrideInfo =
-            new InstanceInfoTracker.InstanceOverrideInfo(ObjectType.HuntersTricorn, owner: owner);
+            new InstanceInfoTracker.InstanceOverrideInfo(ObjectType.HuntersTricorn, owner);
         bool result = orig(self);
         pickupDropletControllerHandler.InstanceOverrideInfo = null;
         

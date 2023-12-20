@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using InstancedLoot.Configuration.Attributes;
 using AliasesAttribute = InstancedLoot.Configuration.Attributes.ObjectTypeAliasesAttribute;
 using DisableInstanceModesAttribute = InstancedLoot.Configuration.Attributes.ObjectTypeDisableInstanceModesAttribute;

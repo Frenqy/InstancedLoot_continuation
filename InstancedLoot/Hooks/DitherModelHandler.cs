@@ -1,8 +1,6 @@
-using System;
 using System.Linq;
 using System.Reflection;
 using InstancedLoot.Components;
-using Mono.Cecil;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;

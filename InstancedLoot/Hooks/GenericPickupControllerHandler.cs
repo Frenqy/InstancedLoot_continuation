@@ -1,7 +1,5 @@
 using System;
-using System.Linq;
 using InstancedLoot.Components;
-using InstancedLoot.Enums;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
@@ -51,10 +49,8 @@ public class GenericPickupControllerHandler : AbstractHookHandler
             var player = body.master.GetComponent<PlayerCharacterMasterController>();
             var instanceHandler = self.GetComponent<InstanceHandler>();
             if (player && instanceHandler)
-            {
                 if (!instanceHandler.Players.Contains(player))
                     interactability = Interactability.Disabled;
-            }
         }
 
         return interactability;
@@ -78,7 +74,7 @@ public class GenericPickupControllerHandler : AbstractHookHandler
     {
         var cursor = new ILCursor(il);
 
-        cursor.GotoNext(MoveType.After, i => i.MatchLdfld<RoR2.PickupDef.GrantContext>("shouldDestroy"));
+        cursor.GotoNext(MoveType.After, i => i.MatchLdfld<PickupDef.GrantContext>("shouldDestroy"));
         cursor.Emit(OpCodes.Ldarg_0);
         cursor.Emit(OpCodes.Ldarg_1);
         cursor.EmitDelegate<Func<bool, GenericPickupController, CharacterBody, bool>>((shouldDestroy, self, body) =>
@@ -108,10 +104,7 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         cursor.Emit(OpCodes.Ldarg_0);
         cursor.EmitDelegate<IL_GenericPickupController_CreatePickup_Delegate>((GameObject obj, ref GenericPickupController.CreatePickupInfo createPickupInfo) =>
         {
-            if (InstanceOverrideInfo != null)
-            {
-                InstanceOverrideInfo.Value.AttachTo(obj);
-            }
+            if (InstanceOverrideInfo != null) InstanceOverrideInfo.Value.AttachTo(obj);
 
             if (obj != null)
             {

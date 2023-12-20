@@ -11,7 +11,7 @@ namespace InstancedLoot.Hooks;
 
 public class DevelopmentHooksHandler : AbstractHookHandler
 {
-    private static Type syncInstanceHandlerSetType = typeof(SyncInstances);
+    private static readonly Type syncInstanceHandlerSetType = typeof(SyncInstances);
 
     private IDetour getNetworkHashDetour;
     

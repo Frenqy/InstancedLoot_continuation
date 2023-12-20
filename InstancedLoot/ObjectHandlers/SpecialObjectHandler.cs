@@ -11,7 +11,7 @@ public class SpecialObjectHandler : AbstractObjectHandler
 {
     public override string[] HandledObjectTypes { get; } =
     {
-        ObjectType.ShrineBlood, ObjectType.ShrineRestack,
+        ObjectType.ShrineBlood, ObjectType.ShrineRestack
     };
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
@@ -35,11 +35,8 @@ public class SpecialObjectHandler : AbstractObjectHandler
             targetShrineRestack.rng = new Xoroshiro128Plus(sourceShrine.rng);
         }
         
-        if (target.GetComponent<ShrineBloodBehavior>() is var targetShrineBlood && targetShrineBlood != null)
-        {
-            targetShrineBlood.purchaseInteraction = targetShrineBlood.GetComponent<PurchaseInteraction>();
-        }
-        
+        if (target.GetComponent<ShrineBloodBehavior>() is var targetShrineBlood && targetShrineBlood != null) targetShrineBlood.purchaseInteraction = targetShrineBlood.GetComponent<PurchaseInteraction>();
+
         return base.InstanceSingleObjectFrom(source, target, players);
     }
 }

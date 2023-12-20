@@ -1,4 +1,3 @@
-using System.Collections;
 using InstancedLoot.Components;
 using RoR2;
 using UnityEngine.Networking;

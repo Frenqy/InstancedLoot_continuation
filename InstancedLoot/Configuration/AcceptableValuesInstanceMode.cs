@@ -25,7 +25,10 @@ public class AcceptableValuesInstanceMode : AcceptableValueBase
         return AcceptableValues.Contains((InstanceMode)value);
     }
 
-    public override string ToDescriptionString() => "# Acceptable values: " +
-                                                    string.Join(", ",
-                                                        AcceptableValues.Select(x => x.ToString()).ToArray());
+    public override string ToDescriptionString()
+    {
+        return "# Acceptable values: " +
+               string.Join(", ",
+                   AcceptableValues.Select(x => x.ToString()).ToArray());
+    }
 }

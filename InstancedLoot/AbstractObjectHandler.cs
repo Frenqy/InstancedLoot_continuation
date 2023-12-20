@@ -23,7 +23,7 @@ public abstract class AbstractObjectHandler
     public static void GenerateSpawnCards()
     {
         var spawnCards = Resources.FindObjectsOfTypeAll<InteractableSpawnCard>();
-        if (_SpawnCardsForPrefabName == null) _SpawnCardsForPrefabName = new();
+        if (_SpawnCardsForPrefabName == null) _SpawnCardsForPrefabName = new Dictionary<string, SpawnCard>();
 
         foreach (var spawnCard in spawnCards)
         {
@@ -36,10 +36,6 @@ public abstract class AbstractObjectHandler
     protected ObjectHandlerManager Manager;
     protected InstancedLoot Plugin => Manager.Plugin;
 
-    public AbstractObjectHandler()
-    {
-    }
-    
     /// <summary>
     /// Register hook handlers and other events here
     /// </summary>
@@ -91,7 +87,7 @@ public abstract class AbstractObjectHandler
             instanceHandlers[0] = InstanceSingleObjectFrom(gameObject, gameObject, primaryPlayers);
         primary.SharedInfo = sharedInstanceInfo;
 
-        if (ObjectInstanceMode == ObjectInstanceMode.CopyObject) {
+        if (ObjectInstanceMode == ObjectInstanceMode.CopyObject)
             for (int i = 1; i < players.Length; i++)
             {
                 GameObject newInstance = CloneObject(objectType, gameObject);
@@ -105,8 +101,7 @@ public abstract class AbstractObjectHandler
                         }
                     });
             }
-        }
-        
+
         FinalizeSourceObjectIfNotAwaited(gameObject);
     }
 
@@ -117,10 +112,7 @@ public abstract class AbstractObjectHandler
         SpawnCard spawnCard = null;
 
         //Try to use exact SpawnCard used to create object
-        if (gameObject.GetComponent<SpawnCardTracker>() is var spawnCardTracker && spawnCardTracker != null)
-        {
-            spawnCard = spawnCardTracker.SpawnCard;
-        }
+        if (gameObject.GetComponent<SpawnCardTracker>() is var spawnCardTracker && spawnCardTracker != null) spawnCard = spawnCardTracker.SpawnCard;
 
         //Fall back to scanning SpawnCards
         if (spawnCard == null)
@@ -159,10 +151,7 @@ public abstract class AbstractObjectHandler
             instanceHandler.OrigPlayer = players[0];
 
             InstanceInfoTracker instanceInfoTracker = source.GetComponent<InstanceInfoTracker>();
-            if (instanceInfoTracker != null)
-            {
-                instanceInfoTracker.Info.AttachTo(target);
-            }
+            if (instanceInfoTracker != null) instanceInfoTracker.Info.AttachTo(target);
 
             InstanceHandler sourceHandler = source.GetComponent<InstanceHandler>();
             instanceHandler.SharedInfo = sourceHandler.SharedInfo;
@@ -172,10 +161,7 @@ public abstract class AbstractObjectHandler
 
     public virtual void FinalizeSourceObjectIfNotAwaited(GameObject sourceObject)
     {
-        if (InfoForAwaitedObjects.All(pair => pair.Value.SourceObject != sourceObject))
-        {
-            FinalizeObject(sourceObject);
-        }
+        if (InfoForAwaitedObjects.All(pair => pair.Value.SourceObject != sourceObject)) FinalizeObject(sourceObject);
     }
 
     public virtual void FinalizeObject(GameObject sourceObject)
@@ -184,11 +170,7 @@ public abstract class AbstractObjectHandler
         
         sourceHandler.SharedInfo.SyncToAll();
 
-        foreach (var instanceHandler in sourceHandler.SharedInfo.LinkedHandlers)
-        {
-            instanceHandler.UpdateVisuals();
-        }
-        
+        foreach (var instanceHandler in sourceHandler.SharedInfo.LinkedHandlers) instanceHandler.UpdateVisuals();
     }
 
     public virtual void AwaitObjectFor(GameObject target, AwaitedObjectInfo info)

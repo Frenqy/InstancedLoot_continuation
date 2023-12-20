@@ -1,10 +1,5 @@
-
-using System.Collections;
-using System.Reflection;
 using InstancedLoot.Components;
 using RoR2;
-using UnityEngine;
-using UnityEngine.Networking;
 
 namespace InstancedLoot.Hooks;
 
@@ -32,10 +27,8 @@ public class PurchaseInteractionHandler : AbstractHookHandler
             var player = body.master.GetComponent<PlayerCharacterMasterController>();
             var instanceHandler = self.GetComponent<InstanceHandler>();
             if (player && instanceHandler)
-            {
                 if (!instanceHandler.Players.Contains(player))
                     interactability = Interactability.Disabled;
-            }
         }
 
         return interactability;

@@ -7,9 +7,9 @@ public static class DefaultPresets
 {
     public static Dictionary<string, ConfigPreset> Presets = new()
     {
-        { "None", new ConfigPreset("Do not instance anything, vanilla behavior", new()) },
+        { "None", new ConfigPreset("Do not instance anything, vanilla behavior", new Dictionary<string, InstanceMode>()) },
         {
-            "Default", new ConfigPreset("Instance most things, tries to be a sensible default.", new()
+            "Default", new ConfigPreset("Instance most things, tries to be a sensible default.", new Dictionary<string, InstanceMode>
             {
                 {ObjectAlias.Chests, InstanceMode.InstancePreferred},
                 {ObjectAlias.Shops, InstanceMode.InstancePreferred},
@@ -18,11 +18,11 @@ public static class DefaultPresets
                 {ObjectType.LunarChest, InstanceMode.InstancePreferred},
                 {ObjectType.VoidTriple, InstanceMode.InstancePreferred},
                 {ObjectType.Sacrifice, InstanceMode.InstanceItems},
-                {ObjectType.HuntersTricorn, InstanceMode.InstanceItems},
+                {ObjectType.HuntersTricorn, InstanceMode.InstanceItems}
             })
         },
         {
-            "Selfish", new ConfigPreset("Instance things for owner where applicable. Doesn't increase total item/interactible count.", new()
+            "Selfish", new ConfigPreset("Instance things for owner where applicable. Doesn't increase total item/interactible count.", new Dictionary<string, InstanceMode>
             {
                 {ObjectAlias.Chests, InstanceMode.InstanceItemForOwnerOnly},
                 {ObjectAlias.Shops, InstanceMode.InstanceItemForOwnerOnly},
@@ -33,7 +33,7 @@ public static class DefaultPresets
                 {ObjectAlias.PaidWithItem, InstanceMode.InstanceItemForOwnerOnly},
                 {ObjectAlias.Printers, InstanceMode.InstanceItemForOwnerOnly},
                 {ObjectAlias.Cauldrons, InstanceMode.InstanceItemForOwnerOnly},
-                {ObjectType.LunarChest, InstanceMode.InstanceItemForOwnerOnly},
+                {ObjectType.LunarChest, InstanceMode.InstanceItemForOwnerOnly}
             })
         },
         { "EVERYTHING", new EverythingConfigPreset() }

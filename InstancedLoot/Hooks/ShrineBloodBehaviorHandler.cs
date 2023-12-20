@@ -33,7 +33,7 @@ public class ShrineBloodBehaviorHandler : AbstractHookHandler
                 string objName = self.name;
                 string objectType = null;
 
-                if (objName.StartsWith("ShrineBlood")) objectType = Enums.ObjectType.ShrineBlood;
+                if (objName.StartsWith("ShrineBlood")) objectType = ObjectType.ShrineBlood;
 
                 if (objectType != null)
                     Plugin.HandleInstancing(self.gameObject,

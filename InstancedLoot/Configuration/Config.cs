@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using InstancedLoot.Enums;
 using BepInEx.Configuration;
 using BepInEx.Logging;
-using InstancedLoot.Components;
 using InstancedLoot.Configuration.Attributes;
+using InstancedLoot.Enums;
 using RoR2;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace InstancedLoot.Configuration;
 
@@ -73,14 +71,14 @@ public class Config
 
     public Dictionary<string, SortedSet<InstanceMode>> AvailableInstanceModesForObjectType = new();
 
-    private Dictionary<string, InstanceMode> CachedInstanceModes = new();
+    private readonly Dictionary<string, InstanceMode> CachedInstanceModes = new();
 
     public Config(InstancedLoot plugin, ManualLogSource _logger)
     {
         Plugin = plugin;
         logger = _logger;
 
-        Migrator = new(config, this);
+        Migrator = new ConfigMigrator(config, this);
 
         GenerateObjectTypes += DefaultGenerateObjectTypes;
         DescribeObjectTypes += DefaultDescribeObjectTypes;
@@ -152,20 +150,11 @@ public class Config
                 field.GetCustomAttributes<ObjectTypeDisableInstanceModesAttribute>().FirstOrDefault();
 
             if (field.GetValue(null) is not string objectType) continue;
-            if (descriptionAttribute != null)
-            {
-                DefaultDescriptionsForObjectType.Add(objectType, descriptionAttribute.Description);
-            }
+            if (descriptionAttribute != null) DefaultDescriptionsForObjectType.Add(objectType, descriptionAttribute.Description);
 
-            if (aliasesAttribute != null)
-            {
-                DefaultAliasesForObjectType.Add(objectType, aliasesAttribute.Aliases);
-            }
+            if (aliasesAttribute != null) DefaultAliasesForObjectType.Add(objectType, aliasesAttribute.Aliases);
 
-            if (disableInstanceModesAttribute != null)
-            {
-                DefaultDisabledInstanceModesForObjectType.Add(objectType, disableInstanceModesAttribute.DisabledInstanceModes);
-            }
+            if (disableInstanceModesAttribute != null) DefaultDisabledInstanceModesForObjectType.Add(objectType, disableInstanceModesAttribute.DisabledInstanceModes);
         }
         
         DefaultDescriptionsForAliases.Clear();
@@ -175,10 +164,7 @@ public class Config
                 field.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault();
 
             if (field.GetValue(null) is not string objectAlias) continue;
-            if (descriptionAttribute != null)
-            {
-                DefaultDescriptionsForAliases.Add(objectAlias, descriptionAttribute.Description);
-            }
+            if (descriptionAttribute != null) DefaultDescriptionsForAliases.Add(objectAlias, descriptionAttribute.Description);
         }
         
         SortedSet<InstanceMode> defaultInstanceModes = new SortedSet<InstanceMode>
@@ -203,7 +189,7 @@ public class Config
             SortedSet<ObjectInstanceMode> objectInstanceModes = new(defaultObjectInstanceModes);
             GenerateObjectInstanceModes!(objectType, objectInstanceModes);
             ObjectInstanceModeForObject[objectType] = objectInstanceModes.Max;
-            SortedSet<InstanceMode> instanceModes = instanceModeLimits[objectType] = new(defaultInstanceModes);
+            SortedSet<InstanceMode> instanceModes = instanceModeLimits[objectType] = new SortedSet<InstanceMode>(defaultInstanceModes);
             LimitInstanceModes!(objectType, instanceModes);
             AvailableInstanceModesForObjectType[objectType] = instanceModes;
             if (instanceModes.Count == 0) continue;
@@ -215,7 +201,7 @@ public class Config
 
             string description = "Configure instancing for specific raw objectType";
             if (extraDescriptions.Count > 0)
-                description += $"\n{String.Join("\n", extraDescriptions)}";
+                description += $"\n{string.Join("\n", extraDescriptions)}";
             
             ConfigEntriesForNames[objectType] = config.Bind("ObjectTypes", objectType, InstanceMode.Default,
                 new ConfigDescription(description,
@@ -226,7 +212,7 @@ public class Config
                 SortedSet<InstanceMode> aliasInstanceModes;
                 if (!instanceModeLimits.ContainsKey(alias))
                 {
-                    aliasInstanceModes = instanceModeLimits[alias] = new(instanceModes);
+                    aliasInstanceModes = instanceModeLimits[alias] = new SortedSet<InstanceMode>(instanceModes);
                 }
                 else
                 {
@@ -251,7 +237,7 @@ public class Config
                 DescribeAliases!(alias, extraDescriptions);
 
                 if (extraDescriptions.Count > 0)
-                    description += $"\n{String.Join("\n", extraDescriptions)}";
+                    description += $"\n{string.Join("\n", extraDescriptions)}";
                 
                 ConfigEntriesForNames[alias] = config.Bind("ObjectAliases", alias, InstanceMode.Default,
                     new ConfigDescription(description,
@@ -259,7 +245,7 @@ public class Config
             }
         }
 
-        ConfigPresets = new();
+        ConfigPresets = new Dictionary<string, ConfigPreset>();
         GenerateConfigPresets!(ConfigPresets);
         
         SelectedPreset = config.Bind("General", "Preset", "Default",
@@ -288,14 +274,14 @@ public class Config
     {
         Dictionary<InstanceMode, List<InstanceMode>> preferredInstanceModeReductions = new()
         {
-            { InstanceMode.InstanceBothForOwnerOnly, new() { InstanceMode.InstanceObjectForOwnerOnly, InstanceMode.InstanceItemForOwnerOnly}},
-            { InstanceMode.InstanceObjectForOwnerOnly, new() { InstanceMode.InstanceObject }},
-            { InstanceMode.InstanceBoth, new() { InstanceMode.InstanceObject, InstanceMode.InstanceItems }},
-            { InstanceMode.InstanceObject, new() { InstanceMode.InstanceItems }},
-            { InstanceMode.InstanceItems, new() { InstanceMode.InstanceObject }},
+            { InstanceMode.InstanceBothForOwnerOnly, new List<InstanceMode> { InstanceMode.InstanceObjectForOwnerOnly, InstanceMode.InstanceItemForOwnerOnly}},
+            { InstanceMode.InstanceObjectForOwnerOnly, new List<InstanceMode> { InstanceMode.InstanceObject }},
+            { InstanceMode.InstanceBoth, new List<InstanceMode> { InstanceMode.InstanceObject, InstanceMode.InstanceItems }},
+            { InstanceMode.InstanceObject, new List<InstanceMode> { InstanceMode.InstanceItems }},
+            { InstanceMode.InstanceItems, new List<InstanceMode> { InstanceMode.InstanceObject }}
         };
 
-        InstanceModeReduceMatrix = new();
+        InstanceModeReduceMatrix = new Dictionary<InstanceMode, List<InstanceMode>>();
 
         foreach (var preferredEntry in preferredInstanceModeReductions)
         {
@@ -309,10 +295,8 @@ public class Config
                     continue;
 
                 foreach (var next in preferredNextReductions)
-                {
                     if(!fullReductions.Contains(next))
                         fullReductions.Add(next);
-                }
             }
 
             InstanceModeReduceMatrix[preferredEntry.Key] = fullReductions;
@@ -333,11 +317,9 @@ public class Config
             return InstanceMode.None;
 
         foreach (var reduction in reductions)
-        {
             if (availableModes.Contains(reduction))
                 return reduction;
-        }
-        
+
         Debug.Log($"Failed to find reduction for {objectType}");
 
         return InstanceMode.None;
@@ -369,22 +351,12 @@ public class Config
         if (preset != null)
         {
             if (aliases != null)
-            {
-                foreach (var alias in aliases)
-                {
-                    MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, preset.GetConfigForName(alias)));
-                }
-            }
+                foreach (var alias in aliases) MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, preset.GetConfigForName(alias)));
             MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, preset.GetConfigForName(objectType)));
         }
         
         if (aliases != null)
-        {
-            foreach (var alias in aliases)
-            {
-                MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, ConfigEntriesForNames[alias].Value));
-            }
-        }
+            foreach (var alias in aliases) MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, ConfigEntriesForNames[alias].Value));
         MergeInstanceModes(ref result, ReduceInstanceModeForObjectType(objectType, ConfigEntriesForNames[objectType].Value));
 
         CachedInstanceModes[objectType] = result;
@@ -412,18 +384,13 @@ public class Config
     private void DefaultLimitInstanceModes(string objectType, ISet<InstanceMode> modes)
     {
         if (ObjectInstanceModeForObject.TryGetValue(objectType, out var objectInstanceMode))
-        {
             if (objectInstanceMode == ObjectInstanceMode.None)
             {
                 modes.Remove(InstanceMode.InstanceBoth);
                 modes.Remove(InstanceMode.InstanceObject);
             }
-        }
 
-        if (DefaultDisabledInstanceModesForObjectType.TryGetValue(objectType, out var instanceModes))
-        {
-            modes.ExceptWith(instanceModes);
-        }
+        if (DefaultDisabledInstanceModesForObjectType.TryGetValue(objectType, out var instanceModes)) modes.ExceptWith(instanceModes);
 
         if (Plugin.ObjectHandlerManager.HandlersForObjectType.TryGetValue(objectType, out var objectHandler) && objectHandler.CanObjectBeOwned)
         {
@@ -436,10 +403,7 @@ public class Config
 
     private void DefaultGenerateObjectInstanceModes(string objectType, ISet<ObjectInstanceMode> modes)
     {
-        if (Plugin.ObjectHandlerManager.HandlersForObjectType.TryGetValue(objectType, out var objectHandler))
-        {
-            modes.Add(objectHandler.ObjectInstanceMode);
-        }
+        if (Plugin.ObjectHandlerManager.HandlersForObjectType.TryGetValue(objectType, out var objectHandler)) modes.Add(objectHandler.ObjectInstanceMode);
     }
 
     private void DefaultDescribeAliases(string alias, List<string> descriptions)
@@ -449,20 +413,15 @@ public class Config
 
         SortedSet<string> baseNames = new();
         foreach (var entry in AliasesForObjectType)
-        {
             if (entry.Value.Contains(alias))
                 baseNames.Add(entry.Key);
-        }
-        
-        descriptions.Add($"Full list of included object types:\n{String.Join(", ", baseNames)}");
+
+        descriptions.Add($"Full list of included object types:\n{string.Join(", ", baseNames)}");
     }
 
     private void DefaultGenerateConfigPresets(Dictionary<string, ConfigPreset> presets)
     {
-        foreach (var entry in DefaultPresets.Presets)
-        {
-            presets[entry.Key] = entry.Value;
-        }
+        foreach (var entry in DefaultPresets.Presets) presets[entry.Key] = entry.Value;
     }
 
     private void CheckReadyStatus()
@@ -473,10 +432,7 @@ public class Config
 
     private void DoMigrationIfReady()
     {
-        if (Ready && Migrator.NeedsMigration)
-        {
-            Migrator.DoMigration();
-        }
+        if (Ready && Migrator.NeedsMigration) Migrator.DoMigration();
     }
 
     private ConfigFile config => Plugin.Config;
@@ -516,9 +472,6 @@ public class Config
     private void DebugLogInstanceModeForAllObjectTypes()
     {
         Debug.Log("Logging instance modes for all object types:");
-        foreach (var objectType in AvailableInstanceModesForObjectType.Keys)
-        {
-            Debug.Log($"{objectType}: {GetInstanceMode(objectType)}");
-        }
+        foreach (var objectType in AvailableInstanceModesForObjectType.Keys) Debug.Log($"{objectType}: {GetInstanceMode(objectType)}");
     }
 }

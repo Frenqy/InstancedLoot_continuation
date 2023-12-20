@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using InstancedLoot.Enums;
@@ -87,18 +86,12 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
         {
             bool shouldRender = true;
 
-            if (pingTarget != null && pingTarget.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null)
-            {
-                shouldRender = instanceHandler.AllPlayers.Contains(player);
-            }
+            if (pingTarget != null && pingTarget.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null) shouldRender = instanceHandler.AllPlayers.Contains(player);
 
             if(lastPingIndicator != pingIndicator || cachedRenderers == null)
                 cachedRenderers = pingIndicator.GetComponentsInChildren<Renderer>();
 
-            foreach (var renderer in cachedRenderers)
-            {
-                renderer.enabled = shouldRender;
-            }
+            foreach (var renderer in cachedRenderers) renderer.enabled = shouldRender;
         }
     }
 

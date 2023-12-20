@@ -1,11 +1,8 @@
-using System.Collections;
-using System.Linq;
 using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
 using RoR2;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace InstancedLoot.ObjectHandlers;
 
@@ -48,7 +45,6 @@ public class MultiShopHandler : AbstractObjectHandler
             ShopTerminalBehavior shopTerminalBehavior = source.GetComponent<ShopTerminalBehavior>();
     
             if (multiShopController != null)
-            {
                 foreach (var terminalGameObject in multiShopController.terminalGameObjects)
                 {
                     InstanceSingleObjectFrom(terminalGameObject, terminalGameObject, players);
@@ -56,16 +52,13 @@ public class MultiShopHandler : AbstractObjectHandler
                     if(instanceInfoTracker != null)
                         instanceInfoTracker.Info.AttachTo(terminalGameObject);
                 }
-            }
 
             if (shopTerminalBehavior != null)
-            {
-                instanceHandler.SharedInfo = new()
+                instanceHandler.SharedInfo = new InstanceHandler.SharedInstanceInfo
                 {
                     SourceObject = target,
-                    ObjectInstanceMode = ObjectInstanceMode,
+                    ObjectInstanceMode = ObjectInstanceMode
                 };
-            }
         }
         else
         {
@@ -74,7 +67,7 @@ public class MultiShopHandler : AbstractObjectHandler
             {
                 MultiShopController sourceMultiShopController = source.GetComponent<MultiShopController>();
 
-                targetMultiShopController.rng = new(0); //Temporary RNG
+                targetMultiShopController.rng = new Xoroshiro128Plus(0); //Temporary RNG
                 targetMultiShopController.CreateTerminals();
                 targetMultiShopController.Networkcost = sourceMultiShopController.Networkcost;
                 targetMultiShopController.rng = new Xoroshiro128Plus(sourceMultiShopController.rng);
@@ -83,14 +76,12 @@ public class MultiShopHandler : AbstractObjectHandler
                 var targetTerminalGameObjects = targetMultiShopController._terminalGameObjects;
 
                 for (int i = 0; i < targetTerminalGameObjects.Length; i++)
-                {
                     AwaitObjectFor(targetTerminalGameObjects[i],
                         new AwaitedObjectInfo
                         {
                             SourceObject = sourceTerminalGameObjects[i],
                             Players = players
                         });
-                }
             }
             
             ShopTerminalBehavior targetShopTerminalBehavior = target.GetComponent<ShopTerminalBehavior>();

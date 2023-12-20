@@ -33,7 +33,7 @@ public class ShrineRestackBehaviorHandler : AbstractHookHandler
                 string objName = self.name;
                 string objectType = null;
 
-                if (objName.StartsWith("ShrineRestack")) objectType = Enums.ObjectType.ShrineRestack;
+                if (objName.StartsWith("ShrineRestack")) objectType = ObjectType.ShrineRestack;
 
                 if (objectType != null)
                     Plugin.HandleInstancing(self.gameObject,
