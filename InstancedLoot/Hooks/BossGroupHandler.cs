@@ -96,7 +96,6 @@ public class BossGroupHandler : AbstractHookHandler
                 var instanceOverrideInfo = PickupDropletControllerHandler.InstanceOverrideInfo.Value;
 
                 instanceOverrideInfo.Owner = player;
-                Plugin._logger.LogWarning($"Adding override for {player.GetDisplayName()}");
 
                 PickupDropletControllerHandler.InstanceOverrideInfo = instanceOverrideInfo;
             }

@@ -24,7 +24,6 @@ public class RouletteChestControllerHandler : AbstractHookHandler
     {
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
-            Plugin._logger.LogWarning($"RouletteChestController dropping {instanceInfoTracker.ObjectType}");
             hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
             orig(self, pickupIndex);
             hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = null;
@@ -51,8 +50,6 @@ public class RouletteChestControllerHandler : AbstractHookHandler
                 string objectType = null;
                 
                 if(objName.StartsWith("CasinoChest")) objectType = Enums.ObjectType.CasinoChest;
-                
-                Plugin._logger.LogWarning($"RouletteChestController registering {objectType}");
                 
                 if(objectType != null) Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }

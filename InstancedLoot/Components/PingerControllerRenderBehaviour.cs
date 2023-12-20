@@ -52,11 +52,6 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
     public void Awake()
     {
         pingerController = GetComponent<PingerController>();
-
-        if (pingerController == null)
-        {
-            InstancedLoot.Instance._logger.LogError($"PingerControlerRenderHandler: PingerController is null on {gameObject}");
-        }
     }
 
     public void OnEnable()
@@ -78,7 +73,6 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
     {
         if (pingerController == null)
         {
-            InstancedLoot.Instance._logger.LogDebug("PingerController is null");
             DestroyImmediate(this);
             return;
         }

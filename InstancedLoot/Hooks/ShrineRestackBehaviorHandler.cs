@@ -35,8 +35,6 @@ public class ShrineRestackBehaviorHandler : AbstractHookHandler
 
                 if (objName.StartsWith("ShrineRestack")) objectType = Enums.ObjectType.ShrineRestack;
 
-                Plugin._logger.LogWarning($"ShrineRestack registering {objectType}");
-
                 if (objectType != null)
                     Plugin.HandleInstancing(self.gameObject,
                         new InstanceInfoTracker.InstanceOverrideInfo(objectType));

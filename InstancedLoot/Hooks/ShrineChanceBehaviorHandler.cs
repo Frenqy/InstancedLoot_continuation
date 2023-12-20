@@ -24,7 +24,6 @@ public class ShrineChanceBehaviorHandler : AbstractHookHandler
     {
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
-            Plugin._logger.LogWarning($"ShrineChanceBehavior dropping {instanceInfoTracker.ObjectType}");
             hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
             orig(self, activator);
             hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = null;
@@ -51,8 +50,6 @@ public class ShrineChanceBehaviorHandler : AbstractHookHandler
                 string objectType = null;
 
                 if (objName.StartsWith("ShrineChance")) objectType = Enums.ObjectType.ShrineChance;
-
-                Plugin._logger.LogWarning($"ShrineChanceBehavior registering {objectType}");
 
                 if (objectType != null)
                     Plugin.HandleInstancing(self.gameObject,

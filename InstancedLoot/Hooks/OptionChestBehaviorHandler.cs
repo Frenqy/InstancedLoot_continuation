@@ -23,7 +23,6 @@ public class OptionChestBehaviorHandler : AbstractHookHandler
     {
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
-            Plugin._logger.LogWarning($"OptionChestBehavior dropping {instanceInfoTracker.ObjectType}");
             PickupDropletControllerHandler pickupDropletControllerHandler =
                 hookManager.GetHandler<PickupDropletControllerHandler>();
             pickupDropletControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
@@ -53,8 +52,6 @@ public class OptionChestBehaviorHandler : AbstractHookHandler
                 
                 if(objName.StartsWith("LockboxVoid")) objectType = Enums.ObjectType.LockboxVoid;
                 if(objName.StartsWith("VoidTriple")) objectType = Enums.ObjectType.VoidTriple;
-                
-                Plugin._logger.LogWarning($"OptionChestBehavior registering {objectType}");
                 
                 if(objectType != null) Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }

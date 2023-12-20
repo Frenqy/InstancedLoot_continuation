@@ -30,10 +30,13 @@ public class AnimationEventsHandler : AbstractHookHandler
         orig(self, animationEvent);
         CurrentAnimationEvents = null;
         
-        self.GetComponent<FadeBehavior>()?.RefreshNextFrame();
-        self.GetComponent<EntityLocator>()?.entity?.GetComponentInParent<FadeBehavior>()?.Refresh();
+        if(self.GetComponent<FadeBehavior>() is var fadeBehavior1 && fadeBehavior1)
+            fadeBehavior1.RefreshNextFrame();
         
-        Plugin._logger.LogDebug($"CreateEffect: {animationEvent.stringParameter}, {animationEvent.objectReferenceParameter}, {animationEvent.intParameter}");
+        if(self.GetComponent<EntityLocator>() is var entityLocator && entityLocator
+           && entityLocator.entity
+           && entityLocator.entity.GetComponent<FadeBehavior>() is var fadeBehavior2 && fadeBehavior2)
+            fadeBehavior2.Refresh();
     }
 
     private void IL_AnimationEvents_CreatePrefab(ILContext il)
@@ -56,8 +59,6 @@ public class AnimationEventsHandler : AbstractHookHandler
 
     public static void HandleObjectCreation(GameObject objectToAdd, AnimationEvents parent)
     {
-        InstancedLoot.Instance._logger.LogDebug($"Handling creation of {objectToAdd} on {parent}");
-        
         Transform parentTest = objectToAdd.transform;
         Transform parentTransform = parent.transform;
         while (parentTest != parentTransform && parentTest != null)
@@ -73,12 +74,8 @@ public class AnimationEventsHandler : AbstractHookHandler
         if (fadeBehavior == null)
             return;
         
-        if(fadeBehavior != null)
-            InstancedLoot.Instance._logger.LogDebug("Found FadeBehavior");
-        
         if (parentTest != parentTransform)
         {
-            InstancedLoot.Instance._logger.LogDebug("Adding to ExtraGameObjects");
             fadeBehavior.ExtraGameObjects.Add(objectToAdd);
         }
         

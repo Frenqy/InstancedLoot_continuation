@@ -87,7 +87,6 @@ public class GenericPickupControllerHandler : AbstractHookHandler
             var instanceHandler = self.GetComponent<InstanceHandler>();
             if (player && instanceHandler)
             {
-                Plugin._logger.LogWarning($"Granting instanced item to {player}");
                 instanceHandler.RemovePlayer(player);
                 if(instanceHandler.AllPlayers.Count > 0)
                     shouldDestroy = false;
@@ -111,7 +110,6 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         {
             if (InstanceOverrideInfo != null)
             {
-                Plugin._logger.LogDebug($"GenericPickupController_CreatePickup found InstanceOverrideInfo with PlayerOverride={InstanceOverrideInfo.Value.PlayerOverride}");
                 InstanceOverrideInfo.Value.AttachTo(obj);
             }
 

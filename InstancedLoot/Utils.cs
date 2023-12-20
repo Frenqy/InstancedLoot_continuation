@@ -7,17 +7,9 @@ namespace InstancedLoot;
 
 public class Utils
 {
-    public static bool debug = true;
-    
     public static bool IsObjectInteractibleForPlayer(GameObject gameObject, PlayerCharacterMasterController player)
     {
         if (gameObject == null) return true;
-        
-        if (debug)
-        {
-            debug = false;
-            Debug.Log("InstancedLootUtilsTest");
-        }
         
         if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null)
         {

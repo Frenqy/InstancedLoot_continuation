@@ -35,8 +35,6 @@ public class ShrineBloodBehaviorHandler : AbstractHookHandler
 
                 if (objName.StartsWith("ShrineBlood")) objectType = Enums.ObjectType.ShrineBlood;
 
-                Plugin._logger.LogWarning($"ShrineBlood registering {objectType}");
-
                 if (objectType != null)
                     Plugin.HandleInstancing(self.gameObject,
                         new InstanceInfoTracker.InstanceOverrideInfo(objectType));

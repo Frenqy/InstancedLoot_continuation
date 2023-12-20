@@ -43,20 +43,10 @@ public class PurchaseInteractionHandler : AbstractHookHandler
 
     private void On_PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
     {
-        CharacterBody body = activator.GetComponent<CharacterBody>();
-        if (body != null)
-        {
-            CharacterMaster master = body.master;
-            if (master != null)
-            {
-                PlayerCharacterMasterController player = master.playerCharacterMasterController;
-                if (player)
-                {
-                    Plugin._logger.LogInfo($"Marking owner {player.GetDisplayName()} for {self}");
-                    InstanceInfoTracker.InstanceOverrideInfo.SetOwner(self.gameObject, player);
-                }
-            }
-        }
+        if(activator.GetComponent<CharacterBody>() is var characterBody && characterBody
+           && characterBody.master is var master && master
+           && master.playerCharacterMasterController is var player && player)
+            InstanceInfoTracker.InstanceOverrideInfo.SetOwner(self.gameObject, player);
 
         orig(self, activator);
     }

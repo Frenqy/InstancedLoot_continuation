@@ -118,7 +118,6 @@ public class InstancedLoot : BaseUnityPlugin
 
     public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null)
     {
-        Logger.LogDebug($"Called for {obj}");
         InstanceInfoTracker instanceInfoTracker = obj.GetComponent<InstanceInfoTracker>();
 
         // Unity overrides null comparison, shouldn't matter here, but the IDE keeps yelling at me, so just to be safe...
@@ -126,7 +125,6 @@ public class InstancedLoot : BaseUnityPlugin
 
         string objectType = overrideInfo?.ObjectType ?? instanceInfoTracker?.ObjectType;
         PlayerCharacterMasterController owner = overrideInfo?.Owner ?? instanceInfoTracker?.Owner;
-        Logger.LogDebug($"objectType: {objectType}, owner: {owner?.GetDisplayName()}");
 
         if (instanceInfoTracker == null && objectType == null)
             return;
@@ -135,8 +133,6 @@ public class InstancedLoot : BaseUnityPlugin
         
         if (instanceMode == InstanceMode.None)
             return;
-
-        Logger.LogDebug($"Handling: {obj} as {instanceMode}");
         
         bool shouldInstance = false;
         bool ownerOnly = false;
@@ -159,15 +155,11 @@ public class InstancedLoot : BaseUnityPlugin
             }
         }
 
-        if (//(instanceInfoTracker != null) && (
-                (obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null && (PickupCatalog.GetPickupDef(pickupController.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
-                || (obj.GetComponent<PickupPickerController>() != null)
-                // || (obj.GetComponent<PickupDropletController>() != null)
-            )
-           //)
+        if ((obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null &&
+             (PickupCatalog.GetPickupDef(pickupController.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
+            || (obj.GetComponent<PickupPickerController>() != null))
         {
             isSimple = true;
-            Logger.LogDebug($"It's an item!");
             switch (instanceMode)
             {
                 case InstanceMode.InstanceObject:
@@ -192,19 +184,14 @@ public class InstancedLoot : BaseUnityPlugin
 
         if (instanceInfoTracker == null && overrideInfo != null)
         {
-            Logger.LogDebug($"Propagating overrideInfo");
             overrideInfo.Value.AttachTo(obj);
         } else if (instanceInfoTracker != null && owner != null)
         {
-            Logger.LogDebug($"Fixing owner on InstanceInfoTracker");
             instanceInfoTracker.Info.Owner = owner;
         }
         
-        Logger.LogDebug($"ShouldInstance: {shouldInstance}, OwnerOnly: {ownerOnly}");
-        
         if (shouldInstance)
         {
-            Logger.LogDebug($"Instancing!");
             //If instancing should happen only for owner but owner is missing, don't instance to avoid duplication exploits
             if (ownerOnly && owner == null && instanceInfoTracker?.PlayerOverride == null)
                 return;
@@ -233,12 +220,10 @@ public class InstancedLoot : BaseUnityPlugin
                     ObjectInstanceMode = ObjectInstanceMode.InstancedObject,
                 };
 
-                Logger.LogDebug($"Instancing {obj} as simple object for {String.Join(", ", players.Select(player => player.GetDisplayName()))}");
                 handler.SetPlayers(players);
             }
             else
             {
-                Logger.LogDebug($"Instancing {obj} as object for {String.Join(", ", players.Select(player => player.GetDisplayName()))}");
                 ObjectHandlerManager.InstanceObject(objectType, obj, players.ToArray());
             }
         }

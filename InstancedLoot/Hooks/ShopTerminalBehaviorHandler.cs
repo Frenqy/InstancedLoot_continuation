@@ -42,8 +42,6 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
 
                 if (objName.StartsWith("LunarShopTerminal")) objectType = Enums.ObjectType.LunarShopTerminal;
                 
-                Plugin._logger.LogWarning($"ShopTerminalBehavior registering {objectType}");
-                
                 if(objectType != null) Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
         }

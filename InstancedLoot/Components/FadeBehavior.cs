@@ -27,7 +27,7 @@ public class FadeBehavior : InstancedLootBehaviour
     private MaterialPropertyBlock propertyStorage;
     
     public Behaviour[] ComponentsForPreCull;
-    public Behaviour[] ComponentsForPreRender;
+    // public Behaviour[] ComponentsForPreRender;
 
     public static readonly List<FadeBehavior> InstancesList = new();
     
@@ -71,15 +71,6 @@ public class FadeBehavior : InstancedLootBehaviour
 
         PlayerCharacterMasterController player = body.master != null ? body.master.playerCharacterMasterController : null;
         if (!player) return;
-
-        foreach (var fadeBehavior in InstancesList)
-        {
-            if (fadeBehavior == null)
-            {
-                Debug.LogError("fadeBehavior is null");
-                return;
-            }
-        }
         
         if(isPreCull)
             foreach (var fadeBehavior in InstancesList)
@@ -159,6 +150,7 @@ public class FadeBehavior : InstancedLootBehaviour
     public void RefreshNextFrame()
     {
         StartCoroutine(RefreshNextFrameCoroutine());
+        return;
 
         IEnumerator RefreshNextFrameCoroutine()
         {
@@ -180,7 +172,7 @@ public class FadeBehavior : InstancedLootBehaviour
 
         ExtraGameObjects.RemoveWhere(obj => obj == null);
         
-        HashSet<GameObject> gameObjects = new(){gameObject};
+        HashSet<GameObject> gameObjects = [gameObject];
         gameObjects.UnionWith(ExtraGameObjects);
         
         ModelLocator[] modelLocators = GetComponentsInChildren<ModelLocator>();
@@ -188,30 +180,18 @@ public class FadeBehavior : InstancedLootBehaviour
         gameObjects.UnionWith(CustomGetComponents<CostHologramContent>(gameObjects).ToArray().Select(hologram => hologram.targetTextMesh.gameObject));
         
         DitherModels = CustomGetComponents<DitherModel>(gameObjects).ToArray();
-        DitherModelRenderers = new HashSet<Renderer>(DitherModels.SelectMany(ditherModel => ditherModel.renderers));
-        Renderers = new HashSet<Renderer>(CustomGetComponents<Renderer>(gameObjects).Where(renderer => !DitherModelRenderers.Contains(renderer)));
-
-        // InstancedLoot.Instance._logger.LogWarning($"FadeBehavior - RefreshComponentLists - Renderers {ComponentsForPreCull.Contains(null)}");
+        DitherModelRenderers = [..DitherModels.SelectMany(ditherModel => ditherModel.renderers)];
+        Renderers =
+            [..CustomGetComponents<Renderer>(gameObjects).Where(renderer => !DitherModelRenderers.Contains(renderer))];
         
         HashSet<Behaviour> componentsForPreCull = new(CustomGetComponents<Highlight>(gameObjects));
         componentsForPreCull.UnionWith(CustomGetComponents<Light>(gameObjects));
-        // componentsForPreCull.UnionWith(CustomGetComponents<TMP_SubMesh>(gameObjects));
         
         ComponentsForPreCull = componentsForPreCull.ToArray();
-        
-        // InstancedLoot.Instance._logger.LogWarning($"FadeBehavior - RefreshComponentLists - ComponentsForPreCull {ComponentsForPreCull.Contains(null)}");
 
-        HashSet<Behaviour> componentsForPreRender = new();//CustomGetComponents<CostHologramContent>(gameObjects).Select(hologram => hologram.targetTextMesh));
-        // componentsForPreRender.UnionWith(CustomGetComponents<TextMeshPro>(gameObjects));
+        // HashSet<Behaviour> componentsForPreRender = new();
         
-        ComponentsForPreRender = componentsForPreRender.ToArray();
-        
-        //To force refresh:
-        // lastCamera = null;
-        // if(lastCameraStaticPreCull)
-        //     RefreshForPreCull(lastCameraStaticPreCull);
-        // if(lastCameraStaticPreRender)
-        //     RefreshForPreRender(lastCameraStaticPreRender);
+        // ComponentsForPreRender = componentsForPreRender.ToArray();
 
         foreach (var renderer in Renderers)
         {
@@ -241,7 +221,6 @@ public class FadeBehavior : InstancedLootBehaviour
                 if (renderer == null)
                 {
                     if (isBeingDestroyed) continue;
-                    Debug.LogError("renderer is null on PreCull");
                     RefreshComponentLists();
                     return;
                 }
@@ -253,7 +232,6 @@ public class FadeBehavior : InstancedLootBehaviour
                 if (renderer == null)
                 {
                     if (isBeingDestroyed) continue;
-                    Debug.LogError("ditherModelRenderer is null on PreCull");
                     RefreshComponentLists();
                     return;
                 }
@@ -265,7 +243,6 @@ public class FadeBehavior : InstancedLootBehaviour
                 if (component == null)
                 {
                     if (isBeingDestroyed) continue;
-                    Debug.LogError("renderingComponent is null on PreCull");
                     RefreshComponentLists();
                     return;
                 }
@@ -291,7 +268,6 @@ public class FadeBehavior : InstancedLootBehaviour
             if (renderer == null)
             {
                 if (isBeingDestroyed) continue;
-                Debug.LogError("renderer is null on PreRender");
                 RefreshComponentLists();
                 return;
             }
@@ -300,24 +276,23 @@ public class FadeBehavior : InstancedLootBehaviour
             renderer.SetPropertyBlock(propertyStorage);
         }
 
-        bool isCopyObject = instanceHandler != null ? instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject : true;
-
-        if (isCopyObject)
-        {
-            bool isOrigForCurrent = isBeingDestroyed || instanceHandler.OrigPlayer == player;
-            
-            foreach (var component in ComponentsForPreRender)
-            {
-                if (component == null)
-                {
-                    if (isBeingDestroyed) continue;
-                    Debug.LogError("renderingComponent is null on PreRender");
-                    RefreshComponentLists();
-                    return;
-                }
-                component.enabled = isOrigForCurrent;
-            }
-        }
+        // bool isCopyObject = instanceHandler != null ? instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject : true;
+        //
+        // if (isCopyObject)
+        // {
+        //     bool isOrigForCurrent = isBeingDestroyed || instanceHandler.OrigPlayer == player;
+        //     
+        //     foreach (var component in ComponentsForPreRender)
+        //     {
+        //         if (component == null)
+        //         {
+        //             if (isBeingDestroyed) continue;
+        //             RefreshComponentLists();
+        //             return;
+        //         }
+        //         component.enabled = isOrigForCurrent;
+        //     }
+        // }
 
         lastPlayer = player;
     }

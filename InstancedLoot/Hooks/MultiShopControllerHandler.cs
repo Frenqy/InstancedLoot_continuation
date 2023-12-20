@@ -41,8 +41,6 @@ public class MultiShopControllerHandler : AbstractHookHandler
                 if (objName.StartsWith("TripleShopEquipment")) objectType = Enums.ObjectType.TripleShopEquipment;
                 if (objName.StartsWith("FreeChestMultiShop")) objectType = Enums.ObjectType.FreeChestMultiShop;
 
-                Plugin._logger.LogWarning($"MultiShopController registering {objectType}");
-
                 if (objectType != null)
                     Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
             }
