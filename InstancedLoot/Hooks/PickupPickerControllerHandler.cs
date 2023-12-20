@@ -1,7 +1,5 @@
-using System;
 using System.Collections;
 using System.Linq;
-using System.Reflection;
 using InstancedLoot.Components;
 using RoR2;
 using UnityEngine.Events;
@@ -34,11 +32,9 @@ public class PickupPickerControllerHandler : AbstractHookHandler
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
             
             if (instanceHandler != null)
-            {
                 if (instanceHandler.Players.Count > 0)
                     return;
-            }
-            
+
             UnityEngine.Object.Destroy(self.gameObject);
         }
     }
@@ -63,7 +59,6 @@ public class PickupPickerControllerHandler : AbstractHookHandler
             bool hasDestroySelf = false;
             
             for (int i = 0; i < eventCount; i++)
-            {
                 if (onPickupSelected.GetPersistentTarget(i) is EventFunctions &&
                     onPickupSelected.GetPersistentMethodName(i) == "DestroySelf")
                 {
@@ -72,12 +67,8 @@ public class PickupPickerControllerHandler : AbstractHookHandler
                     hasDestroySelf = true;
                     break;
                 }
-            }
-            
-            if (hasDestroySelf)
-            {
-                onPickupSelected.AddListener(GenerateHandleDestroy(self));
-            }
+
+            if (hasDestroySelf) onPickupSelected.AddListener(GenerateHandleDestroy(self));
         }
     }
 
@@ -91,10 +82,8 @@ public class PickupPickerControllerHandler : AbstractHookHandler
             var player = body.master.GetComponent<PlayerCharacterMasterController>();
             var instanceHandler = self.GetComponent<InstanceHandler>();
             if (player && instanceHandler)
-            {
                 if (!instanceHandler.Players.Contains(player))
                     interactability = Interactability.Disabled;
-            }
         }
 
         return interactability;
@@ -133,10 +122,7 @@ public class PickupPickerControllerHandler : AbstractHookHandler
             orig(self, pickupindex);
             genericPickupControllerHandler.InstanceOverrideInfo = null;
 
-            if (self.networkUIPromptController is var networkUIPromptController && networkUIPromptController != null)
-            {
-                networkUIPromptController.ClearParticipant();
-            }
+            if (self.networkUIPromptController is var networkUIPromptController && networkUIPromptController != null) networkUIPromptController.ClearParticipant();
         }
         else if (instanceInfoTracker != null)
         {

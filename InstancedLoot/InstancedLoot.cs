@@ -1,19 +1,14 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reflection;
 using System.Security.Permissions;
-using InstancedLoot.Configuration;
-using InstancedLoot.Enums;
-using InstancedLoot.Hooks;
 using BepInEx;
 using BepInEx.Logging;
 using InstancedLoot.Components;
+using InstancedLoot.Configuration;
+using InstancedLoot.Enums;
+using InstancedLoot.Hooks;
 using InstancedLoot.Networking;
-using Mono.Cecil.Cil;
-using MonoMod.Cil;
 using MonoMod.RuntimeDetour.HookGen;
 using R2API.Networking;
 using R2API.Utils;
@@ -40,7 +35,7 @@ using UnityEngine.Networking;
 namespace InstancedLoot;
 
 [BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.0.0")]
-[NetworkCompatibility(CompatibilityLevel.EveryoneMustHaveMod, VersionStrictness.EveryoneNeedSameModVersion)]
+[NetworkCompatibility]
 [BepInDependency(NetworkingAPI.PluginGUID)]
 public class InstancedLoot : BaseUnityPlugin
 {
@@ -89,10 +84,8 @@ public class InstancedLoot : BaseUnityPlugin
         HookEndpointManager.RemoveAllOwnedBy(HookEndpointManager.GetOwner((Action)OnDisable));
         
         foreach (var component in FindObjectsOfType<InstancedLootBehaviour>())
-        {
             if(component != null)
                 Destroy(component);
-        }
     }
     
     private void OnPlayerAdded(PlayerCharacterMasterController player)
@@ -139,7 +132,6 @@ public class InstancedLoot : BaseUnityPlugin
         bool isSimple = false;
 
         if (instanceInfoTracker == null)
-        {
             switch (instanceMode)
             {
                 case InstanceMode.InstanceBoth:
@@ -153,11 +145,10 @@ public class InstancedLoot : BaseUnityPlugin
                     ownerOnly = true;
                     break;
             }
-        }
 
         if ((obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null &&
              (PickupCatalog.GetPickupDef(pickupController.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
-            || (obj.GetComponent<PickupPickerController>() != null))
+            || obj.GetComponent<PickupPickerController>() != null)
         {
             isSimple = true;
             switch (instanceMode)
@@ -177,19 +168,12 @@ public class InstancedLoot : BaseUnityPlugin
             }
         }
 
-        if (!isSimple && shouldInstance)
-        {
-            shouldInstance = ObjectHandlerManager.CanInstanceObject(objectType, obj);
-        }
+        if (!isSimple && shouldInstance) shouldInstance = ObjectHandlerManager.CanInstanceObject(objectType, obj);
 
         if (instanceInfoTracker == null && overrideInfo != null)
-        {
             overrideInfo.Value.AttachTo(obj);
-        } else if (instanceInfoTracker != null && owner != null)
-        {
-            instanceInfoTracker.Info.Owner = owner;
-        }
-        
+        else if (instanceInfoTracker != null && owner != null) instanceInfoTracker.Info.Owner = owner;
+
         if (shouldInstance)
         {
             //If instancing should happen only for owner but owner is missing, don't instance to avoid duplication exploits
@@ -199,17 +183,11 @@ public class InstancedLoot : BaseUnityPlugin
             HashSet<PlayerCharacterMasterController> players;
 
             if (instanceInfoTracker?.PlayerOverride != null)
-            {
                 players = new HashSet<PlayerCharacterMasterController>(instanceInfoTracker.PlayerOverride);
-            }
             else if (ownerOnly)
-            {
                 players = new HashSet<PlayerCharacterMasterController> { owner };
-            }
             else
-            {
                 players = ModConfig.GetValidPlayersSet();
-            }
 
             if (isSimple)
             {
@@ -217,7 +195,7 @@ public class InstancedLoot : BaseUnityPlugin
 
                 handler.SharedInfo = new InstanceHandler.SharedInstanceInfo
                 {
-                    ObjectInstanceMode = ObjectInstanceMode.InstancedObject,
+                    ObjectInstanceMode = ObjectInstanceMode.InstancedObject
                 };
 
                 handler.SetPlayers(players);
@@ -259,7 +237,6 @@ public class InstancedLoot : BaseUnityPlugin
                 instanceHandler.transform.position + Vector3.up * 3, Vector3.up * 10 + awayVector * 5);
             
             instanceHandler.RemovePlayer(player);
-            return;
         }
 
         // if (instanceHandler.GetComponent<GenericPickupController>() is var pickupController && pickupController)

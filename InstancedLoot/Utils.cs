@@ -11,10 +11,7 @@ public class Utils
     {
         if (gameObject == null) return true;
         
-        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null)
-        {
-            return instanceHandler.AllPlayers.Contains(player);
-        }
+        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null) return instanceHandler.AllPlayers.Contains(player);
 
         return true;
     }
@@ -23,10 +20,7 @@ public class Utils
     {
         if (gameObject == null) return true;
         
-        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null)
-        {
-            return instanceHandler.Players.Contains(player);
-        }
+        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null) return instanceHandler.Players.Contains(player);
 
         return true;
     }

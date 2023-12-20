@@ -13,6 +13,7 @@ public class HookManager
     {
         Plugin = pluginInstance;
         
+        #if DEBUG
         RegisterHandler<DevelopmentHooksHandler>();
 
         // RegisterHandler<PrinterTargetHandler>();
@@ -62,7 +63,6 @@ public class HookManager
     public void UnregisterHooks()
     {
         foreach (var handler in HookHandlers.Values)
-        {
             try
             {
                 handler.UnregisterHooks();
@@ -71,6 +71,5 @@ public class HookManager
             {
                 Plugin._logger.LogError($"Error while unloading HookHandler {handler.GetType()}, continuing:\n{e}");
             }
-        }
     }
 }

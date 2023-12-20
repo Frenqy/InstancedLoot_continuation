@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using InstancedLoot.Enums;
 using InstancedLoot.Networking;
 using R2API.Networking;
@@ -7,7 +6,6 @@ using R2API.Networking.Interfaces;
 using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
-using UnityEngine.Serialization;
 
 namespace InstancedLoot.Components;
 
@@ -68,26 +66,17 @@ public class InstanceHandler : InstancedLootBehaviour
         public void RecalculateAllPlayers()
         {
             AllPlayers.Clear();
-            foreach (var instanceHandler in LinkedHandlers)
-            {
-                AllPlayers.UnionWith(instanceHandler.Players);
-            }
+            foreach (var instanceHandler in LinkedHandlers) AllPlayers.UnionWith(instanceHandler.Players);
         }
 
         public void SyncTo(NetworkConnection connection)
         {
-            if (NetworkServer.active)
-            {
-                new SyncInstances(this).Send(connection);
-            }
+            if (NetworkServer.active) new SyncInstances(this).Send(connection);
         }
 
         public void SyncToAll()
         {
-            if (NetworkServer.active)
-            {
-                new SyncInstances(this).Send(NetworkDestination.Clients);
-            }
+            if (NetworkServer.active) new SyncInstances(this).Send(NetworkDestination.Clients);
         }
     }
 
@@ -154,10 +143,7 @@ public class InstanceHandler : InstancedLootBehaviour
 
     public void SyncToConnection(NetworkConnection connection)
     {
-        if (NetworkServer.active)
-        {
-            sharedInfo.SyncTo(connection);
-        }
+        if (NetworkServer.active) sharedInfo.SyncTo(connection);
     }
 
     public void UpdateVisuals()

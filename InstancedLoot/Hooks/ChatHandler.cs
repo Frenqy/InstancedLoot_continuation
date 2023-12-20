@@ -8,11 +8,11 @@ namespace InstancedLoot.Hooks;
 
 public class ChatHandler : AbstractHookHandler
 {
-    private InstanceHandlerSearch instanceHandlerSearch;
+    private readonly InstanceHandlerSearch instanceHandlerSearch;
     
     public ChatHandler()
     {
-        instanceHandlerSearch = new();
+        instanceHandlerSearch = new InstanceHandlerSearch();
         instanceHandlerSearch.minAngleFilter = 0f;
 	    instanceHandlerSearch.maxAngleFilter = 10f;
 	    instanceHandlerSearch.minDistanceFilter = 0f;
@@ -61,26 +61,17 @@ public class ChatHandler : AbstractHookHandler
                 InstanceHandler target =
                     instanceHandlerSearch.SearchCandidatesForSingleTarget(InstanceHandler.Instances);
 
-                if (target != null)
-                {
-                    Plugin.HandleUninstancing(target, player);
-                }
+                if (target != null) Plugin.HandleUninstancing(target, player);
             }
 
             return;
         }
 
         if (args[0].ToLower() == "/uninstanceall")
-        {
             if (player != null)
-            {
                 foreach (var instanceHandler in InstanceHandler.Instances
                              .Where(handler => InstancedLoot.CanUninstance(handler, player)).ToArray())
-                {
                     Plugin.HandleUninstancing(instanceHandler, player);
-                }
-            }
-        }
     }
 
     private class InstanceHandlerSearch : BaseDirectionalSearch<InstanceHandler, InstanceHandlerSearch.InstanceHandlerSearchSelector, InstanceHandlerSearch.InstanceHandlerSearchFilter>
@@ -114,7 +105,7 @@ public class ChatHandler : AbstractHookHandler
             }
         }
 
-        public InstanceHandlerSearch() : base(new(), new())
+        public InstanceHandlerSearch() : base(new InstanceHandlerSearchSelector(), new InstanceHandlerSearchFilter())
         {
         }
 
