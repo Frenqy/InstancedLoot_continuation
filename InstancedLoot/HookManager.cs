@@ -15,6 +15,7 @@ public class HookManager
         
         #if DEBUG
         RegisterHandler<DevelopmentHooksHandler>();
+        #endif
 
         // RegisterHandler<PrinterTargetHandler>();
         // RegisterHandler<ScrapperControllerHandler>();
