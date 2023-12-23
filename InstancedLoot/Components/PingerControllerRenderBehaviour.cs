@@ -41,11 +41,11 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
         if (!player) return;
 
         if(isPreCull)
-            foreach (var fadeBehavior in InstancesList)
-                fadeBehavior.PreCull(player);
+            foreach (var pingerControllerRenderBehaviour in InstancesList)
+                pingerControllerRenderBehaviour.PreCull(player);
         else
-            foreach (var fadeBehavior in InstancesList)
-                fadeBehavior.PreRender(player);
+            foreach (var pingerControllerRenderBehaviour in InstancesList)
+                pingerControllerRenderBehaviour.PreRender(player);
     }
 
     public void Awake()
@@ -72,7 +72,7 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
     {
         if (pingerController == null)
         {
-            DestroyImmediate(this);
+            Destroy(this);
             return;
         }
 
@@ -86,17 +86,26 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
         {
             bool shouldRender = true;
 
-            if (pingTarget != null && pingTarget.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null) shouldRender = instanceHandler.AllPlayers.Contains(player);
+            if (pingTarget != null
+                && !pingTarget.GetComponent<GenericPickupController>() // For some reason this breaks pinging items
+                && pingTarget.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler)
+                shouldRender = instanceHandler.AllPlayers.Contains(player);
 
             if(lastPingIndicator != pingIndicator || cachedRenderers == null)
                 cachedRenderers = pingIndicator.GetComponentsInChildren<Renderer>();
 
-            foreach (var renderer in cachedRenderers) renderer.enabled = shouldRender;
+            foreach (var renderer in cachedRenderers)
+            {
+                renderer.enabled = shouldRender;
+            }
         }
     }
 
     public void PreRender(PlayerCharacterMasterController player)
     {
+        if (pingerController == null)
+            return;
+        
         PingIndicator pingIndicator = pingerController.pingIndicator;
         GameObject pingTarget = pingIndicator != null ? pingIndicator.pingTarget : null;
 
