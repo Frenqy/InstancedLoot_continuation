@@ -25,7 +25,7 @@ public static class DefaultPresets
             })
         },
         {
-            "Selfish", new ConfigPreset("Instance things for owner where applicable. Doesn't increase total item/interactible count.", new Dictionary<string, InstanceMode>
+            "Selfish", new ConfigPreset("Instance things for owner where applicable. Avoids increasing total item/interactible count.", new Dictionary<string, InstanceMode>
             {
                 {ObjectAlias.Chests, InstanceMode.InstanceItemForOwnerOnly},
                 {ObjectAlias.Shops, InstanceMode.InstanceItemForOwnerOnly},

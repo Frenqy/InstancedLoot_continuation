@@ -23,6 +23,8 @@ using UnityEngine.Networking;
 //      Compatibility with https://thunderstore.io/package/Moffein/Fix_Playercount/
 //      Teleporter drop counting is going to be off and give items to the wrong players
 //TODO: Instance drones (duh), perhaps later though - need to handle drones that broke correctly.
+//      PurchaseInteraction - Interaction should be handled automatically
+//      SummonMasterBehavior - If patched, won't have to copy object?
 //TODO: Lunar pods are fixed, but rely on coroutine running next frame.
 //TODO: Instancing effects isn't complete, some effects don't work, some effects seem to use a different system.
 //TODO: Instance pickup droplets for dithering - Dithering doesn't work, problem with networking, scrapping idea for now.
