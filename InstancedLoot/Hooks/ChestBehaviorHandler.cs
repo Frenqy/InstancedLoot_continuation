@@ -65,6 +65,7 @@ public class ChestBehaviorHandler : AbstractHookHandler
                 if (objName.StartsWith("EquipmentBarrel")) objectType = Enums.ObjectType.EquipmentBarrel;
                 if (objName.StartsWith("LunarChest")) objectType = Enums.ObjectType.LunarChest;
                 if (objName.StartsWith("VoidChest")) objectType = Enums.ObjectType.VoidChest;
+                if (objName.StartsWith("Lockbox")) objectType = Enums.ObjectType.Lockbox;
                 if (objName.StartsWith("ScavBackpack")) objectType = Enums.ObjectType.ScavBackpack;
 
                 if (objectType != null)

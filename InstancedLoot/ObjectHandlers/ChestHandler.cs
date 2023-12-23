@@ -21,6 +21,14 @@ public class ChestHandler : AbstractObjectHandler
 
     public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
 
+    public override bool CanObjectBeOwned(string objectType)
+    {
+        if (objectType == ObjectType.Lockbox)
+            return true;
+        
+        return base.CanObjectBeOwned(objectType);
+    }
+
     public override bool IsValidForObject(string objectType, GameObject gameObject)
     {
         return gameObject.GetComponent<ChestBehavior>() != null;

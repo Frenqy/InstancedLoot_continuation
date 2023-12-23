@@ -46,7 +46,7 @@ public abstract class AbstractObjectHandler
     
     public abstract string[] HandledObjectTypes { get; }
     public abstract ObjectInstanceMode ObjectInstanceMode { get; }
-    public virtual bool CanObjectBeOwned => false;
+    public virtual bool CanObjectBeOwned(string objectType) => false;
     public readonly Dictionary<GameObject, AwaitedObjectInfo> InfoForAwaitedObjects = new();
 
     public struct AwaitedObjectInfo

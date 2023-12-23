@@ -112,7 +112,7 @@ public class Config
                                   "InstanceItemForOwnerOnly: Keep one copy of the object, and limit the resulting item to only be picked up by the player who earned/bought it.\n" +
                                   "InstanceObjectForOwnerOnly: Keep one copy of the object, and limit opening it to only the owning player. This is only meaningful for objects that inherently belong to a player, like lockboxes. The resulting items are not instanced and can be picked up by any player.\n" +
                                   "InstanceBothForOwnerOnly: Similar to InstanceObjectForOwnerOnly, but the resulting item can only be picked up by the owning player.",
-                new AcceptableValuesInstanceMode(new[] { InstanceMode.None, InstanceMode.InstanceItems, InstanceMode.InstanceBoth, InstanceMode.InstanceObject, InstanceMode.InstanceItemForOwnerOnly})));
+                new AcceptableValuesInstanceMode(new[] { InstanceMode.None, InstanceMode.InstanceItems, InstanceMode.InstanceBoth, InstanceMode.InstanceObject, InstanceMode.InstanceItemForOwnerOnly, InstanceMode.InstanceBothForOwnerOnly, InstanceMode.InstanceObjectForOwnerOnly})));
         SharePickupPickers = config.Bind("General", "SharePickupPickers", false,
             "Should pickup pickers be shared?\nIf true, pickup pickers (such as void orbs and command essences) will be shared among the players they are instanced for.\nA shared pickup picker can only be opened by one player, and will then drop an item that can be picked up separately.\nIf a pickup picker is not shared, then the item can be selected separately by each player.");
         ReduceInteractibleBudget = config.Bind("General", "ReduceInteractibleBudget", true,
@@ -392,7 +392,7 @@ public class Config
 
         if (DefaultDisabledInstanceModesForObjectType.TryGetValue(objectType, out var instanceModes)) modes.ExceptWith(instanceModes);
 
-        if (Plugin.ObjectHandlerManager.HandlersForObjectType.TryGetValue(objectType, out var objectHandler) && objectHandler.CanObjectBeOwned)
+        if (Plugin.ObjectHandlerManager.HandlersForObjectType.TryGetValue(objectType, out var objectHandler) && objectHandler.CanObjectBeOwned(objectType))
         {
             if (modes.Contains(InstanceMode.InstanceBoth))
                 modes.Add(InstanceMode.InstanceBothForOwnerOnly);

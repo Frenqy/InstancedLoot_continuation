@@ -112,17 +112,20 @@ public class InstancedLoot : BaseUnityPlugin
     public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null)
     {
         InstanceInfoTracker instanceInfoTracker = obj.GetComponent<InstanceInfoTracker>();
+        InstanceInfoTracker.InstanceOverrideInfo? existingOverrideInfo =
+            instanceInfoTracker == null ? null : instanceInfoTracker.Info;
 
         // Unity overrides null comparison, shouldn't matter here, but the IDE keeps yelling at me, so just to be safe...
         if (instanceInfoTracker == null) instanceInfoTracker = null;
 
-        string objectType = overrideInfo?.ObjectType ?? instanceInfoTracker?.ObjectType;
-        PlayerCharacterMasterController owner = overrideInfo?.Owner ?? instanceInfoTracker?.Owner;
+        string objectType = overrideInfo?.ObjectType ?? existingOverrideInfo?.ObjectType;
+        PlayerCharacterMasterController owner = overrideInfo?.Owner;
+        if(owner == null) owner = existingOverrideInfo?.Owner;
 
         if (instanceInfoTracker == null && objectType == null)
             return;
         
-        InstanceMode instanceMode = ModConfig.GetInstanceMode(objectType ?? instanceInfoTracker.ObjectType);
+        InstanceMode instanceMode = ModConfig.GetInstanceMode(objectType ?? existingOverrideInfo?.ObjectType);
         
         if (instanceMode == InstanceMode.None)
             return;
@@ -131,7 +134,7 @@ public class InstancedLoot : BaseUnityPlugin
         bool ownerOnly = false;
         bool isSimple = false;
 
-        if (instanceInfoTracker == null)
+        if (existingOverrideInfo?.ObjectType == null)
             switch (instanceMode)
             {
                 case InstanceMode.InstanceBoth:
@@ -170,20 +173,20 @@ public class InstancedLoot : BaseUnityPlugin
 
         if (!isSimple && shouldInstance) shouldInstance = ObjectHandlerManager.CanInstanceObject(objectType, obj);
 
-        if (instanceInfoTracker == null && overrideInfo != null)
+        if (existingOverrideInfo == null && overrideInfo != null)
             overrideInfo.Value.AttachTo(obj);
         else if (instanceInfoTracker != null && owner != null) instanceInfoTracker.Info.Owner = owner;
 
         if (shouldInstance)
         {
             //If instancing should happen only for owner but owner is missing, don't instance to avoid duplication exploits
-            if (ownerOnly && owner == null && instanceInfoTracker?.PlayerOverride == null)
+            if (ownerOnly && owner == null && existingOverrideInfo?.PlayerOverride == null)
                 return;
 
             HashSet<PlayerCharacterMasterController> players;
 
-            if (instanceInfoTracker?.PlayerOverride != null)
-                players = new HashSet<PlayerCharacterMasterController>(instanceInfoTracker.PlayerOverride);
+            if (existingOverrideInfo?.PlayerOverride != null)
+                players = new HashSet<PlayerCharacterMasterController>(existingOverrideInfo?.PlayerOverride);
             else if (ownerOnly)
                 players = new HashSet<PlayerCharacterMasterController> { owner };
             else

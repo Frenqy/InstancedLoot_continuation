@@ -25,6 +25,7 @@ public class InstanceHandler : InstancedLootBehaviour
     public GameObject SourceObject => sharedInfo?.SourceObject;
     //Set of all players that can interact with any of the object's instances
     public HashSet<PlayerCharacterMasterController> AllPlayers => sharedInfo.AllPlayers;
+    public HashSet<PlayerCharacterMasterController> AllOrigPlayers => sharedInfo.AllOrigPlayers;
 
     private SharedInstanceInfo sharedInfo;
     public SharedInstanceInfo SharedInfo
@@ -46,6 +47,8 @@ public class InstanceHandler : InstancedLootBehaviour
             {
                 sharedInfo.LinkedHandlers.Add(this);
                 sharedInfo.AllPlayers.UnionWith(Players); //Don't have to recalculate when adding
+                if (OrigPlayer)
+                    sharedInfo.AllOrigPlayers.Add(OrigPlayer);
             }
         }
     }
@@ -60,13 +63,20 @@ public class InstanceHandler : InstancedLootBehaviour
         public GameObject SourceObject;
         //Set of all players that can interact with any of the object's instances
         public readonly HashSet<PlayerCharacterMasterController> AllPlayers = new();
+        public readonly HashSet<PlayerCharacterMasterController> AllOrigPlayers = new();
         //Mode of instancing used for the object
         public ObjectInstanceMode ObjectInstanceMode;
 
         public void RecalculateAllPlayers()
         {
             AllPlayers.Clear();
-            foreach (var instanceHandler in LinkedHandlers) AllPlayers.UnionWith(instanceHandler.Players);
+            AllOrigPlayers.Clear();
+            foreach (var instanceHandler in LinkedHandlers)
+            {
+                AllPlayers.UnionWith(instanceHandler.Players);
+                if(instanceHandler.OrigPlayer)
+                    AllOrigPlayers.Add(instanceHandler.OrigPlayer);
+            }
         }
 
         public void SyncTo(NetworkConnection connection)

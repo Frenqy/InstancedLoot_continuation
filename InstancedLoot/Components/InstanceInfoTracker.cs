@@ -34,16 +34,33 @@ public class InstanceInfoTracker : InstancedLootBehaviour
 
         public void AttachTo(GameObject obj)
         {
-            if (obj.GetComponent<InstanceInfoTracker>() != null) return;
+            InstanceInfoTracker instanceInfoTracker = obj.GetComponent<InstanceInfoTracker>();
+            if (instanceInfoTracker != null)
+            {
+                // if (instanceInfoTracker.ObjectType != null)
+                //     return;
 
-            InstanceInfoTracker instanceInfoTracker = obj.AddComponent<InstanceInfoTracker>();
-            instanceInfoTracker.Info = this;
+                instanceInfoTracker.Info.ObjectType ??= ObjectType;
+                instanceInfoTracker.Info.PlayerOverride ??= PlayerOverride;
+                if(instanceInfoTracker.Info.SourceItemIndex == ItemIndex.None)
+                    instanceInfoTracker.Info.SourceItemIndex = SourceItemIndex;
+            }
+            else
+            {
+                instanceInfoTracker = obj.AddComponent<InstanceInfoTracker>();
+                instanceInfoTracker.Info = this;
+            }
         }
 
         public static void SetOwner(GameObject obj, PlayerCharacterMasterController newOwner)
         {
-            InstanceInfoTracker instanceInfoTracker =
-                obj.GetComponent<InstanceInfoTracker>() ?? obj.AddComponent<InstanceInfoTracker>();
+            InstanceInfoTracker instanceInfoTracker = obj.GetComponent<InstanceInfoTracker>();
+
+            if (instanceInfoTracker == null)
+            {
+                instanceInfoTracker = obj.AddComponent<InstanceInfoTracker>();
+                instanceInfoTracker.Info.SourceItemIndex = ItemIndex.None;
+            }
 
             instanceInfoTracker.Info.Owner = newOwner;
         }
