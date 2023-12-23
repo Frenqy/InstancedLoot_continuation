@@ -16,17 +16,11 @@ public class HookManager
         #if DEBUG
         RegisterHandler<DevelopmentHooksHandler>();
         #endif
-
-        // RegisterHandler<PrinterTargetHandler>();
-        // RegisterHandler<ScrapperControllerHandler>();
-        
-        // RegisterHandler<CommandTargetHandler>();
-        // RegisterHandler<CommandHandler>();
-        // RegisterHandler<PickupDropletOnCollisionOverrideHandler>();
         
         RegisterHandler<SceneDirectorHandler>();
         RegisterHandler<SpawnCardHandler>();
         RegisterHandler<ChatHandler>();
+        RegisterHandler<DeathRewardsHandler>();
         // RegisterHandler<EventFunctionsHandler>();
         
         RegisterHandler<PingHandler>();
