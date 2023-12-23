@@ -59,7 +59,7 @@ public class InstanceHandler : InstancedLootBehaviour
         //If ObjectInstanceMode is not CopyObject, contains only the current handler.
         public List<InstanceHandler> LinkedHandlers = new();
         //If ObjectInstanceMode is CopyObject, contains the object this is a copy of.
-        //Used when instancing to copy information from the source object.
+        //Used when instancing to copy transform from the source object.
         public GameObject SourceObject;
         //Set of all players that can interact with any of the object's instances
         public readonly HashSet<PlayerCharacterMasterController> AllPlayers = new();
@@ -131,9 +131,10 @@ public class InstanceHandler : InstancedLootBehaviour
 
     public void SyncPlayers()
     {
+        sharedInfo.RecalculateAllPlayers();
+        
         if (NetworkServer.active)
         {
-            sharedInfo.RecalculateAllPlayers();
             sharedInfo.SyncToAll();
         }
         

@@ -189,10 +189,12 @@ public class SyncInstances : INetMessage
 
             instanceHandler.SharedInfo = sharedInstanceInfo;
         }
+        
+        sharedInstanceInfo.RecalculateAllPlayers();
 
         InstanceHandler[] instanceHandlers = entries
             .Select(entry => entry.target.GetComponent<InstanceHandler>()).Where(handler => handler != null).ToArray();
 
-        foreach (var instanceHandler in instanceHandlers) instanceHandler.SyncPlayers();
+        foreach (var instanceHandler in instanceHandlers) instanceHandler.UpdateVisuals();
     }
 }
