@@ -40,9 +40,10 @@ public class DitherModelHandler : AbstractHookHandler
         cursor.GotoNext(MoveType.Before,
             i => i.MatchLdloc(out ditherModelLoc),
             i => i.MatchCallOrCallvirt<DitherModel>("UpdateDither"));
-
-        cursor.Emit(OpCodes.Ldloc, ditherModelLoc);
-        cursor.Emit(OpCodes.Ldloc, ditherModelLoc);
+        
+        cursor.Index++;
+        cursor.Emit(OpCodes.Dup);
+        cursor.Emit(OpCodes.Dup);
         
         cursor.Emit(OpCodes.Call, methodGetComponentFadeBehavior);
         cursor.Emit(OpCodes.Dup);
