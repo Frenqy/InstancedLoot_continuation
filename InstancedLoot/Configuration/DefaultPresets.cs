@@ -18,7 +18,10 @@ public static class DefaultPresets
                 {ObjectType.LunarChest, InstanceMode.InstancePreferred},
                 {ObjectType.VoidTriple, InstanceMode.InstancePreferred},
                 {ObjectType.Sacrifice, InstanceMode.InstanceItems},
-                {ObjectType.HuntersTricorn, InstanceMode.InstanceItems}
+                {ObjectType.HuntersTricorn, InstanceMode.InstanceItems},
+                {ObjectType.TeleporterBoss, InstanceMode.InstanceItems},
+                {ObjectType.BossGroup, InstanceMode.InstanceItems},
+                {ObjectType.SuperRoboBallEncounter, InstanceMode.InstanceItems},
             })
         },
         {
@@ -33,7 +36,10 @@ public static class DefaultPresets
                 {ObjectAlias.PaidWithItem, InstanceMode.InstanceItemForOwnerOnly},
                 {ObjectAlias.Printers, InstanceMode.InstanceItemForOwnerOnly},
                 {ObjectAlias.Cauldrons, InstanceMode.InstanceItemForOwnerOnly},
-                {ObjectType.LunarChest, InstanceMode.InstanceItemForOwnerOnly}
+                {ObjectType.LunarChest, InstanceMode.InstanceItemForOwnerOnly},
+                {ObjectType.TeleporterBoss, InstanceMode.InstanceItemForOwnerOnly},
+                {ObjectType.BossGroup, InstanceMode.InstanceItemForOwnerOnly},
+                {ObjectType.SuperRoboBallEncounter, InstanceMode.InstanceItemForOwnerOnly},
             })
         },
         { "EVERYTHING", new EverythingConfigPreset() }
