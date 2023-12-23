@@ -16,6 +16,7 @@ using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 
+//TODO: PingerControllerRenderBehaviour needs special code for items, try to figure out why
 //TODO: Test ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
 //TODO: Handle disconnected players?
@@ -27,6 +28,7 @@ using UnityEngine.Networking;
 //TODO: Instance pickup droplets for dithering - Dithering doesn't work, problem with networking, scrapping idea for now.
 //TODO: PickupPickerControllerHandler needs coroutine, due to PickupPickerController only having Awake.
 //TODO: Better way to forfeit items. Currently have only chat commands.
+//TODO: See if dithering is possible for void objects (material doesn't support dithering)
 
 #pragma warning disable CS0618 // Type or member is obsolete
 [assembly: SecurityPermission(SecurityAction.RequestMinimum, SkipVerification = true)]

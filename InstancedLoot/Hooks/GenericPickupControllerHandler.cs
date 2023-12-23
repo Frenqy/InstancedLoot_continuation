@@ -104,7 +104,7 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         cursor.Emit(OpCodes.Ldarg_0);
         cursor.EmitDelegate<IL_GenericPickupController_CreatePickup_Delegate>((GameObject obj, ref GenericPickupController.CreatePickupInfo createPickupInfo) =>
         {
-            if (InstanceOverrideInfo != null) InstanceOverrideInfo.Value.AttachTo(obj);
+            InstanceOverrideInfo?.AttachTo(obj);
 
             if (obj != null)
             {
