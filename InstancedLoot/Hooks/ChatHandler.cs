@@ -8,18 +8,18 @@ namespace InstancedLoot.Hooks;
 
 public class ChatHandler : AbstractHookHandler
 {
-    private readonly InstanceHandlerSearch instanceHandlerSearch;
+    // private readonly InstanceHandlerSearch instanceHandlerSearch;
     
-    public ChatHandler()
-    {
-        instanceHandlerSearch = new InstanceHandlerSearch();
-        instanceHandlerSearch.minAngleFilter = 0f;
-	    instanceHandlerSearch.maxAngleFilter = 10f;
-	    instanceHandlerSearch.minDistanceFilter = 0f;
-	    instanceHandlerSearch.filterByDistinctEntity = false;
-	    instanceHandlerSearch.filterByLoS = true;
-	    instanceHandlerSearch.sortMode = SortMode.DistanceAndAngle;
-    }
+    // public ChatHandler()
+    // {
+    //     instanceHandlerSearch = new InstanceHandlerSearch();
+    //     instanceHandlerSearch.minAngleFilter = 0f;
+    //     instanceHandlerSearch.maxAngleFilter = 10f;
+    //     instanceHandlerSearch.minDistanceFilter = 0f;
+    //     instanceHandlerSearch.filterByDistinctEntity = false;
+    //     instanceHandlerSearch.filterByLoS = true;
+    //     instanceHandlerSearch.sortMode = SortMode.DistanceAndAngle;
+    // }
     
     public override void RegisterHooks()
     {
@@ -39,27 +39,42 @@ public class ChatHandler : AbstractHookHandler
         CharacterMaster master = args.senderMaster;
         PlayerCharacterMasterController player = master != null ? master.playerCharacterMasterController : null;
 
-        if (args[0].ToLower() == "/uninstance")
+        if (args[0].ToLower() == "uninstance")
         {
             if (body != null && player != null)
             {
-                Ray searchRay = new Ray
+                // Ray searchRay = new Ray
+                // {
+                //     direction = player.bodyInputs.aimDirection,
+                //     origin = player.bodyInputs.aimOrigin
+                // };
+                //
+                // searchRay = CameraRigController.ModifyAimRayIfApplicable(searchRay, body.gameObject,
+                //     out var extraRaycastDistance);
+                //
+                // instanceHandlerSearch.searchOrigin = searchRay.origin;
+                // instanceHandlerSearch.searchDirection = searchRay.direction;
+                // instanceHandlerSearch.maxDistanceFilter = 100f + extraRaycastDistance;
+                //
+                // instanceHandlerSearch.Player = player;
+                //
+                // InstanceHandler target =
+                //     instanceHandlerSearch.SearchCandidatesForSingleTarget(InstanceHandler.Instances);
+
+                InstanceHandler target = null;
+                
+                if (player.pingerController is var pingerController && pingerController)
                 {
-                    direction = player.bodyInputs.aimDirection,
-                    origin = player.bodyInputs.aimOrigin
-                };
-
-                searchRay = CameraRigController.ModifyAimRayIfApplicable(searchRay, body.gameObject,
-                    out var extraRaycastDistance);
-
-                instanceHandlerSearch.searchOrigin = searchRay.origin;
-                instanceHandlerSearch.searchDirection = searchRay.direction;
-                instanceHandlerSearch.maxDistanceFilter = 100f + extraRaycastDistance;
-
-                instanceHandlerSearch.Player = player;
-
-                InstanceHandler target =
-                    instanceHandlerSearch.SearchCandidatesForSingleTarget(InstanceHandler.Instances);
+                    if (pingerController.currentPing.active &&
+                        pingerController.currentPing.targetGameObject is var obj && obj)
+                    {
+                        
+                        target = obj.GetComponentInParent<InstanceHandler>();
+                        if (target == null && obj.GetComponent<EntityLocator>() is var entityLocator &&
+                            entityLocator != null && entityLocator.entity != null)
+                            target = entityLocator.entity.GetComponentInParent<InstanceHandler>();
+                    }
+                }
 
                 if (target != null) Plugin.HandleUninstancing(target, player);
             }
@@ -67,7 +82,7 @@ public class ChatHandler : AbstractHookHandler
             return;
         }
 
-        if (args[0].ToLower() == "/uninstanceall")
+        if (args[0].ToLower() == "uninstanceall")
             if (player != null)
                 foreach (var instanceHandler in InstanceHandler.Instances
                              .Where(handler => InstancedLoot.CanUninstance(handler, player)).ToArray())
