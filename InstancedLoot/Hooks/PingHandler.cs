@@ -89,11 +89,13 @@ public class PingHandler : AbstractHookHandler
                         str +=
                             $" (Instanced: {string.Join(", ", instanceHandler.AllPlayers.Select(player => player.GetDisplayName()))})";
 
+                    #if DEBUG
                     InstanceInfoTracker instanceInfoTracker = target.GetComponent<InstanceInfoTracker>();
 
                     if (instanceInfoTracker)
                         str =
                             $"{str} (InstanceInfo: {instanceInfoTracker.ObjectType}, {instanceInfoTracker.Owner?.GetDisplayName()}, {instanceInfoTracker.SourceItemIndex})";
+                    #endif
                 }
                 
                 return str;
