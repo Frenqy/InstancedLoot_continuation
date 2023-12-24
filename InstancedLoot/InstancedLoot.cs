@@ -62,6 +62,8 @@ public class InstancedLoot : BaseUnityPlugin
     public static InstancedLoot Instance { get; private set; }
     public Config ModConfig { get; private set; }
 
+    public static event Action<InstancedLoot> PreConfigInit;
+
     public void Awake()
     {
         ModConfig = new Config(this, Logger);
@@ -75,6 +77,8 @@ public class InstancedLoot : BaseUnityPlugin
 
     public void Start()
     {
+        PreConfigInit?.Invoke(this);
+        
         ModConfig.Init();
     }
 
