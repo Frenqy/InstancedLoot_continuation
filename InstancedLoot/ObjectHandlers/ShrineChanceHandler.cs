@@ -31,6 +31,7 @@ public class ShrineChanceHandler : AbstractObjectHandler
         ShrineChanceBehavior targetShrine = target.GetComponent<ShrineChanceBehavior>();
         
         targetShrine.rng = new Xoroshiro128Plus(sourceShrine.rng);
+        targetShrine.purchaseInteraction.Networkcost = sourceShrine.purchaseInteraction.Networkcost;
         
         return base.InstanceSingleObjectFrom(source, target, players);
     }

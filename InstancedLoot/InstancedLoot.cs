@@ -25,9 +25,6 @@ using UnityEngine.Networking;
 //TODO: Uninstance command needs networking for removing instancing
 //      Temporary workaround - always use droplets, delete original if last player.
 
-//TODO: Owned objects broke again
-//      Those are working fine too, again no idea what broke.
-
 //TODO: PingerControllerRenderBehaviour needs special code for items, try to figure out why
 //TODO: Test ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget

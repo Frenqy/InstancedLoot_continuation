@@ -36,7 +36,7 @@ public class SceneDirectorHandler : AbstractHookHandler
         });
     }
 
-    private void HookInteractible(ILCursor cursor, string resourceString, ItemDef itemType)
+    private void HookInteractible(ILCursor cursor, string resourceString, Func<ItemDef> itemDefGetter)
     {
         int variableLoopIndex = -1;
 
@@ -51,7 +51,7 @@ public class SceneDirectorHandler : AbstractHookHandler
         cursor.EmitDelegate<Action<GameObject, int>>((obj, index) =>
         {
             var characterMastersWithItem = CharacterMaster.readOnlyInstancesList
-                .Where(master => master.inventory.GetItemCount(itemType) > 0).ToArray();
+                .Where(master => master.inventory.GetItemCount(itemDefGetter()) > 0).ToArray();
             if (characterMastersWithItem.Length == 0)
                 return; // Sanity check
             
@@ -71,8 +71,8 @@ public class SceneDirectorHandler : AbstractHookHandler
     {
         ILCursor cursor = new ILCursor(il);
         
-        HookInteractible(cursor, "SpawnCards/InteractableSpawnCard/iscLockbox", RoR2Content.Items.TreasureCache);
-        HookInteractible(cursor, "SpawnCards/InteractableSpawnCard/iscLockboxVoid", DLC1Content.Items.TreasureCacheVoid);
-        HookInteractible(cursor, "SpawnCards/InteractableSpawnCard/iscFreeChest", DLC1Content.Items.FreeChest);
+        HookInteractible(cursor, "SpawnCards/InteractableSpawnCard/iscLockbox", () => RoR2Content.Items.TreasureCache);
+        HookInteractible(cursor, "SpawnCards/InteractableSpawnCard/iscLockboxVoid", () => DLC1Content.Items.TreasureCacheVoid);
+        HookInteractible(cursor, "SpawnCards/InteractableSpawnCard/iscFreeChest", () => DLC1Content.Items.FreeChest);
     }
 }
