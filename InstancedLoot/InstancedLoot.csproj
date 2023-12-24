@@ -42,12 +42,15 @@
         </Reference>
         <Reference Include="R2API">
           <HintPath>..\libs\R2API.dll</HintPath>
+            <Private>False</Private>
         </Reference>
         <Reference Include="R2API.Core">
           <HintPath>..\libs\R2API.Core.dll</HintPath>
+            <Private>False</Private>
         </Reference>
         <Reference Include="R2API.Networking">
           <HintPath>..\libs\R2API.Networking.dll</HintPath>
+            <Private>False</Private>
         </Reference>
         <Reference Include="RoR2">
             <HintPath>..\libs\RoR2.dll</HintPath>
@@ -63,6 +66,7 @@
         </Reference>
         <Reference Include="UnityEngine.AnimationModule">
           <HintPath>..\libs\UnityEngine.AnimationModule.dll</HintPath>
+            <Private>False</Private>
         </Reference>
         <Reference Include="UnityEngine.CoreModule">
             <HintPath>..\libs\UnityEngine.CoreModule.dll</HintPath>
