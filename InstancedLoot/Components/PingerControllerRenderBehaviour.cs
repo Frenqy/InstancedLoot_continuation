@@ -120,23 +120,28 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
             {
                 Highlight highlight = pingIndicator.pingHighlight;
 
-                InstanceHandler targetInstanceHandler =
-                    instanceHandler.LinkedHandlers.FirstOrDefault(handler => handler.Players.Contains(player));
-
                 Renderer targetRenderer = null;
+                
+                InstanceHandler targetInstanceHandler = instanceHandler.LinkedHandlers.Where(handler => handler.Players.Contains(player)).FirstOrDefault(handler =>
+                {
+                    if (handler.GetComponent<IInteractable>() is var interactable && interactable != null
+                        && player.body is var body && body
+                        && body.GetComponent<Interactor>() is var interactor && interactor)
+                    {
+                        if (interactable.GetInteractability(interactor) == Interactability.Disabled)
+                            return false;
+                    }
+                    
+                    return true;
+                });
 
                 if (targetInstanceHandler != null)
                 {
-                    PurchaseInteraction pingTargetPurchaseInteraction = pingTarget.GetComponent<PurchaseInteraction>();
-
-                    if (pingTargetPurchaseInteraction == null || pingTargetPurchaseInteraction.available)
-                    {
-                        ModelLocator modelLocator = targetInstanceHandler.GetComponent<ModelLocator>();
-
-                        targetRenderer = modelLocator != null
-                            ? modelLocator.modelTransform.GetComponentInChildren<Renderer>()
-                            : pingTarget.GetComponentInChildren<Renderer>();
-                    }
+                    ModelLocator modelLocator = targetInstanceHandler.GetComponent<ModelLocator>();
+                    
+                    targetRenderer = modelLocator != null
+                        ? modelLocator.modelTransform.GetComponentInChildren<Renderer>()
+                        : pingTarget.GetComponentInChildren<Renderer>();
                 }
 
                 highlight.targetRenderer = targetRenderer;

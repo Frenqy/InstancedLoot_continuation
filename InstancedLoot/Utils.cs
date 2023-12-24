@@ -1,3 +1,4 @@
+using System.Linq;
 using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using RoR2;
@@ -10,8 +11,26 @@ public class Utils
     public static bool IsObjectInteractibleForPlayer(GameObject gameObject, PlayerCharacterMasterController player)
     {
         if (gameObject == null) return true;
-        
-        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null) return instanceHandler.AllPlayers.Contains(player);
+
+        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null)
+        {
+            if (instanceHandler.AllPlayers.Contains(player))
+            {
+                return instanceHandler.LinkedHandlers.Where(handler => handler.Players.Contains(player)).Any(handler =>
+                {
+                    if (handler.GetComponent<IInteractable>() is var interactable && interactable != null
+                        && player.body is var body && body
+                        && body.GetComponent<Interactor>() is var interactor && interactor)
+                    {
+                        if (interactable.GetInteractability(interactor) == Interactability.Disabled)
+                            return false;
+                    }
+                    
+                    return true;
+                });
+            }
+            return instanceHandler.AllPlayers.Contains(player);
+        }
 
         return true;
     }

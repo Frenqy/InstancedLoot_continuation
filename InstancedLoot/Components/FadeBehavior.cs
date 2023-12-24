@@ -29,6 +29,7 @@ public class FadeBehavior : InstancedLootBehaviour
     
     private CameraRigController lastCameraRigController;
     private PlayerCharacterMasterController lastPlayer;
+    private PlayerCharacterMasterController lastDitherModelPlayer;
     private bool lastVisible;
 
     private bool isBeingDestroyed;
@@ -117,24 +118,50 @@ public class FadeBehavior : InstancedLootBehaviour
             RefreshComponentLists();
         
         bool isVisible = false;
-        
-        if (lastCameraRigController == cameraRigController)
+
+        if (cameraRigController.targetBody is var body
+            && body
+            && body.master is var master && master
+            && master.playerCharacterMasterController is var player && player)
         {
-            isVisible = lastVisible;
-        }
-        else
-        {
-            if (cameraRigController.targetBody is var body 
-                && body 
-                && body.master is var master && master
-                && master.playerCharacterMasterController is var player && player
-                && GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler)
+            if (player == lastDitherModelPlayer)
+            {
+                isVisible = lastVisible;
+            }
+            else if(GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler)
             {
                 isVisible = instanceHandler.IsInstancedFor(player);
             }
-        }
+            else
+            {
+                isVisible = true;
+            }
 
-        lastCameraRigController = cameraRigController;
+            lastDitherModelPlayer = player;
+        }
+        else
+        {
+            lastDitherModelPlayer = null;
+        }
+        
+        
+        // if (lastCameraRigController == cameraRigController)
+        // {
+        //     isVisible = lastVisible;
+        // }
+        // else
+        // {
+        //     if (cameraRigController.targetBody is var body 
+        //         && body 
+        //         && body.master is var master && master
+        //         && master.playerCharacterMasterController is var player && player
+        //         && GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler)
+        //     {
+        //         isVisible = instanceHandler.IsInstancedFor(player);
+        //     }
+        // }
+
+        // lastCameraRigController = cameraRigController;
         lastVisible = isVisible;
 
         return isVisible ? 1.0f : FadeLevel;

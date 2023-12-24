@@ -39,9 +39,19 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
                 if(objName.StartsWith("DuplicatorWild")) objectType = Enums.ObjectType.DuplicatorWild;
                 if(objName.StartsWith("DuplicatorMilitary")) objectType = Enums.ObjectType.DuplicatorMilitary;
 
-                if (objName.StartsWith("LunarShopTerminal")) objectType = Enums.ObjectType.LunarShopTerminal;
+                if(objName.StartsWith("LunarShopTerminal")) objectType = Enums.ObjectType.LunarShopTerminal;
                 
                 if(objectType != null) Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
+                else
+                {
+                    if (self.serverMultiShopController &&
+                        self.serverMultiShopController.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker &&
+                        instanceInfoTracker)
+                    {
+                        instanceInfoTracker.Info.AttachTo(self.gameObject);
+                    }
+                        
+                }
             }
         }
         else

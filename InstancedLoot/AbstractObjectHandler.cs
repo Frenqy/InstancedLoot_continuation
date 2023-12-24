@@ -137,6 +137,10 @@ public abstract class AbstractObjectHandler
                 clone.transform.localScale = gameObject.transform.localScale;
             }
         }
+        else
+        {
+            Plugin._logger.LogError($"Failed to find spawn card for {gameObject}, objectType {objectType}");
+        }
 
         return clone;
     }

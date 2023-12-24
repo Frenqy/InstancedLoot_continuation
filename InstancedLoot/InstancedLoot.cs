@@ -16,15 +16,30 @@ using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 
+//TODO: DitherModel objects start faded out
+//      Seemingly fixed by checking player instead of camera. Should look for better fix later.
+
+//TODO: Shrine of order on the moon failing to instance (missing prefab?)
+//      Seems to be working, no idea what was wrong.
+
+//TODO: Uninstance command needs networking for removing instancing
+//      Temporary workaround - always use droplets, delete original if last player.
+
+//TODO: Owned objects broke again
+//      Those are working fine too, again no idea what broke.
+
 //TODO: PingerControllerRenderBehaviour needs special code for items, try to figure out why
 //TODO: Test ReduceSacrificeSpawnChance
 //TODO: Test ReduceInteractibleBudget
+//TODO: Teleporter "claws" should only show things instanced for you
+//TODO: Void cradle gave "Unknown command essence"?
 //TODO: Handle disconnected players?
 //      Compatibility with https://thunderstore.io/package/Moffein/Fix_Playercount/
 //      Teleporter drop counting is going to be off and give items to the wrong players
 //TODO: Instance drones (duh), perhaps later though - need to handle drones that broke correctly.
 //      PurchaseInteraction - Interaction should be handled automatically
 //      SummonMasterBehavior - If patched, won't have to copy object?
+//      EntityStates.Drone.DeathState.OnImpactServer
 //TODO: Lunar pods are fixed, but rely on coroutine running next frame.
 //TODO: Instancing effects isn't complete, some effects don't work, some effects seem to use a different system.
 //TODO: Instance pickup droplets for dithering - Dithering doesn't work, problem with networking, scrapping idea for now.
@@ -177,9 +192,11 @@ public class InstancedLoot : BaseUnityPlugin
 
         if (!isSimple && shouldInstance) shouldInstance = ObjectHandlerManager.CanInstanceObject(objectType, obj);
 
-        if (existingOverrideInfo == null && overrideInfo != null)
+        // if (existingOverrideInfo == null && overrideInfo != null)
+        //     overrideInfo.Value.AttachTo(obj);
+        // else if (instanceInfoTracker != null && owner != null) instanceInfoTracker.Info.Owner = owner;
+        if(overrideInfo != null)
             overrideInfo.Value.AttachTo(obj);
-        else if (instanceInfoTracker != null && owner != null) instanceInfoTracker.Info.Owner = owner;
 
         if (shouldInstance)
         {
@@ -227,11 +244,11 @@ public class InstancedLoot : BaseUnityPlugin
     {
         if (!instanceHandler.Players.Contains(player)) return;
 
-        if (instanceHandler.AllPlayers.Count == 1) // This is only instanced for one specific player
-        {
-            Destroy(instanceHandler);
-            return;
-        }
+        // if (instanceHandler.AllPlayers.Count == 1) // This is only instanced for one specific player
+        // {
+        //     Destroy(instanceHandler);
+        //     return;
+        // }
 
         if (instanceHandler.GetComponent<CreatePickupInfoTracker>() is var createPickupInfoTracker && createPickupInfoTracker)
         {
@@ -244,6 +261,10 @@ public class InstancedLoot : BaseUnityPlugin
                 instanceHandler.transform.position + Vector3.up * 3, Vector3.up * 10 + awayVector * 5);
             
             instanceHandler.RemovePlayer(player);
+            
+            //Temporary workaround for networking issues - need a way to signal uninstancing of an object?
+            if(instanceHandler.Players.Count == 0)
+                Destroy(instanceHandler.gameObject);
         }
 
         // if (instanceHandler.GetComponent<GenericPickupController>() is var pickupController && pickupController)

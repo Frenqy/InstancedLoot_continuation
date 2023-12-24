@@ -49,6 +49,8 @@ public class InstanceHandler : InstancedLootBehaviour
                 sharedInfo.AllPlayers.UnionWith(Players); //Don't have to recalculate when adding
                 if (OrigPlayer)
                     sharedInfo.AllOrigPlayers.Add(OrigPlayer);
+                
+                sharedInfo.UpdateVisuals();
             }
         }
     }
@@ -76,6 +78,16 @@ public class InstanceHandler : InstancedLootBehaviour
                 AllPlayers.UnionWith(instanceHandler.Players);
                 if(instanceHandler.OrigPlayer)
                     AllOrigPlayers.Add(instanceHandler.OrigPlayer);
+            }
+            
+            UpdateVisuals();
+        }
+
+        public void UpdateVisuals()
+        {
+            foreach (var instanceHandler in LinkedHandlers)
+            {
+                instanceHandler.UpdateVisuals();
             }
         }
 
