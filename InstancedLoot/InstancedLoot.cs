@@ -258,8 +258,10 @@ public class InstancedLoot : BaseUnityPlugin
             awayVector.y = 0.01f;
             awayVector.Normalize();
 
-            PickupDropletController.CreatePickupDroplet(createPickupInfoTracker.CreatePickupInfo,
-                instanceHandler.transform.position + Vector3.up * 3, Vector3.up * 10 + awayVector * 5);
+            GenericPickupController.CreatePickupInfo pickupInfo = createPickupInfoTracker.CreatePickupInfo;
+            pickupInfo.position = instanceHandler.transform.position + Vector3.up * 3;
+            
+            PickupDropletController.CreatePickupDroplet(pickupInfo, Vector3.up * 10 + awayVector * 5);
             
             instanceHandler.RemovePlayer(player);
             

@@ -4,6 +4,7 @@ using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace InstancedLoot.Hooks;
 
@@ -18,16 +19,18 @@ public class PickupDropletControllerHandler : AbstractHookHandler
 
     public override void RegisterHooks()
     {
-        IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 +=
+        IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3 +=
             IL_PickupDropletController_CreatePickupDroplet;
         On.RoR2.PickupDropletController.OnCollisionEnter += On_PickupDropletController_OnCollisionEnter;
+        IL.RoR2.PickupDropletController.CreateCommandCube += IL_PickupDropletController_CreateCommandCube;
     }
 
     public override void UnregisterHooks()
     {
-        IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 -=
+        IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3 -=
             IL_PickupDropletController_CreatePickupDroplet;
         On.RoR2.PickupDropletController.OnCollisionEnter -= On_PickupDropletController_OnCollisionEnter;
+        IL.RoR2.PickupDropletController.CreateCommandCube -= IL_PickupDropletController_CreateCommandCube;
     }
 
     private void IL_PickupDropletController_CreatePickupDroplet(ILContext il)
@@ -55,5 +58,19 @@ public class PickupDropletControllerHandler : AbstractHookHandler
         {
             orig(self, collision);
         }
+    }
+
+    private void IL_PickupDropletController_CreateCommandCube(ILContext il)
+    {
+        ILCursor cursor = new ILCursor(il);
+
+        cursor.GotoNext(MoveType.Before, i => i.MatchCallOrCallvirt<NetworkServer>("Spawn"));
+        cursor.Emit(OpCodes.Dup);
+        cursor.Index++;
+        cursor.EmitDelegate<Action<GameObject>>(gameObject =>
+        {
+            var genericPickupControllerHandler = hookManager.GetHandler<GenericPickupControllerHandler>();
+            if (genericPickupControllerHandler.InstanceOverrideInfo != null) Plugin.HandleInstancing(gameObject, genericPickupControllerHandler.InstanceOverrideInfo.Value);
+        });
     }
 }

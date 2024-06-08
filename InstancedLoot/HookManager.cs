@@ -32,7 +32,6 @@ public class HookManager
         RegisterHandler<GenericPickupControllerHandler>();
         RegisterHandler<PickupPickerControllerHandler>();
         RegisterHandler<PickupDropletControllerHandler>();
-        RegisterHandler<CommandArtifactManagerHandler>();
         
         // RegisterHandler<InteractorHandler>();
     }
