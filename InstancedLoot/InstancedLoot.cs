@@ -16,6 +16,8 @@ using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
 
+//TODO: Chests now have PickupPickerController, which broke things. Applied dirty fix, should replace with something better, as chests now still get "instanced" as though they were items or pickup pickers.
+
 //TODO: DitherModel objects start faded out
 //      Seemingly fixed by checking player instead of camera. Should look for better fix later.
 
@@ -129,7 +131,7 @@ public class InstancedLoot : BaseUnityPlugin
         }
     }
 
-    public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null)
+    public void HandleInstancing(GameObject obj, InstanceInfoTracker.InstanceOverrideInfo? overrideInfo = null, bool isObject = true)
     {
         InstanceInfoTracker instanceInfoTracker = obj.GetComponent<InstanceInfoTracker>();
         InstanceInfoTracker.InstanceOverrideInfo? existingOverrideInfo =
@@ -155,6 +157,7 @@ public class InstancedLoot : BaseUnityPlugin
         bool isSimple = false;
 
         if (existingOverrideInfo?.ObjectType == null)
+        {
             switch (instanceMode)
             {
                 case InstanceMode.InstanceBoth:
@@ -168,10 +171,12 @@ public class InstancedLoot : BaseUnityPlugin
                     ownerOnly = true;
                     break;
             }
+        }
 
-        if ((obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null &&
+        if (((obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null &&
              (PickupCatalog.GetPickupDef(pickupController.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
             || obj.GetComponent<PickupPickerController>() != null)
+            && !isObject)
         {
             isSimple = true;
             switch (instanceMode)

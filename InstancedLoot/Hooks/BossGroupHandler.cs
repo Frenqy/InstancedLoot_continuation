@@ -45,7 +45,7 @@ public class BossGroupHandler : AbstractHookHandler
         if (objName.StartsWith("SuperRoboBallEncounter")) objectType = ObjectType.SuperRoboBallEncounter;
         if (objectType == null) objectType = ObjectType.BossGroup;
         
-        Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType));
+        Plugin.HandleInstancing(self.gameObject, new InstanceInfoTracker.InstanceOverrideInfo(objectType), isObject: false);
     }
 
     private void On_BossGroup_DropRewards(On.RoR2.BossGroup.orig_DropRewards orig, BossGroup self)

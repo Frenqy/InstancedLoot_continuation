@@ -48,7 +48,7 @@ public class PickupPickerControllerHandler : AbstractHookHandler
             IEnumerator coroutine()
             {
                 yield return 0;
-                Plugin.HandleInstancing(self.gameObject);
+                Plugin.HandleInstancing(self.gameObject, isObject: false);
             }
 
             self.StartCoroutine(coroutine());

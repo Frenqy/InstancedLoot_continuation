@@ -41,7 +41,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
         cursor.Emit(OpCodes.Dup);
         cursor.EmitDelegate<Action<GameObject>>(obj =>
         {
-            if (InstanceOverrideInfo.HasValue) Plugin.HandleInstancing(obj, InstanceOverrideInfo);
+            if (InstanceOverrideInfo.HasValue) Plugin.HandleInstancing(obj, InstanceOverrideInfo, isObject: false);
         });
     }
     
@@ -70,7 +70,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
         cursor.EmitDelegate<Action<GameObject>>(gameObject =>
         {
             var genericPickupControllerHandler = hookManager.GetHandler<GenericPickupControllerHandler>();
-            if (genericPickupControllerHandler.InstanceOverrideInfo != null) Plugin.HandleInstancing(gameObject, genericPickupControllerHandler.InstanceOverrideInfo.Value);
+            if (genericPickupControllerHandler.InstanceOverrideInfo != null) Plugin.HandleInstancing(gameObject, genericPickupControllerHandler.InstanceOverrideInfo.Value, isObject: false);
         });
     }
 }

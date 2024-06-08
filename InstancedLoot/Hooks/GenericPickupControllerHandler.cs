@@ -34,7 +34,7 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         GenericPickupController self)
     {
         if (NetworkServer.active) 
-            Plugin.HandleInstancing(self.gameObject);
+            Plugin.HandleInstancing(self.gameObject, isObject: false);
 
         orig(self);
     }
