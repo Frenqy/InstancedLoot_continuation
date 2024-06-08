@@ -1,12 +1,12 @@
 {
     "name": "InstancedLoot",
-    "version_number": "1.0.1",
+    "version_number": "1.1.0",
     "website_url": "https://gitlab.com/KubeRoot/ror2-instancedloot",
     "description": "Makes chest and/or item drops separate for each player",
     "dependencies": [
-        "bbepis-BepInExPack-5.4.2113",
+        "bbepis-BepInExPack-5.4.2114",
         "RiskofThunder-HookGenPatcher-1.2.3",
-        "RiskofThunder-R2API_Core-5.0.11",
+        "RiskofThunder-R2API_Core-5.0.12",
         "RiskofThunder-R2API_Networking-1.0.2"
     ],
     "author": "KubeRoot"
