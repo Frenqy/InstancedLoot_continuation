@@ -19,7 +19,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
 
     public override void RegisterHooks()
     {
-        IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3 +=
+        IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 +=
             IL_PickupDropletController_CreatePickupDroplet;
         On.RoR2.PickupDropletController.OnCollisionEnter += On_PickupDropletController_OnCollisionEnter;
         IL.RoR2.PickupDropletController.CreateCommandCube += IL_PickupDropletController_CreateCommandCube;
@@ -27,7 +27,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
 
     public override void UnregisterHooks()
     {
-        IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3 -=
+        IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 -=
             IL_PickupDropletController_CreatePickupDroplet;
         On.RoR2.PickupDropletController.OnCollisionEnter -= On_PickupDropletController_OnCollisionEnter;
         IL.RoR2.PickupDropletController.CreateCommandCube -= IL_PickupDropletController_CreateCommandCube;

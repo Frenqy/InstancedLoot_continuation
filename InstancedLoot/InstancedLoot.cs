@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Permissions;
@@ -265,9 +265,9 @@ public class InstancedLoot : BaseUnityPlugin
 
             GenericPickupController.CreatePickupInfo pickupInfo = createPickupInfoTracker.CreatePickupInfo;
             pickupInfo.position = instanceHandler.transform.position + Vector3.up * 3;
-            
-            PickupDropletController.CreatePickupDroplet(pickupInfo, Vector3.up * 10 + awayVector * 5);
-            
+
+            PickupDropletController.CreatePickupDroplet(pickupInfo, pickupInfo.position, Vector3.up * 10 + awayVector * 5);
+
             instanceHandler.RemovePlayer(player);
             
             //Temporary workaround for networking issues - need a way to signal uninstancing of an object?
