@@ -1,3 +1,0 @@
-[submodule "libs"]
-	path = libs
-	url = https://gitlab.com/KubeRoot/ror2-libs.git

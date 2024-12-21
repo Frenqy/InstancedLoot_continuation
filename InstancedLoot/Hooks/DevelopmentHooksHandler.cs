@@ -35,8 +35,9 @@ public class DevelopmentHooksHandler : AbstractHookHandler
         
         getNetworkHashDetour.Undo();
         getNetworkHashDetour = null;
-        
-        NetworkingAPI.NetMessages.Remove(1337);
+
+        // FIXME: This is not working
+        //NetworkingAPI.NetMessages.Remove(1337);
     }
 
     private void On_NetworkManagerSystemSteam_OnClientConnect(On.RoR2.Networking.NetworkManagerSystemSteam.orig_OnClientConnect orig, NetworkManagerSystemSteam self, NetworkConnection conn)
