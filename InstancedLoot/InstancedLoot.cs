@@ -52,7 +52,7 @@ using UnityEngine.Networking;
 
 namespace InstancedLoot;
 
-[BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.2.0")]
+[BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.3.0")]
 [NetworkCompatibility]
 [BepInDependency(NetworkingAPI.PluginGUID)]
 public class InstancedLoot : BaseUnityPlugin

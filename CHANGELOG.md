@@ -1,5 +1,7 @@
 ## --------Continuation Changelog--------
 
+### 1.3.0 - Use nuget and update libs again
+
 ### 1.2.0 - Update libs
 
 ## --------Original Changelog--------
