@@ -11,8 +11,6 @@ This mod needs to be installed both on clients and the host to function.
 
 NOTE: Please check out the config options in `BepInEx/config/com.kuberoot.instancedloot.cfg` before usage.
 
-[Support me on Ko-fi](https://ko-fi.com/kuberoot)
-
 ## Usage notes:
 
 When first opening the mod, by default it will use the `Default` preset, instancing most objects, with `PreferredInstanceMode` set to `InstanceObject`. This way, objects will be instanced, but the items within won't be. What that means is, for example, when a player opens a chest, other players can still open that chest, and the item that drops can be picked up by anybody.
