@@ -43,7 +43,7 @@ public class OptionChestHandler : AbstractObjectHandler
         OptionChestBehavior targetChest = target.GetComponent<OptionChestBehavior>();
         
         targetChest.rng = new Xoroshiro128Plus(sourceChest.rng); 
-        targetChest.generatedDrops = sourceChest.generatedDrops.ToArray();
+        targetChest.generatedPickups = sourceChest.generatedPickups;
         
         return base.InstanceSingleObjectFrom(source, target, players);
     }

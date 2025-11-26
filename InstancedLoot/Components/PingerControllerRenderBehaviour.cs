@@ -118,7 +118,7 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
 
             if (instanceHandler != null && instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject)
             {
-                Highlight highlight = pingIndicator.pingHighlight;
+                //Highlight highlight = pingIndicator.pingHighlight;
 
                 Renderer targetRenderer = null;
                 
@@ -144,7 +144,7 @@ public class PingerControllerRenderBehaviour : InstancedLootBehaviour
                         : pingTarget.GetComponentInChildren<Renderer>();
                 }
 
-                highlight.targetRenderer = targetRenderer;
+                //highlight.targetRenderer = targetRenderer;
             }
         }
 

@@ -80,8 +80,8 @@ public class MultiShopHandler : AbstractObjectHandler
                 targetMultiShopController.Networkcost = sourceMultiShopController.Networkcost;
                 targetMultiShopController.rng = new Xoroshiro128Plus(sourceMultiShopController.rng);
 
-                var sourceTerminalGameObjects = sourceMultiShopController._terminalGameObjects;
-                var targetTerminalGameObjects = targetMultiShopController._terminalGameObjects;
+                var sourceTerminalGameObjects = sourceMultiShopController.terminalGameObjects;
+                var targetTerminalGameObjects = targetMultiShopController.terminalGameObjects;
 
                 for (int i = 0; i < targetTerminalGameObjects.Length; i++)
                     AwaitObjectFor(targetTerminalGameObjects[i],
@@ -99,7 +99,7 @@ public class MultiShopHandler : AbstractObjectHandler
 
                 targetShopTerminalBehavior.hasStarted = true;
                 targetShopTerminalBehavior.rng = new Xoroshiro128Plus(sourceShopTerminalBehavior.rng);
-                targetShopTerminalBehavior.NetworkpickupIndex = sourceShopTerminalBehavior.NetworkpickupIndex;
+                targetShopTerminalBehavior.Networkpickup = sourceShopTerminalBehavior.Networkpickup;
                 targetShopTerminalBehavior.Networkhidden = sourceShopTerminalBehavior.Networkhidden;
                 targetShopTerminalBehavior.UpdatePickupDisplayAndAnimations();
             }

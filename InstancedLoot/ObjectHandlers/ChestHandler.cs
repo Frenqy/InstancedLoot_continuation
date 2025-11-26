@@ -51,7 +51,7 @@ public class ChestHandler : AbstractObjectHandler
         
         targetChest.rng = new Xoroshiro128Plus(sourceChest.rng);
         targetChest.dropCount = sourceChest.dropCount;
-        targetChest.dropPickup = sourceChest.dropPickup;
+        targetChest.currentPickup = sourceChest.currentPickup;
         
         return base.InstanceSingleObjectFrom(source, target, players);
     }
