@@ -174,7 +174,7 @@ public class InstancedLoot : BaseUnityPlugin
         }
 
         if (((obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null &&
-             (PickupCatalog.GetPickupDef(pickupController.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
+             (PickupCatalog.GetPickupDef(pickupController._pickupState.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
             || obj.GetComponent<PickupPickerController>() != null)
             && !isObject)
         {

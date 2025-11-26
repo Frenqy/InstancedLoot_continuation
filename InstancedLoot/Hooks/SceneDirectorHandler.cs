@@ -51,7 +51,7 @@ public class SceneDirectorHandler : AbstractHookHandler
         cursor.EmitDelegate<Action<GameObject, int>>((obj, index) =>
         {
             var characterMastersWithItem = CharacterMaster.readOnlyInstancesList
-                .Where(master => master.inventory.GetItemCount(itemDefGetter()) > 0).ToArray();
+                .Where(master => master.inventory.GetItemCountPermanent(itemDefGetter()) > 0).ToArray();
             if (characterMastersWithItem.Length == 0)
                 return; // Sanity check
             

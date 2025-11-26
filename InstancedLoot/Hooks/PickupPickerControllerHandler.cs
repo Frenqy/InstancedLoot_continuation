@@ -23,11 +23,11 @@ public class PickupPickerControllerHandler : AbstractHookHandler
         On.RoR2.PickupPickerController.CreatePickup_PickupIndex -= On_PickupPickerController_CreatePickup_PickupIndex;
     }
 
-    private UnityAction<int> GenerateHandleDestroy(PickupPickerController self)
+    private UnityAction<UniquePickup> GenerateHandleDestroy(PickupPickerController self)
     {
         return HandleDestroy;
         
-        void HandleDestroy(int pickupIndex)
+        void HandleDestroy(UniquePickup pickup)
         {
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
             
@@ -53,7 +53,7 @@ public class PickupPickerControllerHandler : AbstractHookHandler
 
             self.StartCoroutine(coroutine());
 
-            var onPickupSelected = self.onPickupSelected;
+            var onPickupSelected = self.onUniquePickupSelected;
             int eventCount = onPickupSelected.GetPersistentEventCount();
             
             bool hasDestroySelf = false;

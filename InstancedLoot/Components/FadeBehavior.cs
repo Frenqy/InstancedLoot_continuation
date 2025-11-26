@@ -27,7 +27,7 @@ public class FadeBehavior : InstancedLootBehaviour
 
     public static readonly List<FadeBehavior> InstancesList = new();
     
-    private CameraRigController lastCameraRigController;
+    //private CameraRigController lastCameraRigController;
     private PlayerCharacterMasterController lastPlayer;
     private PlayerCharacterMasterController lastDitherModelPlayer;
     private bool lastVisible;
@@ -193,7 +193,7 @@ public class FadeBehavior : InstancedLootBehaviour
     {
         needsRefresh = false;
         lastPlayer = null;
-        lastCameraRigController = null;
+        //lastCameraRigController = null;
 
         ExtraGameObjects.RemoveWhere(obj => obj == null);
         
