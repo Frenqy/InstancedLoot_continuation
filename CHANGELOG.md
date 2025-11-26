@@ -1,4 +1,8 @@
+# CHANGELOG
+
 ## --------Continuation Changelog--------
+
+### 1.4.0 - Add support for Alloyed Collective DLC
 
 ### 1.3.0 - Use nuget and update libs again
 
