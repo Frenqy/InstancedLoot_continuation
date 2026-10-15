@@ -119,6 +119,20 @@ Check(group.LinkedHandlers.Count == 0 && group.AllPlayers.Count == 0, "Destroy c
 // must not establish a runtime price link, so shrines can change independently.
 var objectHandler = new CopyHandler();
 objectHandler.Init(new());
+var cloneSource = Obj(59);
+cloneSource.transform.position = 100;
+cloneSource.transform.rotation = 205;
+cloneSource.transform.localScale = 3;
+var spawnCard = new InteractableSpawnCard();
+cloneSource.AddComponent<SpawnCardTracker>().SpawnCard = spawnCard;
+var cloned = objectHandler.CloneObject("Chest1", cloneSource);
+Check(cloned && spawnCard.LastRequest != null, "Production CloneObject reaches SpawnCard with a usable request");
+Check(spawnCard.LastRequest.placementRule.placementMode == DirectorPlacementRule.PlacementMode.DirectWithoutRandomRotation,
+    "Production clone request suppresses random rotation in native SpawnCard");
+Check(spawnCard.LastRequest.placementRule.position == 100 && spawnCard.LastRequest.placementRule.rotation == 205 &&
+    spawnCard.LastPosition == 100 && spawnCard.LastRotation == 205, "Clone rule and direct spawn arguments retain source position and rotation");
+Check(cloned.transform.position == 100 && cloned.transform.rotation == 205 && cloned.transform.localScale == 3,
+    "Clone restores complete source transform after SpawnCard placement");
 var pricedSource = Obj(60);
 var pricedCopy = Obj(61);
 var sourcePurchase = pricedSource.AddComponent<PurchaseInteraction>();

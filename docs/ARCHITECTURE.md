@@ -65,9 +65,11 @@ flowchart TD
 
 具体处理器负责复制 RNG、物品和数量；基类在初始化副本时统一通过 `PurchaseInteraction.NetworkcostType`、`Networkcost` 复制源对象最终成本，并为购买 RNG 建立独立副本。价格仍通过游戏原生 SyncVar 同步，不加入 `SyncInstances` 消息，也不持续绑定各副本后续价格。多重商店还需要创建和关联终端，其主对象和各终端有各自的关联组。不能只克隆主对象就认为商店逻辑完整。
 
-价格复制不能只依赖 SpawnCard：本机旧游戏程序集 build `21587608` 中，`PurchaseInteraction.Awake` 仅在开关启用时缩放价格，`Start` 只缓存解锁过滤器；`SceneDirector.PopulateScene` 在 SpawnCard 生成之后另为金币交互物设置难度成本。模组副本绕过 SceneDirector，因此必须复制已初始化源对象的成本。该依据解释 CopyObject 路径的客户端低价，并不证明 issue #5 所报 InstanceItems 情形有同一根因；目标 1.5 游戏的实际方法体及双端行为仍需验证。
+价格复制不能只依赖 SpawnCard：本机更新后的游戏程序集 build `25921972` 中，`PurchaseInteraction.Awake` 仅在开关启用时缩放价格，`Start` 只缓存解锁过滤器；`SceneDirector.PopulateScene` 在 SpawnCard 生成之后另为金币交互物设置难度成本。模组副本绕过 SceneDirector，因此必须复制已初始化源对象的成本。该依据解释 CopyObject 路径的客户端低价，并不证明 issue #5 所报 InstanceItems 情形有同一根因；双端行为仍需验证。
 
 复制优先使用 Tracker 保存的 SpawnCard；否则扫描已加载的 `InteractableSpawnCard` 并按去除 `(Clone)` / 历史 `(Cloned)` 后的 prefab 名寻找。找不到会记录 `Failed to find spawn card ...`。
+
+复制请求必须带非空 `DirectorPlacementRule`：更新后的 `InteractableSpawnCard.Spawn` 会读取 `placementRule.placementMode`，即使位置和旋转已直接传给 `DoSpawn`。复制路径使用 `DirectWithoutRandomRotation`，规则和调用参数均使用源对象位置/旋转，避免原生随机旋转；SpawnCard 完成后仍恢复源对象完整 transform。旧的 null 规则会在新版生成副本时抛异常，构建和仅测价格赋值无法发现该问题。
 
 ## 掉落与领取流程
 

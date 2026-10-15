@@ -124,7 +124,15 @@ public abstract class AbstractObjectHandler
 
         if (spawnCard != null)
         {
-            DirectorSpawnRequest spawnRequest = new(spawnCard, null, new Xoroshiro128Plus(0));
+            // InteractableSpawnCard reads placementMode even when DoSpawn receives the
+            // transform directly. Preserve the original rotation without native randomization.
+            DirectorPlacementRule placementRule = new()
+            {
+                placementMode = DirectorPlacementRule.PlacementMode.DirectWithoutRandomRotation,
+                position = gameObject.transform.position,
+                rotation = gameObject.transform.rotation
+            };
+            DirectorSpawnRequest spawnRequest = new(spawnCard, placementRule, new Xoroshiro128Plus(0));
             SpawnCard.SpawnResult spawnResult = spawnCard.DoSpawn(gameObject.transform.position,
                 gameObject.transform.rotation, spawnRequest);
 

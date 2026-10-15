@@ -123,11 +123,36 @@ namespace RoR2
     public class SpawnCard : UnityEngine.Object
     {
         public UnityEngine.GameObject prefab;
+        public DirectorSpawnRequest LastRequest;
+        public int LastPosition, LastRotation;
         public struct SpawnResult { public UnityEngine.GameObject spawnedInstance; }
-        public virtual SpawnResult DoSpawn(int position, int rotation, DirectorSpawnRequest request) => new() { spawnedInstance = new() };
+        public virtual SpawnResult DoSpawn(int position, int rotation, DirectorSpawnRequest request)
+        {
+            // The installed 1.5 InteractableSpawnCard dereferences this rule. Deliberately
+            // reject null so the production CloneObject call cannot hide that regression.
+            _ = request.placementRule.placementMode;
+            LastRequest = request;
+            LastPosition = position;
+            LastRotation = rotation;
+            var instance = new UnityEngine.GameObject();
+            // Native orientToFloor may alter the transform before CloneObject restores it.
+            instance.transform.position = -1;
+            instance.transform.rotation = -1;
+            instance.transform.localScale = -1;
+            return new() { spawnedInstance = instance };
+        }
     }
     public class InteractableSpawnCard : SpawnCard { }
-    public class DirectorSpawnRequest(SpawnCard card, object rule, Xoroshiro128Plus rng) { }
+    public class DirectorPlacementRule
+    {
+        public enum PlacementMode { Direct, DirectWithoutRandomRotation }
+        public PlacementMode placementMode;
+        public int position, rotation;
+    }
+    public class DirectorSpawnRequest(SpawnCard card, DirectorPlacementRule rule, Xoroshiro128Plus rng)
+    {
+        public readonly DirectorPlacementRule placementRule = rule;
+    }
     public class CameraRigController : UnityEngine.Object { public CharacterBody targetBody; }
     public class SceneCamera
     {

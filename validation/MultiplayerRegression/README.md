@@ -12,7 +12,8 @@ This dependency-free executable links the actual production `SyncInstances`,
 coroutine scheduling, game-object destruction, camera ownership and purchase callbacks.
 Assertions cover delayed source resolution beyond 40 frames, superseded pending
 snapshots, destroyed references, timeout/run/disable cleanup, group destruction,
-cost setter use and independent RNG, server purchase eligibility, failed/successful/
+non-null clone placement rules and preserved rotation/transform, cost setter use
+and independent RNG, server purchase eligibility, failed/successful/
 last-player pickup grants, repeated-grant rejection and camera state.
 
 The stubs model destroyed Unity objects as false/null for overloaded equality;
