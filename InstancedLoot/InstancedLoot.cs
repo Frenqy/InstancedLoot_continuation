@@ -52,7 +52,7 @@ using UnityEngine.Networking;
 
 namespace InstancedLoot;
 
-[BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.4.0")]
+[BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.5.0")]
 [NetworkCompatibility]
 [BepInDependency(NetworkingAPI.PluginGUID)]
 public class InstancedLoot : BaseUnityPlugin
@@ -174,7 +174,7 @@ public class InstancedLoot : BaseUnityPlugin
         }
 
         if (((obj.GetComponent<GenericPickupController>() is var pickupController && pickupController != null &&
-             (PickupCatalog.GetPickupDef(pickupController.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
+             (PickupCatalog.GetPickupDef(pickupController.pickup.pickupIndex)?.itemIndex ?? ItemIndex.None) != ItemIndex.None)
             || obj.GetComponent<PickupPickerController>() != null)
             && !isObject)
         {

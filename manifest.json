@@ -1,13 +1,14 @@
 {
     "name": "InstancedLoot_continuation",
-    "version_number": "1.4.0",
+    "version_number": "1.5.0",
     "website_url": "https://github.com/Frenqy/InstancedLoot_continuation",
     "description": "Makes chest and/or item drops separate for each player",
     "dependencies": [
-        "bbepis-BepInExPack-5.4.2117",
-        "RiskofThunder-HookGenPatcher-1.2.5",
-        "RiskofThunder-R2API_Core-5.1.4",
-        "RiskofThunder-R2API_Networking-1.0.3"
+        "bbepis-BepInExPack-5.4.2122",
+        "RiskofThunder-HookGenPatcher-1.2.9",
+        "RiskofThunder-RoR2BepInExPack-1.46.0",
+        "RiskofThunder-R2API_Core-5.3.0",
+        "RiskofThunder-R2API_Networking-1.0.4"
     ],
     "author": "KubeRoot"
 }

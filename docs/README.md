@@ -2,6 +2,8 @@
 
 本套中文文档面向维护者和 AI，依据当前仓库源码及原 README 整理，核对日期为 **2026-10-15**。整理前代码基线为 `46427bb`（`Chore: Add auto packaging script`）。目标是先了解系统，再针对任务阅读少量代码。
 
+当前 1.5.0 适配以 2026-10-08 的 Hallowed Concepts 游戏 1.5.0 API 为编译目标；依赖证据、隔离回归与尚未完成的游戏内验证见 [开发文档](DEVELOPMENT.md)。
+
 ## 阅读顺序
 
 | 文档 | 用途 |
@@ -12,6 +14,7 @@
 | [CONFIGURATION.md](CONFIGURATION.md) | 使用方式、模式、预设、配置覆盖规则与聊天命令 |
 | [DEVELOPMENT.md](DEVELOPMENT.md) | 环境、构建、打包、新增功能路径、游戏内验证清单 |
 | [KNOWN_ISSUES.md](KNOWN_ISSUES.md) | 已知限制、源码疑点、尚未完成或启用的功能 |
+| [ISSUE_TRIAGE.md](ISSUE_TRIAGE.md) | 仓库问题核查和待发布的 Issue 草稿；实际发布状态以该文档为准 |
 | [原 README](../README.md) | 面向模组使用者的英文说明与项目来源 |
 | [CHANGELOG](../CHANGELOG.md) | 历史发布记录；不是当前支持范围的完整清单 |
 

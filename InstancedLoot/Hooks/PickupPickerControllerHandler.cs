@@ -13,21 +13,30 @@ public class PickupPickerControllerHandler : AbstractHookHandler
     {
         On.RoR2.PickupPickerController.Awake += On_PickupPickerController_Awake;
         On.RoR2.PickupPickerController.GetInteractability += On_PickupPickerController_GetInteractability;
-        On.RoR2.PickupPickerController.CreatePickup_PickupIndex += On_PickupPickerController_CreatePickup_PickupIndex;
+        On.RoR2.PickupPickerController.CreatePickup_UniquePickup += On_PickupPickerController_CreatePickup_UniquePickup;
     }
 
     public override void UnregisterHooks()
     {
         On.RoR2.PickupPickerController.Awake -= On_PickupPickerController_Awake;
         On.RoR2.PickupPickerController.GetInteractability -= On_PickupPickerController_GetInteractability;
-        On.RoR2.PickupPickerController.CreatePickup_PickupIndex -= On_PickupPickerController_CreatePickup_PickupIndex;
+        On.RoR2.PickupPickerController.CreatePickup_UniquePickup -= On_PickupPickerController_CreatePickup_UniquePickup;
     }
 
-    private UnityAction<int> GenerateHandleDestroy(PickupPickerController self)
+    private void ReplaceDestroySelf<T>(PickupPickerController self, UnityEvent<T> onPickupSelected)
     {
-        return HandleDestroy;
+        if (onPickupSelected == null) return;
+
+        for (int i = 0; i < onPickupSelected.GetPersistentEventCount(); i++)
+            if (onPickupSelected.GetPersistentTarget(i) is EventFunctions &&
+                onPickupSelected.GetPersistentMethodName(i) == "DestroySelf")
+            {
+                onPickupSelected.SetPersistentListenerState(i, UnityEventCallState.Off);
+                onPickupSelected.AddListener(HandleDestroy);
+                break;
+            }
         
-        void HandleDestroy(int pickupIndex)
+        void HandleDestroy(T pickup)
         {
             InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
             
@@ -53,22 +62,10 @@ public class PickupPickerControllerHandler : AbstractHookHandler
 
             self.StartCoroutine(coroutine());
 
-            var onPickupSelected = self.onPickupSelected;
-            int eventCount = onPickupSelected.GetPersistentEventCount();
-            
-            bool hasDestroySelf = false;
-            
-            for (int i = 0; i < eventCount; i++)
-                if (onPickupSelected.GetPersistentTarget(i) is EventFunctions &&
-                    onPickupSelected.GetPersistentMethodName(i) == "DestroySelf")
-                {
-                    onPickupSelected.SetPersistentListenerState(i, UnityEventCallState.Off);
-                    
-                    hasDestroySelf = true;
-                    break;
-                }
-
-            if (hasDestroySelf) onPickupSelected.AddListener(GenerateHandleDestroy(self));
+            ReplaceDestroySelf(self, self.onUniquePickupSelected);
+#pragma warning disable CS0618 // Older prefabs can still have a serialized DestroySelf listener here.
+            ReplaceDestroySelf(self, self.onPickupSelected);
+#pragma warning restore CS0618
         }
     }
 
@@ -89,7 +86,7 @@ public class PickupPickerControllerHandler : AbstractHookHandler
         return interactability;
     }
 
-    private void On_PickupPickerController_CreatePickup_PickupIndex(On.RoR2.PickupPickerController.orig_CreatePickup_PickupIndex orig, PickupPickerController self, PickupIndex pickupindex)
+    private void On_PickupPickerController_CreatePickup_UniquePickup(On.RoR2.PickupPickerController.orig_CreatePickup_UniquePickup orig, PickupPickerController self, UniquePickup pickup)
     {
         InstanceHandler instanceHandler = self.GetComponent<InstanceHandler>();
         InstanceInfoTracker instanceInfoTracker = self.GetComponent<InstanceInfoTracker>();
@@ -108,7 +105,7 @@ public class PickupPickerControllerHandler : AbstractHookHandler
             if (Plugin.ModConfig.SharePickupPickers.Value)
             {
                 info.PlayerOverride = instanceHandler.Players.ToArray();
-                instanceHandler.Players.Clear();
+                instanceHandler.SetPlayers(System.Array.Empty<PlayerCharacterMasterController>());
             }
             else
             {
@@ -118,9 +115,16 @@ public class PickupPickerControllerHandler : AbstractHookHandler
             
             GenericPickupControllerHandler genericPickupControllerHandler =
                 hookManager.GetHandler<GenericPickupControllerHandler>();
-            genericPickupControllerHandler.InstanceOverrideInfo = info;
-            orig(self, pickupindex);
-            genericPickupControllerHandler.InstanceOverrideInfo = null;
+            var previousInfo = genericPickupControllerHandler.InstanceOverrideInfo;
+            try
+            {
+                genericPickupControllerHandler.InstanceOverrideInfo = info;
+                orig(self, pickup);
+            }
+            finally
+            {
+                genericPickupControllerHandler.InstanceOverrideInfo = previousInfo;
+            }
 
             if (self.networkUIPromptController is var networkUIPromptController && networkUIPromptController != null) networkUIPromptController.ClearParticipant();
         }
@@ -128,13 +132,20 @@ public class PickupPickerControllerHandler : AbstractHookHandler
         {
             GenericPickupControllerHandler genericPickupControllerHandler =
                 hookManager.GetHandler<GenericPickupControllerHandler>();
-            genericPickupControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
-            orig(self, pickupindex);
-            genericPickupControllerHandler.InstanceOverrideInfo = null;
+            var previousInfo = genericPickupControllerHandler.InstanceOverrideInfo;
+            try
+            {
+                genericPickupControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
+                orig(self, pickup);
+            }
+            finally
+            {
+                genericPickupControllerHandler.InstanceOverrideInfo = previousInfo;
+            }
         }
         else
         {
-            orig(self, pickupindex);
+            orig(self, pickup);
         }
     }
 }

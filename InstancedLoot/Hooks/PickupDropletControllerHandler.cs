@@ -21,7 +21,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
     {
         IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 +=
             IL_PickupDropletController_CreatePickupDroplet;
-        On.RoR2.PickupDropletController.OnCollisionEnter += On_PickupDropletController_OnCollisionEnter;
+        On.RoR2.PickupDropletController.CreatePickup += On_PickupDropletController_CreatePickup;
         IL.RoR2.PickupDropletController.CreateCommandCube += IL_PickupDropletController_CreateCommandCube;
     }
 
@@ -29,7 +29,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
     {
         IL.RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3 -=
             IL_PickupDropletController_CreatePickupDroplet;
-        On.RoR2.PickupDropletController.OnCollisionEnter -= On_PickupDropletController_OnCollisionEnter;
+        On.RoR2.PickupDropletController.CreatePickup -= On_PickupDropletController_CreatePickup;
         IL.RoR2.PickupDropletController.CreateCommandCube -= IL_PickupDropletController_CreateCommandCube;
     }
 
@@ -45,18 +45,25 @@ public class PickupDropletControllerHandler : AbstractHookHandler
         });
     }
     
-    private void On_PickupDropletController_OnCollisionEnter(On.RoR2.PickupDropletController.orig_OnCollisionEnter orig, PickupDropletController self, Collision collision)
+    private void On_PickupDropletController_CreatePickup(On.RoR2.PickupDropletController.orig_CreatePickup orig, PickupDropletController self)
     {
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
             GenericPickupControllerHandler otherHandler = hookManager.GetHandler<GenericPickupControllerHandler>();
-            otherHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
-            orig(self, collision);
-            otherHandler.InstanceOverrideInfo = null;
+            var previousInfo = otherHandler.InstanceOverrideInfo;
+            try
+            {
+                otherHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
+                orig(self);
+            }
+            finally
+            {
+                otherHandler.InstanceOverrideInfo = previousInfo;
+            }
         }
         else
         {
-            orig(self, collision);
+            orig(self);
         }
     }
 

@@ -6,9 +6,9 @@
 
 - 这是《Risk of Rain 2》的 BepInEx 5 模组，不是可以用 Unity Editor 打开的 Unity 工程，也不是独立应用。
 - 目的：让多人游戏中的交互物和掉落物按玩家分别使用、领取，并同步归属和显示效果。主机与客户端均需安装。
-- 唯一项目：`InstancedLoot/InstancedLoot.csproj`；解决方案：`RoR2Mods.sln`；目标：`netstandard2.1`。
+- 唯一模组项目：`InstancedLoot/InstancedLoot.csproj`；解决方案：`RoR2Mods.sln`；目标：`netstandard2.1`。隔离验证程序位于 `validation/`，不打入模组 DLL。
 - 插件入口：`InstancedLoot/InstancedLoot.cs`；GUID 为 `com.kuberoot.instancedloot`，也是配置文件名的基础。不要为 continuation 分支随意改 GUID。
-- 当前插件属性和 `manifest.json` 版本均为 `1.4.0`，但 `.csproj` 的 `Version` 是 `3.0.0`。这是现状，不能假设三者已一致。
+- 当前插件属性、`manifest.json` 和 `.csproj` 的版本统一为 `1.5.0`，编译目标为 Hallowed Concepts 游戏 `1.5.0`（2026-10-08 发布）；依赖来源和未完成的游戏验证见开发文档。
 - 核心依赖为游戏程序集、MMHOOK、BepInEx、R2API.Networking。通过 NuGet 引用，不需要把游戏 DLL 复制进仓库。
 - 文档基于 2026-10-15 的源码整理；源码变化后应同步更新对应章节。编译成功不代表游戏中的 IL 钩子和多人行为有效。
 
@@ -53,7 +53,7 @@ git diff --check
 - 凡 Codex 参与完成的提交，必须在提交信息末尾添加 Git trailer：`Co-authored-by: Codex <codex@openai.com>`，并与前面的提交说明以空行分隔。提交后核对该署名已写入 commit。
 - 沿用现有 C# 风格：文件范围命名空间、按功能分 Handler、四空格缩进；避免为单个修复重排全部文件。
 - 默认用 Release 验证。Debug 会启用改变联机连接和消息哈希行为的 `DevelopmentHooksHandler`，不能视为普通调试符号差异。
-- 当前无独立测试项目、自动化联机测试或 CI 配置。按改动执行构建和对应游戏内验证，不要声称未执行的测试通过。
+- `validation/MultiplayerRegression` 提供链接生产源码的隔离 stub 回归；没有 Unity 或自动化联机测试、CI 配置。按改动执行 Release 构建、相关回归和游戏内验证，不要把 stub 通过描述成联机实测。
 - 文档类任务不顺手修改游戏逻辑、依赖、版本或历史 CHANGELOG；发现问题记录证据，功能修复另按任务范围处理。
 - 不提交 `bin/`、`obj/`、`Release/`、本机配置、日志或 NuGet 缓存；根目录生成的 ZIP 也不要意外加入提交。
 - 修改行为、配置、依赖、注册关系时更新相应文档。事实以当前代码为准；区分“源码行为”“历史 TODO”“已实测结果”。

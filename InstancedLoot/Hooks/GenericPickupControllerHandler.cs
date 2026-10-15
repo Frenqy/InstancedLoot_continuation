@@ -17,6 +17,7 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         On.RoR2.GenericPickupController.Start += On_GenericPickupController_Start;
         On.RoR2.GenericPickupController.GetInteractability += On_GenericPickupController_GetInteractability;
         On.RoR2.GenericPickupController.OnTriggerStay += On_GenericPickupController_OnTriggerStay;
+        On.RoR2.GenericPickupController.AttemptGrant += On_GenericPickupController_AttemptGrant;
         IL.RoR2.GenericPickupController.AttemptGrant += IL_GenericPickupController_AttemptGrant;
         IL.RoR2.GenericPickupController.CreatePickup += IL_GenericPickupController_CreatePickup;
     }
@@ -26,6 +27,7 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         On.RoR2.GenericPickupController.Start -= On_GenericPickupController_Start;
         On.RoR2.GenericPickupController.GetInteractability -= On_GenericPickupController_GetInteractability;
         On.RoR2.GenericPickupController.OnTriggerStay -= On_GenericPickupController_OnTriggerStay;
+        On.RoR2.GenericPickupController.AttemptGrant -= On_GenericPickupController_AttemptGrant;
         IL.RoR2.GenericPickupController.AttemptGrant -= IL_GenericPickupController_AttemptGrant;
         IL.RoR2.GenericPickupController.CreatePickup -= IL_GenericPickupController_CreatePickup;
     }
@@ -70,26 +72,17 @@ public class GenericPickupControllerHandler : AbstractHookHandler
         orig(self, other);
     }
 
+    private delegate void UpdateGrantContext(ref PickupDef.GrantContext context, GenericPickupController self, CharacterBody body);
+
+    private void On_GenericPickupController_AttemptGrant(On.RoR2.GenericPickupController.orig_AttemptGrant orig, GenericPickupController self, CharacterBody body)
+    {
+        if (!PickupGrantPolicy.CanGrant(self, body)) return;
+        orig(self, body);
+    }
+
     private void IL_GenericPickupController_AttemptGrant(ILContext il)
     {
-        var cursor = new ILCursor(il);
-
-        cursor.GotoNext(MoveType.After, i => i.MatchLdfld<PickupDef.GrantContext>("shouldDestroy"));
-        cursor.Emit(OpCodes.Ldarg_0);
-        cursor.Emit(OpCodes.Ldarg_1);
-        cursor.EmitDelegate<Func<bool, GenericPickupController, CharacterBody, bool>>((shouldDestroy, self, body) =>
-        {
-            var player = body.master.GetComponent<PlayerCharacterMasterController>();
-            var instanceHandler = self.GetComponent<InstanceHandler>();
-            if (player && instanceHandler)
-            {
-                instanceHandler.RemovePlayer(player);
-                if(instanceHandler.AllPlayers.Count > 0)
-                    shouldDestroy = false;
-            }
-            
-            return shouldDestroy;
-        });
+        PickupGrantIL.Apply<UpdateGrantContext>(il, PickupGrantPolicy.OnGranted);
     }
 
     private delegate void IL_GenericPickupController_CreatePickup_Delegate(GameObject gameObject, ref GenericPickupController.CreatePickupInfo createPickupInfo);
