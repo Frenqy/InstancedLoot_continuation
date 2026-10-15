@@ -2,6 +2,15 @@
 
 ## Continuation
 
+### 1.5.1 (Unreleased)
+
+- Fixed the inherited command cube IL hook's invalid stack on the max-option branch by redirecting incoming Spawn labels to the injected GameObject duplication.
+- Synchronized plugin, project and manifest versions, and required one mod version increment per subsequent change batch, including documentation-only changes.
+
+**Validation:** A user run of the 1.5.0 code failed during command cube hook installation despite the earlier 17-pattern audit. The corrected production emitter now passes complete command cube stack/type and branch checks against installed game 1.5.0 build 25921972; the old emitter fails that check and produces InvalidProgramException in two synthetic CLR methods. Six generated CLR paths execute the corrected emitter with captured callbacks. Release builds, 37 stub assertions, and the existing pickup/animation checks pass. These checks were recorded with the fix before the version increment; the corrected hook still needs Unity/Mono installation and host/client, Command artifact and split screen retests.
+
+**Version update validation:** The 1.5.1 Release build passed with one existing obsolete-API warning. Plugin, project and manifest versions agree, and the built assembly reports 1.5.1.0. No gameplay logic changed in the version update; the earlier logic regressions were not rerun and no new game tests or package build were performed.
+
 ### 1.5.0 (Unreleased)
 
 - Updated game references for Hallowed Concepts (Risk of Rain 2 1.5.0), MMHOOK and R2API dependencies; pinned the BepInEx 5 compile reference and updated runtime requirements.
@@ -12,10 +21,9 @@
 - Fixed stale fading when ownership changes while preserving visibility for each camera's player.
 - Supplied explicit direct placement rules for interactable copies to prevent null placement-rule failures and retain the source rotation.
 - Updated animation prefab fading hooks for the current DoSpawnEffect call sites; pooled effect ownership remains unsupported.
-- Fixed the inherited command cube IL hook's invalid stack on the max-option branch by redirecting incoming Spawn labels to the injected GameObject duplication.
 - Added isolated production-source and IL structure regression checks.
 
-**Validation:** A user run failed during command cube hook installation despite the earlier 17-pattern audit. The corrected production emitter now passes complete command cube stack/type and branch checks against installed 1.5.0 build 25921972; the old emitter fails that check and produces InvalidProgramException in two synthetic CLR methods. Six generated CLR paths execute the corrected emitter with captured callbacks. Release builds, 37 stub assertions, and the existing pickup/animation checks pass. The corrected hook still needs Unity/Mono installation and host/client, Command artifact and split screen retests. Dedicated support for new DLC4 interactables and the direct pickup-picker grant path has not been added.
+**Validation (historical):** The Release build and 37 stub assertions passed. Static matching of 17 registered Release IL hook patterns and in-memory pickup/animation emitter structure checks passed against installed game 1.5.0 build 25921972. A subsequent user run failed during command cube hook installation; see 1.5.1 for the fix and its validation limits. Host/client gameplay and split screen remain untested. Dedicated support for new DLC4 interactables and the direct pickup-picker grant path has not been added.
 
 ### 1.4.0
 

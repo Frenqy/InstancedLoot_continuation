@@ -8,7 +8,7 @@
 - 目的：让多人游戏中的交互物和掉落物按玩家分别使用、领取，并同步归属和显示效果。主机与客户端均需安装。
 - 唯一模组项目：`InstancedLoot/InstancedLoot.csproj`；解决方案：`RoR2Mods.sln`；目标：`netstandard2.1`。隔离验证程序位于 `validation/`，不打入模组 DLL。
 - 插件入口：`InstancedLoot/InstancedLoot.cs`；GUID 为 `com.kuberoot.instancedloot`，也是配置文件名的基础。不要为 continuation 分支随意改 GUID。
-- 当前插件属性、`manifest.json` 和 `.csproj` 的版本统一为 `1.5.0`，编译目标为 Hallowed Concepts 游戏 `1.5.0`（2026-10-08 发布）；依赖来源和未完成的游戏验证见开发文档。
+- 当前插件属性、`manifest.json` 和 `.csproj` 的模组版本统一为 `1.5.1`，编译目标为 Hallowed Concepts 游戏 `1.5.0`（2026-10-08 发布）；模组版本与游戏/依赖版本独立，依赖来源和未完成的游戏验证见开发文档。
 - 核心依赖为游戏程序集、MMHOOK、BepInEx、R2API.Networking。通过 NuGet 引用，不需要把游戏 DLL 复制进仓库。
 - 文档基于 2026-10-15 的源码整理；源码变化后应同步更新对应章节。编译成功不代表游戏中的 IL 钩子和多人行为有效。
 
@@ -48,12 +48,13 @@ git diff --check
 
 ## 工作约定
 
+- 每个后续修改批次/交付都必须递增模组版本，包括仅修改文档或协作规则的任务。同一任务的配套改动统一递增一次；版本号、CHANGELOG 和文档同步属于该批次，不再触发额外递增，不要求每次临时编辑或同一批次内的提交分别升级。默认递增 patch；新增功能递增 minor，破坏兼容性递增 major。同步修改 `InstancedLoot/InstancedLoot.cs` 的 BepInPlugin 版本、`InstancedLoot/InstancedLoot.csproj` 的 Version、`manifest.json` 的 version_number，并更新 `CHANGELOG.md`、[开发文档版本表](docs/DEVELOPMENT.md#打包与版本) 和其他当前版本描述；保留历史版本及验证事实。目标游戏版本和依赖版本独立判断，不随模组版本机械替换。
 - 每次关键修改完成并完成相应验证后，必须创建 Git commit，不得仅将改动留在工作区。关键修改包括功能新增、缺陷修复、架构/配置/依赖调整，以及重要文档或协作约束更新；同一目的的配套改动可合为一个提交，不同目的的关键修改应分别提交。
 - 提交前检查 diff 和暂存区，只纳入本次任务相关改动；提交信息应概括修改目的。完成后向用户报告 commit hash、主要内容与验证结果；若提交受阻，明确说明原因，不得声称已提交。
 - 凡 Codex 参与完成的提交，必须在提交信息末尾添加 Git trailer：`Co-authored-by: Codex <codex@openai.com>`，并与前面的提交说明以空行分隔。提交后核对该署名已写入 commit。
 - 沿用现有 C# 风格：文件范围命名空间、按功能分 Handler、四空格缩进；避免为单个修复重排全部文件。
 - 默认用 Release 验证。Debug 会启用改变联机连接和消息哈希行为的 `DevelopmentHooksHandler`，不能视为普通调试符号差异。
 - `validation/MultiplayerRegression` 提供链接生产源码的隔离 stub 回归；没有 Unity 或自动化联机测试、CI 配置。按改动执行 Release 构建、相关回归和游戏内验证，不要把 stub 通过描述成联机实测。
-- 文档类任务不顺手修改游戏逻辑、依赖、版本或历史 CHANGELOG；发现问题记录证据，功能修复另按任务范围处理。
+- 文档类任务不顺手修改游戏逻辑或依赖；仍按上述规则递增模组版本并维护当前 CHANGELOG，保留历史记录事实。发现问题记录证据，功能修复另按任务范围处理。
 - 不提交 `bin/`、`obj/`、`Release/`、本机配置、日志或 NuGet 缓存；根目录生成的 ZIP 也不要意外加入提交。
 - 修改行为、配置、依赖、注册关系时更新相应文档。事实以当前代码为准；区分“源码行为”“历史 TODO”“已实测结果”。

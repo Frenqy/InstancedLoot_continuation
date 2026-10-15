@@ -97,7 +97,7 @@ GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅�
 
 额外发现 `PickupPickerController.AttemptGrantPickupDirectly(UniquePickup)` 可通过 ItemTransferOrb 或 PickupDef 直接授予，正常分支不经过现有 CreatePickup/GenericPickupController.AttemptGrant Hook；只有缺少参与者、body 或 PickupDef 等回退情况才进入 CreatePickup。尚未核对哪些 prefab/UnityEvent 资产使用它，因此记录为未覆盖路径，不能把它当作已确认触发的共享选择器缺陷，也不能宣称所有新选择器已支持。
 
-### 实际启动失败后的指挥精华 IL 修复（2026-10-15）
+### 实际启动失败后的指挥精华 IL 修复（2026-10-15，归入模组 1.5.1）
 
 上面的 17 项模式审计是修复前的历史结果，未验证全部注入后的控制流。用户随后实际运行在 `IL.RoR2.PickupDropletController.add_CreateCommandCube` 安装阶段收到 `InvalidProgramException: Invalid IL code ... IL_00a1: call`；这是真实失败，不能再把模式匹配通过当作启动可用证据。
 
@@ -116,6 +116,10 @@ GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅�
 
 栈验证器只覆盖该完整方法使用的指令/类型/分支，遇到未知指令、不可达区或异常区域即失败，并非通用 CLR verifier。生成方法在 .NET CLR 执行，使用替身 GameObject/NetworkServer；MonoMod 老版 DynamicMethod backend 不兼容现代 .NET 的内部结构，测试进程临时选用其 Cecil backend 并恢复环境值。它没有在 Unity/Mono 中安装修正后的 Hook，也没有执行真实游戏对象、网络或双端场景。下一次游戏验证首先检查插件能否完整启用，再测指挥神器 maxOptionCount 有/无值、两人资格与 SharePickupPickers 两种配置。游戏安装、存档和用户 ZIP 均未改动。
 
+### 模组 1.5.1 版本与规则同步（2026-10-15）
+
+此批仅同步版本元数据、CHANGELOG 和文档规则，没有改动游戏逻辑。执行 `dotnet build InstancedLoot/InstancedLoot.csproj --configuration Release --no-restore --nologo`，结果 **0 错误、1 条既有 CS0618 警告**（SceneDirectorHandler 的旧 Inventory.GetItemCount API）。插件属性、项目 Version 与 manifest 均为 1.5.1，生成程序集版本为 1.5.1.0；目标 GameLibs 仍为 1.5.0-r.1。核对 CHANGELOG 顺序、26 个本地文档链接及版本章节锚点，`git diff --check` 通过。未重跑上一节逻辑回归，未启动游戏、打包、上传或发布；上述指挥精华运行验证边界仍成立。
+
 ## 打包与版本
 
 ```powershell
@@ -127,7 +131,7 @@ GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅�
 脚本把工作目录设为自身目录，删除并重建根目录 `Release/`，复制元数据，执行构建并复制 DLL，再根据 manifest 版本压缩。它会覆盖同版本 ZIP。当前产物结构为：
 
 ```text
-Nicebowl-InstancedLoot-1.5.0.zip
+Nicebowl-InstancedLoot-1.5.1.zip
 ├── CHANGELOG.md
 ├── icon.png
 ├── manifest.json
@@ -140,12 +144,14 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 
 | 位置 | 当前版本/用途 |
 | --- | --- |
-| `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.0`，插件元数据 |
-| `manifest.json` | `1.5.0`，发布包版本及 ZIP 命名依据 |
-| `InstancedLoot.csproj` | `1.5.0`，项目/程序集构建版本元数据 |
-| `CHANGELOG.md` | `1.5.0 (Unreleased)` 记录本次适配；`1.4.0` 为历史 Alloyed Collective DLC 记录 |
+| `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.1`，插件元数据 |
+| `manifest.json` | `1.5.1`，发布包版本及 ZIP 命名依据 |
+| `InstancedLoot.csproj` | `1.5.1`，项目/程序集构建版本元数据 |
+| `CHANGELOG.md` | `1.5.1 (Unreleased)` 记录指挥精华启动修复与版本规则；`1.5.0 (Unreleased)` 保留游戏适配记录，`1.4.0` 为历史 Alloyed Collective DLC 记录 |
 
-本次适配明确统一三个版本为 1.5.0，保留原 GUID。CHANGELOG 的 1.4.0 为历史发布记录，本次尚未发布；历史兼容性声明不能替代具体对象注册检查和游戏实测。
+本次将三个模组版本从 1.5.0 统一递增为 1.5.1，保留原 GUID；目标游戏仍为 1.5.0，GameLibs 仍为 1.5.0-r.1。上面的 ZIP 名称是按当前版本打包时的预期产物，此次没有执行打包，也没有重建用户已有的 1.5.0 ZIP。CHANGELOG 的 1.5.0 与 1.5.1 都尚未发布，不补写发布日期；历史兼容性声明不能替代具体对象注册检查和游戏实测。
+
+后续每个修改批次/交付必须递增模组版本，包含仅文档或协作规则修改；默认递增 patch，新增功能递增 minor，破坏兼容性递增 major。同一任务的配套修改只递增一次，版本与文档同步是该批次的一部分，不另触发升级，也不要求每次临时编辑或同一批次内的提交分别升级。交付前同步上述三处版本、CHANGELOG、此版本表及其他当前版本描述；保留历史验证记录的原版本与事实。目标游戏与编译/运行依赖版本独立维护，不机械替换。完整约束见 [AGENTS.md](../AGENTS.md)。
 
 ## 新增交互物/掉落来源
 
