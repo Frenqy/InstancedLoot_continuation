@@ -3,6 +3,12 @@
 fork from: https://gitlab.com/KubeRoot/ror2-instancedloot
 origin mod: https://thunderstore.io/package/KubeRoot/InstancedLoot/
 
+## Developer and AI documentation / 开发与 AI 文档
+
+For repository maintenance, start with [AGENTS.md](https://github.com/Frenqy/InstancedLoot_continuation/blob/master/AGENTS.md) and the [documentation index](https://github.com/Frenqy/InstancedLoot_continuation/blob/master/docs/README.md). The Chinese maintenance documentation covers architecture, code navigation, configuration precedence, building, validation, extension points, and known implementation gaps. Read the relevant source files before changing behavior.
+
+后续 AI 请先阅读仓库根目录 `AGENTS.md`，再按 `docs/README.md` 的任务索引阅读相关主题，无需先通读全部代码。文档已区分当前实现、历史 TODO 与实际验证结果。
+
 # InstancedLoot
 
 Highly configurable mod to allow players to loot items and objects separately.
