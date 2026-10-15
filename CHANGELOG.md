@@ -10,9 +10,11 @@
 - Fixed client ownership synchronization to wait for missing network objects, replace stale pending snapshots and clean up destroyed instance groups.
 - Enforced server purchase and pickup eligibility, retained shared pickups for remaining players and synchronized shared picker eligibility.
 - Fixed stale fading when ownership changes while preserving visibility for each camera's player.
+- Supplied explicit direct placement rules for interactable copies to prevent null placement-rule failures and retain the source rotation.
+- Updated animation prefab fading hooks for the current DoSpawnEffect call sites; pooled effect ownership remains unsupported.
 - Added isolated production-source and IL structure regression checks.
 
-**Validation:** The Release build and isolated regression checks passed. Runtime hook installation and gameplay with a host and client on game version 1.5.0 remain untested. Dedicated support for the new DLC4 interactables has not been added.
+**Validation:** The Release build and 37 stub assertions passed. Static matching of 17 registered Release IL hook patterns and in-memory pickup/animation emitter structure checks passed against the installed 1.5.0 game build 25921972. Runtime hook installation, host/client gameplay and split screen remain untested. Dedicated support for new DLC4 interactables and the direct pickup-picker grant path has not been added.
 
 ### 1.4.0
 

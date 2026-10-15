@@ -16,10 +16,13 @@
 
 2026-10-15 的多人修复覆盖以下静态问题，不能据此将关联 GitHub issue 视为已通过游戏实测：
 
-- #3/#5/#6 的低价报告：CopyObject 副本现在统一复制源对象最终购买成本，并通过原生网络属性同步。旧实际游戏 DLL 显示 SceneDirector 在 SpawnCard 后设置金币难度价格，副本此前绕过该步骤。#5 还报告 InstanceItems，单独该模式不产生交互物副本，仍须独立复现。
+- #3/#5/#6 的低价报告：CopyObject 副本现在统一复制源对象最终购买成本，并通过原生网络属性同步。旧实际游戏 DLL 与更新后的 build `25921972` 均显示 SceneDirector 在 SpawnCard 后设置金币难度价格，副本此前绕过该步骤。#5 还报告 InstanceItems，单独该模式不产生交互物副本，仍须独立复现。
 - #3/#6/#8 的重叠显示报告：修正 source 存在性校验、超过 40 帧即放弃、旧等待快照覆盖新资格、销毁成员残留与 dither 资格缓存。它们是可能影响客户端归属/显示的确定源码问题；Swarms、host-only、特定关卡仍需分别验证，不能断言全部同源。
 - 增加服务器购买入口资格校验；各副本后续价格仍由原生祭坛/商店逻辑独立更新，没有团队扣款行为。
-- #9 的共享掉落路径：普通 pickup 现在在实际授予前检查资格；失败授予保留资格，成功后改原生 GrantContext 本身，防止只拦截 consumed 的第一次读取而仍在第二次读取时销毁。旧实际 DLL 中可见两次 shouldDestroy 读取。droplet 上下文改为覆盖 CreatePickup，包含 ForcePickupInitialization，并在轮盘/选择器/droplet 路径用 finally 恢复。目标新 IL、Command/Sacrifice/Swarms 组合仍需游戏矩阵验证。
+- #9 的共享掉落路径：普通 pickup 现在在实际授予前检查资格；失败授予保留资格，成功后改原生 GrantContext 本身，防止只拦截 consumed 的第一次读取而仍在第二次读取时销毁。旧实际 DLL 与 build `25921972` 均可见两次 shouldDestroy 读取。droplet 上下文改为覆盖 CreatePickup，包含 ForcePickupInitialization，并在轮盘/选择器/droplet 路径用 finally 恢复。当前真实 DLL 的静态模式和结构检查通过，Command/Sacrifice/Swarms 组合仍需游戏矩阵验证。
+- 更新后的 InteractableSpawnCard.Spawn 会读取 placementRule；复制请求已补非空 DirectWithoutRandomRotation 规则，避免旧 null 规则导致生成异常，并通过 stub 检查位置/旋转/缩放保留；尚无真实游戏复制结果。
+- 更新后的 CreatePrefab 外层没有旧 Instantiate 调用，动画 Hook 已改为匹配 4 个 DoSpawnEffect 返回点。只关联非池化对象；池化对象跨拥有者复用的显示生命周期未实现，SpawnEffect 的池化分支同样没有完整覆盖。
+- 当前游戏的 PickupPickerController.AttemptGrantPickupDirectly 可绕过现有 CreatePickup/普通 pickup Hook，当前未接入；哪些 prefab/UnityEvent 资产调用它尚未核对。这是源码确认的覆盖缺口，尚非已复现的玩家症状。
 - [回归执行器](../validation/MultiplayerRegression/README.md) 直接链接生产源码，以替身控制对象生成/销毁和协程时序。它不运行游戏 IL、真实网络、SyncVar 脏位或实际渲染。最新构建与未测边界见 [开发文档](DEVELOPMENT.md)。
 
 同步仍有限制：超过 30 秒的缺失引用会超时并仅保存诊断，不会后台重放；按本地接收顺序淘汰旧 pending，不识别网络包本身乱序；同一 Run 的换关没有专用取消事件；迟加入不会新增副本或份额。
@@ -51,4 +54,4 @@
 - Debug 包会启用改变网络行为的开发 Hook；发布流程应使用 Release。
 - 打包脚本硬编码 ZIP 前缀，且会删除 Release 目录、覆盖同版本 ZIP。
 - 打包脚本没有复制 LICENSE；仓库采用 MIT License，应在正式分发流程中核对和保留其要求的许可文本。
-- 本次 Release 编译和 stub 回归通过，详见 [验证记录](DEVELOPMENT.md)。本机实际游戏 DLL 为待更新的旧版本；没有双端游戏内测试结果，不代表最新游戏运行时已验证兼容。
+- 本次 Release 编译、37 条 stub 断言以及更新后 build `25921972` 的 17 项已注册 Release IL 静态模式检查通过，详见含 DLL 哈希的 [验证记录](DEVELOPMENT.md)。只有 pickup/动画 emitter 直接链接生产源码执行结构变换，其余模式审计不执行完整注入；没有 Unity/Mono 的真实 Hook 安装、双端或分屏游戏内测试结果。

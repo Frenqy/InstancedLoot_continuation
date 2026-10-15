@@ -1,5 +1,4 @@
 using InstancedLoot.Components;
-using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
 using UnityEngine;
@@ -41,14 +40,13 @@ public class AnimationEventsHandler : AbstractHookHandler
 
     private void IL_AnimationEvents_CreatePrefab(ILContext il)
     {
-        ILCursor cursor = new ILCursor(il);
+        AnimationPrefabIL.Apply<System.Action<Transform, AnimationEvents, bool>>(il, HandlePrefabCreation);
+    }
 
-        while (cursor.TryGotoNext(MoveType.After, i => i.MatchCallOrCallvirt<Object>("Instantiate")))
-        {
-            cursor.Emit(OpCodes.Dup);
-            cursor.Emit(OpCodes.Ldarg_0);
-            cursor.Emit<AnimationEventsHandler>(OpCodes.Call, nameof(HandleObjectCreation));
-        }
+    public static void HandlePrefabCreation(Transform created, AnimationEvents parent, bool pooled)
+    {
+        // Pooled objects can be reassigned to another owner while the old FadeBehavior still exists.
+        if (!pooled && created) HandleObjectCreation(created.gameObject, parent);
     }
 
     public static void HandleEffectCreation(GameObject objectToAdd)

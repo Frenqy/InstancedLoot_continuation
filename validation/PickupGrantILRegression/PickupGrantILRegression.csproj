@@ -7,5 +7,6 @@
   <ItemGroup>
     <PackageReference Include="MonoMod.Utils" Version="21.12.13.1" />
     <Compile Include="../../InstancedLoot/Hooks/PickupGrantIL.cs" Link="Production/PickupGrantIL.cs" />
+    <Compile Include="../../InstancedLoot/Hooks/AnimationPrefabIL.cs" Link="Production/AnimationPrefabIL.cs" />
   </ItemGroup>
 </Project>

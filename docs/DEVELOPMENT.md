@@ -35,7 +35,7 @@
 
 1.5.0 API 适配包括轮盘箱 `EjectPickupServer(UniquePickup)`、选择器 `CreatePickup(UniquePickup)` 与 `onUniquePickupSelected`，避免将携带临时/租用/升级状态的拾取物降为单一 PickupIndex。选择器同时兼顾旧 prefab 的 `onPickupSelected` 销毁事件；共享选择时通过 SetPlayers 同步剩余资格，迁移 Hook 的来源上下文用 try/finally 恢复。普通拾取物检查从 `pickup.pickupIndex` 读取物品类型。
 
-对 droplet 的既有 IL Hook 检查确认其目标已经是 `CreatePickupDroplet(CreatePickupInfo, Vector3, Vector3)`，并未 Hook 废弃的 PickupIndex 重载；普通物品 `CreatePickup(in CreatePickupInfo)` 也仍为当前签名。旧真实 DLL 证明各 droplet 重载汇合到该入口、落地和强制初始化均进入 `CreatePickup()`，因此来源上下文改包围 CreatePickup 而非仅 OnCollisionEnter，涵盖强制初始化。旧 DLL 的 AttemptGrant 两次读取 GrantContext.shouldDestroy（设置 consumed、最终销毁）；原补丁只改第一次读取的返回值。本次改为在首次读取前按引用更新整个 GrantContext，让成功领取且尚有资格者时两处判断一致保留对象；授予失败时不移除资格。新增成对注册/卸载的 On.AttemptGrant 在授予前检查资格，阻止直接调用绕过交互/UI 检查；资格与领取结果逻辑集中在不安装 Hook 的 PickupGrantPolicy 辅助类，供隔离回归直接链接。1.5.0 的同名字段与方法签名已核对，真实方法体与 IL 匹配仍待该版游戏验证。
+对 droplet 的既有 IL Hook 检查确认其目标已经是 `CreatePickupDroplet(CreatePickupInfo, Vector3, Vector3)`，并未 Hook 废弃的 PickupIndex 重载；普通物品 `CreatePickup(in CreatePickupInfo)` 也仍为当前签名。旧真实 DLL 证明各 droplet 重载汇合到该入口、落地和强制初始化均进入 `CreatePickup()`，因此来源上下文改包围 CreatePickup 而非仅 OnCollisionEnter，涵盖强制初始化。旧 DLL 的 AttemptGrant 两次读取 GrantContext.shouldDestroy（设置 consumed、最终销毁）；原补丁只改第一次读取的返回值。本次改为在首次读取前按引用更新整个 GrantContext，让成功领取且尚有资格者时两处判断一致保留对象；授予失败时不移除资格。新增成对注册/卸载的 On.AttemptGrant 在授予前检查资格，阻止直接调用绕过交互/UI 检查；资格与领取结果逻辑集中在不安装 Hook 的 PickupGrantPolicy 辅助类，供隔离回归直接链接。更新后 build `25921972` 的真实方法体再次确认这些调用链和两次 shouldDestroy 读取；静态匹配与 emitter 结构检查通过，实际 Hook 安装和游戏内执行仍待验证。
 
 ## 构建
 
@@ -72,9 +72,30 @@ dotnet build InstancedLoot/InstancedLoot.csproj --configuration Release
 
 未运行游戏、联机/分屏测试或发布打包脚本。此记录仅证明该环境下的编译和依赖还原可完成，未证明运行时 IL 匹配适配当前已安装游戏。
 
-本次 1.5.0 适配记录（基于 `1127e98`，2026-10-15）：`dotnet restore RoR2Mods.sln --nologo` 成功；最终 Release `--no-restore` 构建 **0 错误、1 警告**（SceneDirectorHandler 的旧 Inventory.GetItemCount API）。首次构建暴露的轮盘箱 UniquePickup 签名 4 个错误已修复。隔离 MultiplayerRegression **33 个断言通过**；PickupGrantILRegression 默认合成方法 **15 个结构断言通过**，另对本机旧真实 DLL 检查 **7 个结构断言通过**，合计 22。`git diff --check` 通过。未执行打包、上传或发布，也未执行游戏内测试。
+初次 1.5.0 适配记录（基于 `1127e98`，2026-10-15）：`dotnet restore RoR2Mods.sln --nologo` 成功；最终 Release `--no-restore` 构建 **0 错误、1 警告**（SceneDirectorHandler 的旧 Inventory.GetItemCount API）。首次构建暴露的轮盘箱 UniquePickup 签名 4 个错误已修复。隔离 MultiplayerRegression **33 个断言通过**；PickupGrantILRegression 默认合成方法 **15 个结构断言通过**，另对本机旧真实 DLL 检查 **7 个结构断言通过**，合计 22。`git diff --check` 通过。未执行打包、上传或发布，也未执行游戏内测试。
 
-GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅用于核对字段、事件和方法签名，不能证明 IL 游标或运行行为兼容。本机 Steam 安装为 build `21587608`，待更新目标为 `25475991`；已有游戏程序集的静态分析属于旧安装证据，不能当作 1.5.0 运行验证。尚须在更新后的真实游戏中检查所有 IL Hook 安装、两端联机、分屏和下表场景。
+GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅用于核对字段、事件和方法签名，不能证明 IL 游标或运行行为兼容。初次适配时本机 Steam 安装为 build `21587608`，当时记录的待更新目标为 `25475991`；该阶段的静态分析属于旧安装证据，不能当作 1.5.0 运行验证。
+
+### 更新本机游戏后的静态验证（2026-10-15）
+
+用户更新后，本机 `appmanifest_632360.acf` 的 buildid 与 TargetBuildID 均为 **25921972**；`globalgamemanagers` 的游戏版本为 **1.5.0**。检查对象是安装目录 `D:/SteamLibrary/steamapps/common/Risk of Rain 2/Risk of Rain 2_Data/Managed/RoR2.dll`，SHA256 为 `48F2758CCCBE1A5EFBA88CFFE0A68631953F489A71A92726572C15A4C57FF90C`。这个 build 是当前本机证据，不覆盖其他安装或后续热修复。
+
+真实方法体检查带来两项修复：`InteractableSpawnCard.Spawn` 现在读取请求的 placementRule，复制请求已显式提供 `DirectWithoutRandomRotation`，防止旧 null 规则导致异常并保留源旋转；`AnimationEvents.CreatePrefab` 已把 Instantiate 移入编译器生成的 DoSpawnEffect 局部函数，旧外层匹配为零。动画 Hook 现在捕获 ShouldUsePooledEffect 的 bool 局部，在 **4 个**返回 Transform 的调用后注入，保留原返回值，并只把非池化效果关联到 FadeBehavior。池化对象可能复用给其他拥有者，当前没有实现其租借/归还生命周期的显示关联。
+
+最终执行结果：
+
+| 检查 | 结果与边界 |
+| --- | --- |
+| Release `--no-restore` 构建 | **0 错误、1 警告**，仍为 SceneDirectorHandler 的旧 Inventory.GetItemCount API |
+| MultiplayerRegression | **37 个断言通过**，增加了非空 placementRule、放置模式和源 transform 保留检查；仍是 stub 环境 |
+| PickupGrantILRegression | 合成 pickup **15** + 当前真实 AttemptGrant **7** 个结构断言通过；直接链接生产 emitter |
+| AnimationPrefabIL 结构检查 | 生产 emitter 在合成方法与当前真实 CreatePrefab 各 **4 个返回点**保留 Transform，按顺序传 self 和原 bool 局部；另拒绝 **4 类**缺失/变更模式 |
+| 已注册 Release IL 模式审计 | 从当前 HookManager 与已注册 ObjectHandler 的源码登记关系提取 **17 项**，全部找到预期模式；动画项调用生产 emitter，其余模式审计不执行完整注入 |
+| `git diff --check` | 通过 |
+
+审计仅在内存读取/转换真实 DLL，没有安装模组、修改游戏 DLL、配置或存档，没有启动游戏，也没有打包/发布。它没有让 Unity/Mono 安装全部 Hook 或执行注入后方法；双端联机、分屏和下表场景仍未实测。
+
+额外发现 `PickupPickerController.AttemptGrantPickupDirectly(UniquePickup)` 可通过 ItemTransferOrb 或 PickupDef 直接授予，正常分支不经过现有 CreatePickup/GenericPickupController.AttemptGrant Hook；只有缺少参与者、body 或 PickupDef 等回退情况才进入 CreatePickup。尚未核对哪些 prefab/UnityEvent 资产使用它，因此记录为未覆盖路径，不能把它当作已确认触发的共享选择器缺陷，也不能宣称所有新选择器已支持。
 
 ## 打包与版本
 
@@ -103,7 +124,7 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 | `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.0`，插件元数据 |
 | `manifest.json` | `1.5.0`，发布包版本及 ZIP 命名依据 |
 | `InstancedLoot.csproj` | `1.5.0`，项目/程序集构建版本元数据 |
-| `CHANGELOG.md` | 最近记录 `1.4.0`，声明 Alloyed Collective DLC 支持 |
+| `CHANGELOG.md` | `1.5.0 (Unreleased)` 记录本次适配；`1.4.0` 为历史 Alloyed Collective DLC 记录 |
 
 本次适配明确统一三个版本为 1.5.0，保留原 GUID。CHANGELOG 的 1.4.0 为历史发布记录，本次尚未发布；历史兼容性声明不能替代具体对象注册检查和游戏实测。
 
@@ -134,7 +155,7 @@ dotnet run --project validation/MultiplayerRegression --configuration Release
 
 它验证确定性的同步、归属、价格和相机状态逻辑；stub 不模拟真实 UNet/R2API 传输、RoR2 IL、Unity 渲染或两个游戏客户端。没有 Unity 或自动化联机测试、CI 配置。文档变更检查路径、符号和 diff；代码变更先 Release 构建和相关隔离回归，再按影响范围选择以下游戏场景。结果应记录游戏版本、模组依赖、玩家数、各端配置和日志。
 
-IL emitter 有独立的 [PickupGrantILRegression](../validation/PickupGrantILRegression/README.md)，链接实际生产 PickupGrantIL，使用真实 MonoMod/Cecil 核查合成 IL 的地址加载、局部捕获、回调顺序与失败诊断；可选参数检查安装的真实游戏方法结构，不依赖固定本机路径：
+IL emitter 有独立的 [PickupGrantILRegression](../validation/PickupGrantILRegression/README.md)，链接实际生产 PickupGrantIL 和 AnimationPrefabIL，使用 MonoMod/Cecil 核查合成 IL 的地址加载、局部捕获、回调顺序、Transform 栈保留与失败诊断；可选参数检查安装的真实游戏方法结构及当前源码登记的 Release IL 模式，不依赖固定本机路径，带参数的审计须从仓库根目录执行：
 
 ```powershell
 dotnet run --project validation/PickupGrantILRegression --configuration Release

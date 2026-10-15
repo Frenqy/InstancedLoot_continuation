@@ -54,6 +54,8 @@ using (var module = ModuleDefinition.CreateModule("MissingGrantPattern", ModuleK
     }
 }
 
+AnimationPrefabRegression.Run();
+
 if (args.Length > 0)
 {
     using var assembly = AssemblyDefinition.ReadAssembly(args[0]);
@@ -66,6 +68,7 @@ if (args.Length > 0)
         throw new Exception("Installed assembly has an unexpected local load.");
     Verify(method, method.Body.Variables[localIndex], firstLoad);
     Console.WriteLine("Installed assembly structure checked; this does not prove a different game version's IL.");
+    InstalledHookAudit.Run(args[0]);
 }
 
 Console.WriteLine($"Passed {assertions} IL structure assertions.");

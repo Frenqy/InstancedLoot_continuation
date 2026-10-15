@@ -89,7 +89,7 @@ ChestBehavior.ItemDrop（或其他来源 Hook）
 
 调用 `HandleInstancing` 的 droplet 阶段主要传递信息；并非所有中间对象都会得到独立领取 Handler。最终普通拾取物要有有效 `itemIndex` 才进入物品实例化分支，装备交换不在此实现范围。
 
-`PickupGrantPolicy` 将前置资格判断和成功后的资格更新分离。只有原生 `GrantContext.shouldDestroy=true`（已消费）时才移除领取者；还有玩家资格时把 context 改为 false，供原生 consumed 与最终 Destroy 两处读取。旧实际游戏 DLL build `21587608` 有两次读取，旧实现只改第一处读出的值，不能阻止第二处销毁；目标新游戏 IL 仍须运行验证。临时来源通过 `try/finally` 恢复旧值，避免 droplet、选择器或轮盘的嵌套/异常调用污染后续输出。
+`PickupGrantPolicy` 将前置资格判断和成功后的资格更新分离。只有原生 `GrantContext.shouldDestroy=true`（已消费）时才移除领取者；还有玩家资格时把 context 改为 false，供原生 consumed 与最终 Destroy 两处读取。旧实际游戏 DLL build `21587608` 与更新后的 `25921972` 均有两次读取，旧实现只改第一处读出的值，不能阻止第二处销毁；新 DLL 已通过生产 emitter 的静态结构检查，游戏内执行仍须验证。临时来源通过 `try/finally` 恢复旧值，避免 droplet、选择器或轮盘的嵌套/异常调用污染后续输出。
 
 `InstanceItems` 使用有效玩家集合；`InstanceBoth` 与 `InstanceItemForOwnerOnly` 的物品分支使用拥有者。显式 `PlayerOverride` 优先于拥有者和全员集合。有效玩家目前直接来自 `PlayerCharacterMasterController.instances`，没有额外的断线/存活过滤。
 
@@ -99,6 +99,8 @@ ChestBehavior.ItemDrop（或其他来源 Hook）
 - `SharePickupPickers=true`：一位玩家选择后，把所有剩余玩家写入输出的 `PlayerOverride`；选择器资格清空，输出供这些玩家分别领取。
 
 这些路径应与配置优先级、普通掉落和指挥神器转换一起核对。箱子自身后来也带 `PickupPickerController`，现有 `isObject` 参数是相关历史兼容修补的一部分。
+
+build `25921972` 还有 `PickupPickerController.AttemptGrantPickupDirectly(UniquePickup)`：正常分支直接通过 ItemTransferOrb 或 PickupDef 授予，不进入上述 CreatePickup/普通 pickup 授予路径。当前未 Hook 该方法，也未核对调用它的 prefab/事件资产；其共享选择语义尚未验证，不能从 CreatePickup 路径推断。
 
 ## 网络协议
 
@@ -127,4 +129,4 @@ SourceObject(NetworkInstanceId，允许 Invalid)
 - Dither 可见性每次按当前相机目标玩家查当前资格，避免同一玩家领取后仍复用旧值；组件销毁恢复 renderer 和淡化状态，分屏仍分别查询各相机。
 - `HologramProjectorHandler` 过滤价格提示的观察者，并在模型变化后刷新显示列表；月球舱的文本依赖下一帧刷新。
 - `PingHandler` 调整标记文本、可用性和 UI 位置提示；`PingerControllerRenderBehaviour` 按相机玩家隐藏标记，但其中实际高亮目标赋值已被注释，不能宣称完整重定向已实现。
-- `AnimationEventsHandler` 和 `EffectManagerHandler` 把部分动态生成的效果纳入对应 FadeBehavior；不是所有效果系统都已覆盖。
+- `AnimationEventsHandler` 通过 `AnimationPrefabIL` 在 CreatePrefab 内 4 个 DoSpawnEffect 返回点取得 Transform、当前 AnimationEvents 和 pool flag；保留原 Transform，仅将非池化对象纳入对应 FadeBehavior。池化对象可能跨拥有者复用，尚无租借/归还时的安全显示关联。`EffectManagerHandler` 仍只覆盖 SpawnEffect 的 Instantiate 路径，效果系统未全部覆盖。
