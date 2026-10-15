@@ -2,6 +2,8 @@
 
 本页区分历史说明、源码确认的实现缺口和需要运行时验证的疑点。核对日期 2026-10-15；多人修复已通过构建与 stub 回归，未复现双端游戏内症状。
 
+用户随后实际运行在安装 `PickupDropletController.CreateCommandCube` IL Hook 时抛出 `InvalidProgramException`。已确认历史注入在 Spawn 前放置 dup，却未重定向直接跳到 Spawn 的 maxOptionCount 分支，造成回调参数栈下溢；此前仅查找 Spawn 名称的 17 项模式审计漏掉了这个错误。当前补丁已修正分支标签，真实方法的完整栈/类型流检查和生成 CLR 方法的闭包路径回归通过；修正后的 Unity/Mono Hook 安装与游戏重测尚未完成。
+
 ## 用户侧限制
 
 - 主机与客户端都需要安装模组；网络协议没有配置文件同步。
@@ -54,4 +56,4 @@
 - Debug 包会启用改变网络行为的开发 Hook；发布流程应使用 Release。
 - 打包脚本硬编码 ZIP 前缀，且会删除 Release 目录、覆盖同版本 ZIP。
 - 打包脚本没有复制 LICENSE；仓库采用 MIT License，应在正式分发流程中核对和保留其要求的许可文本。
-- 本次 Release 编译、37 条 stub 断言以及更新后 build `25921972` 的 17 项已注册 Release IL 静态模式检查通过，详见含 DLL 哈希的 [验证记录](DEVELOPMENT.md)。只有 pickup/动画 emitter 直接链接生产源码执行结构变换，其余模式审计不执行完整注入；没有 Unity/Mono 的真实 Hook 安装、双端或分屏游戏内测试结果。
+- 此前 build `25921972` 的 17 项静态模式检查通过后，用户实际安装指挥精华 Hook 失败，证明匹配成功不能证明 IL 合法。修复后新增直接链接生产 CommandCubeIL 的完整方法栈/类型与标签检查、旧注入失败负例和六条生成 CLR 执行路径。其余普通模式审计仍不执行完整注入；修复后的 Unity/Mono 安装、双端和分屏仍待实测。详见含 DLL 哈希的 [验证记录](DEVELOPMENT.md)。

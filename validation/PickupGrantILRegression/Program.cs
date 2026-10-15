@@ -55,6 +55,7 @@ using (var module = ModuleDefinition.CreateModule("MissingGrantPattern", ModuleK
 }
 
 AnimationPrefabRegression.Run();
+CommandCubeRegression.Run();
 
 if (args.Length > 0)
 {

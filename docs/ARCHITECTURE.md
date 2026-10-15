@@ -89,6 +89,8 @@ ChestBehavior.ItemDrop（或其他来源 Hook）
 
 调用 `HandleInstancing` 的 droplet 阶段主要传递信息；并非所有中间对象都会得到独立领取 Handler。最终普通拾取物要有有效 `itemIndex` 才进入物品实例化分支，装备交换不在此实现范围。
 
+指挥精华的 `CreateCommandCube` 在原生 `NetworkServer.Spawn(GameObject)` 后传递来源。注入必须让直接跳到 Spawn 的分支先经过新增的 `dup`，否则 Spawn 消费唯一的 GameObject 后，回调参数栈为空，安装 Hook 就会抛 `InvalidProgramException`。`CommandCubeIL` 显式接管 incoming labels，并验证唯一的静态单参数 void Spawn 签名。当前真实方法的 `maxOptionCount` 条件分支会触发这个历史缺陷；不能仅检查存在 Spawn 调用。
+
 `PickupGrantPolicy` 将前置资格判断和成功后的资格更新分离。只有原生 `GrantContext.shouldDestroy=true`（已消费）时才移除领取者；还有玩家资格时把 context 改为 false，供原生 consumed 与最终 Destroy 两处读取。旧实际游戏 DLL build `21587608` 与更新后的 `25921972` 均有两次读取，旧实现只改第一处读出的值，不能阻止第二处销毁；新 DLL 已通过生产 emitter 的静态结构检查，游戏内执行仍须验证。临时来源通过 `try/finally` 恢复旧值，避免 droplet、选择器或轮盘的嵌套/异常调用污染后续输出。
 
 `InstanceItems` 使用有效玩家集合；`InstanceBoth` 与 `InstanceItemForOwnerOnly` 的物品分支使用拥有者。显式 `PlayerOverride` 优先于拥有者和全员集合。有效玩家目前直接来自 `PlayerCharacterMasterController.instances`，没有额外的断线/存活过滤。

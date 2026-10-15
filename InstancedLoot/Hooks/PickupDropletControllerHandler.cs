@@ -4,7 +4,6 @@ using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace InstancedLoot.Hooks;
 
@@ -69,12 +68,7 @@ public class PickupDropletControllerHandler : AbstractHookHandler
 
     private void IL_PickupDropletController_CreateCommandCube(ILContext il)
     {
-        ILCursor cursor = new ILCursor(il);
-
-        cursor.GotoNext(MoveType.Before, i => i.MatchCallOrCallvirt<NetworkServer>("Spawn"));
-        cursor.Emit(OpCodes.Dup);
-        cursor.Index++;
-        cursor.EmitDelegate<Action<GameObject>>(gameObject =>
+        CommandCubeIL.Apply<Action<GameObject>>(il, gameObject =>
         {
             var genericPickupControllerHandler = hookManager.GetHandler<GenericPickupControllerHandler>();
             if (genericPickupControllerHandler.InstanceOverrideInfo != null) Plugin.HandleInstancing(gameObject, genericPickupControllerHandler.InstanceOverrideInfo.Value, isObject: false);

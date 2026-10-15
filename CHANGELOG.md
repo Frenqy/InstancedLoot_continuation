@@ -12,9 +12,10 @@
 - Fixed stale fading when ownership changes while preserving visibility for each camera's player.
 - Supplied explicit direct placement rules for interactable copies to prevent null placement-rule failures and retain the source rotation.
 - Updated animation prefab fading hooks for the current DoSpawnEffect call sites; pooled effect ownership remains unsupported.
+- Fixed the inherited command cube IL hook's invalid stack on the max-option branch by redirecting incoming Spawn labels to the injected GameObject duplication.
 - Added isolated production-source and IL structure regression checks.
 
-**Validation:** The Release build and 37 stub assertions passed. Static matching of 17 registered Release IL hook patterns and in-memory pickup/animation emitter structure checks passed against the installed 1.5.0 game build 25921972. Runtime hook installation, host/client gameplay and split screen remain untested. Dedicated support for new DLC4 interactables and the direct pickup-picker grant path has not been added.
+**Validation:** A user run failed during command cube hook installation despite the earlier 17-pattern audit. The corrected production emitter now passes complete command cube stack/type and branch checks against installed 1.5.0 build 25921972; the old emitter fails that check and produces InvalidProgramException in two synthetic CLR methods. Six generated CLR paths execute the corrected emitter with captured callbacks. Release builds, 37 stub assertions, and the existing pickup/animation checks pass. The corrected hook still needs Unity/Mono installation and host/client, Command artifact and split screen retests. Dedicated support for new DLC4 interactables and the direct pickup-picker grant path has not been added.
 
 ### 1.4.0
 

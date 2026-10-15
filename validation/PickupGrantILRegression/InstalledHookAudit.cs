@@ -111,7 +111,7 @@ internal static class InstalledHookAudit
         Audit("RoR2.PickupDropletController.CreatePickupDroplet_CreatePickupInfo_Vector3_Vector3", "RoR2.PickupDropletController", "CreatePickupDroplet",
             cursor => cursor.GotoNext(i => i.OpCode == OpCodes.Call && Call("UnityEngine.Object", "Instantiate")(i)), 3, "RoR2.GenericPickupController/CreatePickupInfo");
         Audit("RoR2.PickupDropletController.CreateCommandCube", "RoR2.PickupDropletController", "CreateCommandCube",
-            cursor => cursor.GotoNext(Call("UnityEngine.Networking.NetworkServer", "Spawn")));
+            cursor => CommandCubeRegression.VerifyInstalled(cursor.Context.Method));
         Audit("EntityStates.ScavBackpack.Opening.OnEnter", "EntityStates.ScavBackpack.Opening", "OnEnter",
             cursor => cursor.GotoNext(i => i.OpCode == OpCodes.Ldsfld && FieldOperand(i, "EntityStates.ScavBackpack.Opening", "maxItemDropCount")));
         Audit("EntityStates.Scrapper.ScrappingToIdle.OnEnter", "EntityStates.Scrapper.ScrappingToIdle", "OnEnter",

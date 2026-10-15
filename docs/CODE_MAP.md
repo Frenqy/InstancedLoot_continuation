@@ -65,7 +65,7 @@
 | `MultiShopControllerHandler.cs`、`ShopTerminalBehaviorHandler.cs` | 商店/终端初始化、源类型继承和掉落 |
 | `ShrineBloodBehaviorHandler.cs`、`ShrineRestackBehaviorHandler.cs` | 血之祭坛/秩序祭坛的识别与复制体接管 |
 | `ScrapperControllerHandler.cs` | 在 ScrappingToIdle 的 IL 中取得交互者并标记废料来源 |
-| `PickupDropletControllerHandler.cs` | droplet 创建、CreatePickup（碰撞/强制初始化）、指挥精华转换时传递来源；临时上下文保存并恢复 |
+| `PickupDropletControllerHandler.cs`、`CommandCubeIL.cs` | droplet 创建、CreatePickup（碰撞/强制初始化）、指挥精华转换时传递来源；临时上下文保存并恢复；Spawn 前 duplication 接管分支标签，生产 emitter 被独立回归直接链接 |
 | `GenericPickupControllerHandler.cs`、`PickupGrantPolicy.cs`、`PickupGrantIL.cs` | pickup 来源保存、实例化、交互/自动拾取与授予前资格检查；按引用更新 GrantContext，让剩余玩家仍可领取；IL emitter 被隔离结构检查直接链接 |
 | `PickupPickerControllerHandler.cs` | picker 延迟初始化、选择资格、共享选择、CreatePickup 输出玩家列表、销毁控制；未接入 AttemptGrantPickupDirectly，调用该方法的资产尚未核对 |
 | `SacrificeArtifactManagerHandler.cs` | 牺牲神器掉落归属及概率调整；攻击者优先 attackerOwnerMaster，后取 attackerMaster |

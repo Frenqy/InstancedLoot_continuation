@@ -97,6 +97,25 @@ GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅�
 
 额外发现 `PickupPickerController.AttemptGrantPickupDirectly(UniquePickup)` 可通过 ItemTransferOrb 或 PickupDef 直接授予，正常分支不经过现有 CreatePickup/GenericPickupController.AttemptGrant Hook；只有缺少参与者、body 或 PickupDef 等回退情况才进入 CreatePickup。尚未核对哪些 prefab/UnityEvent 资产使用它，因此记录为未覆盖路径，不能把它当作已确认触发的共享选择器缺陷，也不能宣称所有新选择器已支持。
 
+### 实际启动失败后的指挥精华 IL 修复（2026-10-15）
+
+上面的 17 项模式审计是修复前的历史结果，未验证全部注入后的控制流。用户随后实际运行在 `IL.RoR2.PickupDropletController.add_CreateCommandCube` 安装阶段收到 `InvalidProgramException: Invalid IL code ... IL_00a1: call`；这是真实失败，不能再把模式匹配通过当作启动可用证据。
+
+再次核对本机游戏仍为 build `25921972`，`RoR2.dll` SHA256 与上文相同；此时 appmanifest 的 TargetBuildID 为 `0`。原方法 `IL_0085: brfalse.s IL_009d` 在 maxOptionCount 为空时直接跳到单参数 `NetworkServer.Spawn(GameObject)`。旧注入把 dup 放在 Spawn 前，但分支仍指向原 Spawn；该路径跳过 dup，Spawn 消费唯一 GameObject 后回调下溢。Spawn 重载参数没有发生本次怀疑的变化。注入主体已存在于 `1127e98`，blame 指向 `c547cc7a`（2024-06-08）；此次 1.5.0 适配没有引入该 Hook，但此前检查漏检了它。
+
+生产注入提取为 `CommandCubeIL`，精确检查静态单参数 void Spawn，再用 `MoveAfterLabels` 将原 Spawn 的 incoming labels 转到 dup，保留原生初始化及 Spawn 后的来源回调。没有关闭 Hook 或禁用指挥精华。新增回归通过 `ILContext.Invoke` 执行实际生产 emitter，包含 MonoMod 的标签转换流程；此前直接找调用名称的审计项已替换为以下验证：
+
+| 检查 | 结果与边界 |
+| --- | --- |
+| 当前真实 CreateCommandCube | 原生方法与修正后完整方法的有限指令集栈/类型数据流验证通过；修正后 48 条指令、1 条条件分支均可达，无异常区域；所有原分支目标/指令顺序保留，指向 Spawn 的目标改为 dup |
+| 旧注入负例 | 真实方法重放旧注入后检测到 callback stack underflow；两个合成分支方法同时被栈检查与实际 CLR 执行以 InvalidProgramException 拒绝 |
+| 新注入执行 | 用 MonoMod Cecil generator 生成内存 CLR 方法，执行 6 条条件、switch、无条件跳转和顺序路径；使用真实 EmitDelegate 捕获闭包路径，确认 Spawn 后回调恰好一次且收到原 GameObject |
+| 变更诊断 | 拒绝缺失、额外参数、错误参数类型、非 void 返回、实例方法和多个 Spawn 这 6 类模式变化 |
+| 相邻注入点 | droplet 与普通 pickup 的 Instantiate 都具体返回 GameObject，注入后原 consumer 没有 incoming branch；普通 pickup 参数仍为 CreatePickupInfo&。PickupGrant 首次 shouldDestroy 加载及动画四个返回 consumer 均无 incoming branch，无异常区域；未发现此次分支跳过 dup 的同类证据 |
+| Release / stub / 既有 IL 回归 | Release 构建 0 错误、1 条既有过时 API 警告；37 条 stub 断言、22 条 pickup 结构断言、动画结构检查及 17 项登记审计通过；普通登记项仍主要验证模式 |
+
+栈验证器只覆盖该完整方法使用的指令/类型/分支，遇到未知指令、不可达区或异常区域即失败，并非通用 CLR verifier。生成方法在 .NET CLR 执行，使用替身 GameObject/NetworkServer；MonoMod 老版 DynamicMethod backend 不兼容现代 .NET 的内部结构，测试进程临时选用其 Cecil backend 并恢复环境值。它没有在 Unity/Mono 中安装修正后的 Hook，也没有执行真实游戏对象、网络或双端场景。下一次游戏验证首先检查插件能否完整启用，再测指挥神器 maxOptionCount 有/无值、两人资格与 SharePickupPickers 两种配置。游戏安装、存档和用户 ZIP 均未改动。
+
 ## 打包与版本
 
 ```powershell
@@ -155,7 +174,7 @@ dotnet run --project validation/MultiplayerRegression --configuration Release
 
 它验证确定性的同步、归属、价格和相机状态逻辑；stub 不模拟真实 UNet/R2API 传输、RoR2 IL、Unity 渲染或两个游戏客户端。没有 Unity 或自动化联机测试、CI 配置。文档变更检查路径、符号和 diff；代码变更先 Release 构建和相关隔离回归，再按影响范围选择以下游戏场景。结果应记录游戏版本、模组依赖、玩家数、各端配置和日志。
 
-IL emitter 有独立的 [PickupGrantILRegression](../validation/PickupGrantILRegression/README.md)，链接实际生产 PickupGrantIL 和 AnimationPrefabIL，使用 MonoMod/Cecil 核查合成 IL 的地址加载、局部捕获、回调顺序、Transform 栈保留与失败诊断；可选参数检查安装的真实游戏方法结构及当前源码登记的 Release IL 模式，不依赖固定本机路径，带参数的审计须从仓库根目录执行：
+IL emitter 有独立的 [PickupGrantILRegression](../validation/PickupGrantILRegression/README.md)，链接实际生产 PickupGrantIL、AnimationPrefabIL 和 CommandCubeIL，核查地址加载、局部捕获、回调顺序、Transform 栈保留和失败诊断；指挥精华增加完整有限指令集栈/类型/分支验证与合成 CLR 执行。可选参数检查安装的真实游戏方法结构及当前源码登记的 Release IL 模式，不依赖固定本机路径，带参数的审计须从仓库根目录执行：
 
 ```powershell
 dotnet run --project validation/PickupGrantILRegression --configuration Release
@@ -163,7 +182,7 @@ dotnet run --project validation/PickupGrantILRegression --configuration Release
 dotnet run --project validation/PickupGrantILRegression --configuration Release -- "C:/path/to/Risk of Rain 2_Data/Managed/RoR2.dll"
 ```
 
-结构断言不执行注入后的方法，不能替代目标游戏的 IL Hook 安装与运行验证；首次基于旧 DLL 的检查曾发现将结构体值误当作 ref 的注入问题，现已改为在原始加载前发出该局部的地址。
+pickup/动画结构断言不执行注入后的方法；指挥精华执行的只是合成 CLR 方法，均不能替代目标游戏的 IL Hook 安装与运行验证。首次基于旧 DLL 的检查曾发现将结构体值误当作 ref 的注入问题，现已改为在原始加载前发出该局部的地址。
 
 | 场景 | 核对结果 |
 | --- | --- |
