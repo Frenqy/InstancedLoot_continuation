@@ -41,6 +41,6 @@ The price reports below repeat a symptom. No common root cause has been demonstr
 
 ## Reproduction and completion standard
 
-Use Release builds with the same mod version installed on host and client. Record game build/DLC, dependency versions, both config files (configuration is not synchronized), player count, stage, source prefab, artifacts, exact steps, and both BepInEx logs. Start with the mod plus required dependencies, then add suspected integrations. Compare `InstanceItems`, `InstanceObjects`, and `InstanceBoth` where the source supports them; include stage transitions, delayed spawns/late joining, and per-camera split-screen display where applicable.
+Use Release builds with the same mod version installed on host and client. Record game build/DLC, dependency versions, both config files (configuration is not synchronized), player count, stage, source prefab, artifacts, exact steps, and both BepInEx logs. Start with the mod plus required dependencies, then add suspected integrations. Compare `InstanceItems`, `InstanceObject`, and `InstanceBoth` where the source supports them; include stage transitions, delayed spawns/late joining, and per-camera split-screen display where applicable.
 
 Record source-level fixes, build results, and actual in-game results separately. A successful build or corrected static code is insufficient to tick a runtime acceptance item. Original reports remain open until their own scenarios are verified.
