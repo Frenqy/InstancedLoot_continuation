@@ -44,6 +44,10 @@ public class InteractorHandler : AbstractHookHandler
             i => i.MatchBrtrue(out labelIgnoreSpherecast)); // Skip processing interactable if true
 
         cursor.Emit(OpCodes.Ldloc, interactableLocId);
+        // The candidate local is IInteractable. Every candidate is first cast to
+        // MonoBehaviour by the game, but the interface itself is not a Component
+        // receiver for Component.GetComponent<T>(); make that conversion explicit.
+        cursor.Emit(OpCodes.Castclass, typeof(Component));
         cursor.Emit(OpCodes.Call, methodGetComponentFadeBehavior);
         cursor.Emit(OpCodes.Dup);
         cursor.Emit(OpCodes.Ldnull);

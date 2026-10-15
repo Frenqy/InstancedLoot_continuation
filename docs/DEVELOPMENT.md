@@ -155,7 +155,7 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 
 ### 模组 1.5.2 版本与客户端交互筛选修复（2026-10-15）
 
-本批启用 `InteractorHandler`，并让它从交互者所在 `CharacterBody.master` 解析玩家控制器；重叠箱子候选会在客户端筛掉其他玩家无资格的副本。Release 构建成功（0 错误、1 条既有过时 API 警告），MultiplayerRegression 通过 39 条断言，当前游戏 1.5.0 build 25921972 的 `FindBestInteractableObject` 静态模式检查通过。未执行 Unity/Mono Hook 安装、主机/客户端联机或分屏实测，也未打包或改写现有 ZIP。
+本批启用 `InteractorHandler`，并让它从交互者所在 `CharacterBody.master` 解析玩家控制器；重叠箱子候选会在客户端筛掉其他玩家无资格的副本。由于当前候选局部是 `IInteractable`，注入在调用 `Component.GetComponent<InstanceHandler>` 前显式执行 `Castclass Component`。Release 构建成功（0 错误、1 条既有过时 API 警告），MultiplayerRegression 通过 39 条断言；当前游戏 1.5.0 build 25921972 的 `FindBestInteractableObject` 接收者类型检查通过，注册 IL 审计通过 18 个模式和 22 个结构断言。未执行 Unity/Mono Hook 安装、主机/客户端联机或分屏实测，也未打包或改写现有 ZIP。
 
 ## 新增交互物/掉落来源
 

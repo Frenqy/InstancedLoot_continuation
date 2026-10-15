@@ -6,8 +6,9 @@
 
 - Registered the interactable candidate filter so clients skip overlapping chest copies that belong to another player.
 - Resolved the interactor's player through its `CharacterBody` and master, matching the runtime component layout.
+- Added an explicit `IInteractable` to `Component` cast before the injected `GetComponent<InstanceHandler>` call.
 
-**Validation:** The Release build and MultiplayerRegression stub passed; the stub now covers eligible and ineligible interactor candidates. The current game 1.5.0 build's `FindBestInteractableObject` contains the expected overlap `ShouldIgnoreSpherecastForInteractibility` match, but host/client gameplay remains untested.
+**Validation:** The Release build and MultiplayerRegression stub passed; the stub now covers eligible and ineligible interactor candidates. The current game 1.5.0 build's `FindBestInteractableObject` has the expected `IInteractable` overlap local and `ShouldIgnoreSpherecastForInteractibility` sequence; the registered IL audit passed 18 patterns and 22 structure assertions. Host/client gameplay remains untested.
 
 ### 1.5.1 (Unreleased)
 

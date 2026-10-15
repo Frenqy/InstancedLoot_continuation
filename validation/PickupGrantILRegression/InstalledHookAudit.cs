@@ -99,6 +99,8 @@ internal static class InstalledHookAudit
             cursor => AnimationPrefabRegression.Verify(cursor.Context.Method));
         Audit("RoR2.EffectManager.SpawnEffect_EffectIndex_EffectData_bool", "RoR2.EffectManager", "SpawnEffect",
             cursor => cursor.GotoNext(Call("UnityEngine.Object", "Instantiate")), 3, "RoR2.EffectIndex");
+        Audit("RoR2.Interactor.FindBestInteractableObject", "RoR2.Interactor", "FindBestInteractableObject",
+            cursor => InteractorRegression.Verify(cursor.Context.Method));
         Audit("RoR2.GenericPickupController.AttemptGrant", "RoR2.GenericPickupController", "AttemptGrant", cursor =>
         {
             int local = -1;
