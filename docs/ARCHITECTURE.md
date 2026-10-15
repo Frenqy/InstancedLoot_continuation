@@ -63,7 +63,9 @@ flowchart TD
 6. 副本进入 `AwaitedObjects` 和该处理器的 `InfoForAwaitedObjects`。后续 `Start` 回调复制源状态，挂接 `InstanceHandler` 与同一个 `SharedInfo`。
 7. 该来源的等待项清空后 `FinalizeObject` 同步整个组，刷新显示。
 
-具体处理器负责复制 RNG、物品和数量；基类在初始化副本时统一通过 `PurchaseInteraction.NetworkcostType`、`Networkcost` 复制源对象最终成本，并为购买 RNG 建立独立副本。价格仍通过游戏原生 SyncVar 同步，不加入 `SyncInstances` 消息，也不持续绑定各副本后续价格。多重商店还需要创建和关联终端，其主对象和各终端有各自的关联组。不能只克隆主对象就认为商店逻辑完整。
+具体处理器负责复制 RNG、物品和数量；基类在初始化副本时统一通过 `PurchaseInteraction.NetworkcostType`、`Networkcost` 复制源对象最终成本，并为购买 RNG 建立独立副本。价格仍通过游戏原生 SyncVar 同步，不加入 `SyncInstances` 消息，也不持续绑定各副本后续价格。多重商店还需要创建和关联终端：控制器副本共享一组状态，每个三选一终端按位置建立独立的源/副本组，并复制 `ShopTerminalBehavior` 的商品、隐藏和 RNG 状态。源终端只属于源控制器的首位玩家，避免客户端候选同时选中源终端和该玩家的复制终端。`CopyObject` 的交互资格统一由 `InstanceHandler.OrigPlayer` 判定，即使源对象的 `Players` 聚合集合暂时包含全员；`InstancedObject` 和共享领取状态仍按各 Handler 的 `Players` 集合判定。不能只克隆主对象就认为商店逻辑完整。
+
+服务器购买入口再次检查 `PurchaseInteraction.available` 和当前 `InstanceHandler` 资格后才调用原生扣款/关闭逻辑。原生路径负责成功后的单次消费和关闭；入口检查只挡住不可用对象、无资格玩家和同帧重复进入，不改变团队金币扣除规则。
 
 价格复制不能只依赖 SpawnCard：本机更新后的游戏程序集 build `25921972` 中，`PurchaseInteraction.Awake` 仅在开关启用时缩放价格，`Start` 只缓存解锁过滤器；`SceneDirector.PopulateScene` 在 SpawnCard 生成之后另为金币交互物设置难度成本。模组副本绕过 SceneDirector，因此必须复制已初始化源对象的成本。该依据解释 CopyObject 路径的客户端低价，并不证明 issue #5 所报 InstanceItems 情形有同一根因；双端行为仍需验证。
 
@@ -125,8 +127,8 @@ SourceObject(NetworkInstanceId，允许 Invalid)
 
 ## 权限与视觉
 
-- `PurchaseInteractionHandler`、`GenericPickupControllerHandler`、`PickupPickerControllerHandler` 检查 Players；购买路径在服务器调用原 `OnInteractionBegin` 扣款和购买事件之前再次校验资格，防止直接调用绕过提示判断。普通拾取物还通过 `OnTriggerStay` 阻止无资格自动拾取。
-- `InteractorHandler` 在客户端 `FindBestInteractableObject` 的重叠候选筛选阶段检查 `InstanceHandler.Players`；它通过交互者所在 `CharacterBody` 的 master 找到 `PlayerCharacterMasterController`，让重叠箱子优先保留当前玩家有资格使用的副本。
+- `PurchaseInteractionHandler`、`GenericPickupControllerHandler`、`PickupPickerControllerHandler` 检查实例资格；购买路径在服务器调用原 `OnInteractionBegin` 扣款和购买事件之前再次校验资格，防止直接调用绕过提示判断。`CopyObject` 使用 `OrigPlayer`，`InstancedObject`/共享领取状态使用 `Players`。普通拾取物还通过 `OnTriggerStay` 阻止无资格自动拾取。
+- `InteractorHandler` 在客户端 `FindBestInteractableObject` 的重叠候选筛选阶段检查实例资格；它通过交互者所在 `CharacterBody` 的 master 找到 `PlayerCharacterMasterController`，让重叠箱子优先保留当前玩家有资格使用的副本。
 - `FadeBehavior` 监听 SceneCamera 的 PreCull/PreRender，按相机目标玩家隐藏其他副本，或设置 `_Fade`（默认淡化值 `0.3`）。它维护 Renderer、DitherModel、灯光、高亮及额外效果对象列表。
 - `DitherModelHandler` 对原生淡化值叠加实例可见性；不支持相关 shader 的材质仍可能显示异常。
 - Dither 可见性每次按当前相机目标玩家查当前资格，避免同一玩家领取后仍复用旧值；组件销毁恢复 renderer 和淡化状态，分屏仍分别查询各相机。

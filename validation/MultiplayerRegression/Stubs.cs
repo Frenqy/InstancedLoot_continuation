@@ -103,6 +103,7 @@ namespace RoR2
     public enum Interactability { Disabled, Available }
     public class PurchaseInteraction : UnityEngine.Component
     {
+        public bool available = true;
         public int cost, costType, CostWrites, CostTypeWrites;
         public Xoroshiro128Plus rng;
         public int Networkcost { get => cost; set { cost = value; CostWrites++; } }
@@ -113,6 +114,34 @@ namespace RoR2
         public ulong State;
         public Xoroshiro128Plus(ulong seed) { State = seed; }
         public Xoroshiro128Plus(Xoroshiro128Plus other) { State = other.State; }
+    }
+    public class ShopTerminalBehavior : UnityEngine.Component
+    {
+        public bool hasStarted;
+        public Xoroshiro128Plus rng;
+        public object Networkpickup;
+        public bool Networkhidden;
+        public void UpdatePickupDisplayAndAnimations() { }
+    }
+    public class MultiShopController : UnityEngine.Component
+    {
+        public UnityEngine.GameObject[] terminalGameObjects = [];
+        public int cost;
+        public int Networkcost { get => cost; set => cost = value; }
+        public Xoroshiro128Plus rng = new(0);
+        public void CreateTerminals()
+        {
+            terminalGameObjects = [CreateTerminal(), CreateTerminal(), CreateTerminal()];
+        }
+
+        private static UnityEngine.GameObject CreateTerminal()
+        {
+            var terminal = new UnityEngine.GameObject { name = "ShopTerminal" };
+            var shopTerminal = terminal.AddComponent<ShopTerminalBehavior>();
+            shopTerminal.rng = new Xoroshiro128Plus(42);
+            terminal.AddComponent<PurchaseInteraction>();
+            return terminal;
+        }
     }
     public class Run : UnityEngine.Object { public static Run instance = new(); }
     public static class Util
@@ -182,7 +211,16 @@ namespace R2API.Networking.Interfaces
         public static void Send(this INetMessage message, UnityEngine.Networking.NetworkConnection connection) { }
     }
 }
-namespace InstancedLoot.Enums { public enum ObjectInstanceMode { None, InstancedObject, CopyObject } }
+namespace InstancedLoot.Enums
+{
+    public enum ObjectInstanceMode { None, InstancedObject, CopyObject }
+    public static class ObjectType
+    {
+        public const string TripleShop = "TripleShop";
+        public const string TripleShopEquipment = "TripleShopEquipment";
+        public const string FreeChestMultiShop = "FreeChestMultiShop";
+    }
+}
 namespace InstancedLoot
 {
     public class Logger { public readonly List<string> Errors = new(); public void LogError(string error) => Errors.Add(error); }
@@ -191,11 +229,16 @@ namespace InstancedLoot
         public static InstancedLoot Instance = new();
         public static readonly List<Networking.SyncInstances.InstanceHandlerEntry[]> FailedSyncs = new();
         public readonly Logger _logger = new();
+        public readonly HookManager HookManager = new();
     }
     public class ObjectHandlerManager
     {
         public InstancedLoot Plugin = InstancedLoot.Instance;
         public void RegisterAwaitedObject(UnityEngine.GameObject target, AbstractObjectHandler handler) { }
+    }
+    public class HookManager
+    {
+        public void RegisterHandler<T>() where T : new() { }
     }
 }
 namespace InstancedLoot.Components
@@ -218,6 +261,16 @@ namespace InstancedLoot.Hooks
     {
         public abstract void RegisterHooks();
         public abstract void UnregisterHooks();
+    }
+    public sealed class MultiShopControllerHandler : AbstractHookHandler
+    {
+        public override void RegisterHooks() { }
+        public override void UnregisterHooks() { }
+    }
+    public sealed class ShopTerminalBehaviorHandler : AbstractHookHandler
+    {
+        public override void RegisterHooks() { }
+        public override void UnregisterHooks() { }
     }
 }
 namespace On.RoR2

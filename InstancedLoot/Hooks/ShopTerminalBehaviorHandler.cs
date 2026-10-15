@@ -67,10 +67,21 @@ public class ShopTerminalBehaviorHandler : AbstractHookHandler
         if (instanceInfoTracker != null)
         {
             PickupDropletControllerHandler pickupDropletControllerHandler = hookManager.GetHandler<PickupDropletControllerHandler>();
-            
+
+            InstanceInfoTracker.InstanceOverrideInfo? previous =
+                pickupDropletControllerHandler.InstanceOverrideInfo;
             pickupDropletControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
-            orig(self);
-            pickupDropletControllerHandler.InstanceOverrideInfo = null;
+            try
+            {
+                orig(self);
+            }
+            finally
+            {
+                // DropPickup can synchronously trigger nested droplet creation. Restore
+                // the previous context so an outer source is preserved and an exception
+                // cannot leak this terminal's owner into later drops.
+                pickupDropletControllerHandler.InstanceOverrideInfo = previous;
+            }
         }
         else
         {

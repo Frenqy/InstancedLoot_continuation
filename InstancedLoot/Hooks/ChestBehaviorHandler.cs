@@ -24,9 +24,17 @@ public class ChestBehaviorHandler : AbstractHookHandler
         {
             PickupDropletControllerHandler pickupDropletControllerHandler =
                 hookManager.GetHandler<PickupDropletControllerHandler>();
+            InstanceInfoTracker.InstanceOverrideInfo? previous =
+                pickupDropletControllerHandler.InstanceOverrideInfo;
             pickupDropletControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
-            orig(self);
-            pickupDropletControllerHandler.InstanceOverrideInfo = null;
+            try
+            {
+                orig(self);
+            }
+            finally
+            {
+                pickupDropletControllerHandler.InstanceOverrideInfo = previous;
+            }
         }
         else
         {

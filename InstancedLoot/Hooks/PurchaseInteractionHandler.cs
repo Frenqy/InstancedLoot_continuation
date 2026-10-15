@@ -30,9 +30,12 @@ public class PurchaseInteractionHandler : AbstractHookHandler
 
     private void On_PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
     {
-        // GetInteractability is also a client prompt check; enforce ownership before the
-        // server invokes PayCost or any purchase events, even for a direct interaction call.
-        if (NetworkServer.active && !CanInteract(self, activator))
+        // GetInteractability is also a client prompt check; enforce ownership and the
+        // native one-shot availability before the server invokes PayCost or purchase
+        // events, even for a direct interaction call. The availability check closes a
+        // small race where two server-side callers enter the callback before the
+        // terminal/chest has hidden itself.
+        if (NetworkServer.active && (!self.available || !CanInteract(self, activator)))
             return;
 
         if(activator.GetComponent<CharacterBody>() is var characterBody && characterBody
@@ -50,6 +53,6 @@ public class PurchaseInteractionHandler : AbstractHookHandler
 
         var body = activator ? activator.GetComponent<CharacterBody>() : null;
         var player = body && body.master ? body.master.playerCharacterMasterController : null;
-        return player && instanceHandler.Players.Contains(player);
+        return player && instanceHandler.IsInstancedFor(player);
     }
 }

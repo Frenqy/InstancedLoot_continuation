@@ -191,7 +191,16 @@ public class InstanceHandler : InstancedLootBehaviour
     
     public bool IsInstancedFor(PlayerCharacterMasterController player)
     {
-        return Players.Contains(player);
+        // CopyObject source and clone objects each belong to the player recorded by
+        // OrigPlayer.  Players can contain the aggregate player set while a source is
+        // being initialized or restored from an older snapshot, so using it directly
+        // would let another player interact with the hidden source object.  Shared
+        // InstanceItems/InstancedObject handlers continue to use their per-handler set.
+        return ObjectInstanceMode switch
+        {
+            ObjectInstanceMode.CopyObject => OrigPlayer == player,
+            _ => Players.Contains(player)
+        };
     }
 
     public bool IsInstancedForInteractor(Interactor interactor)

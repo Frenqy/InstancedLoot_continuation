@@ -34,7 +34,7 @@
 | `ChestHandler` | Chest1、Chest2、GoldChest、Chest1StealthedVariant；CategoryChestDamage/Healing/Utility 及 CategoryChest2Damage/Healing/Utility；EquipmentBarrel、LunarChest、VoidChest、Lockbox、ScavBackpack | CopyObject；复制 RNG、dropCount、currentPickup；Lockbox 支持固有拥有者 |
 | `ShrineChanceHandler` | ShrineChance | CopyObject；复制 RNG 与价格 |
 | `RouletteChestHandler` | CasinoChest | CopyObject；复制 RNG |
-| `MultiShopHandler` | TripleShop、TripleShopEquipment、FreeChestMultiShop | CopyObject；复制商店和终端、价格、隐藏标志和物品；FreeChestMultiShop 支持固有拥有者 |
+| `MultiShopHandler` | TripleShop、TripleShopEquipment、FreeChestMultiShop | CopyObject；控制器与每个三选一终端分别复制 RNG、价格、商品和隐藏状态；源终端按首位玩家隔离；FreeChestMultiShop 支持固有拥有者 |
 | `OptionChestHandler` | VoidTriple、LockboxVoid | CopyObject；复制 RNG 和 generatedPickups；LockboxVoid 支持固有拥有者 |
 | `PrinterHandler` | Duplicator、DuplicatorLarge、DuplicatorWild、DuplicatorMilitary；三个 LunarCauldron 类型；ShrineCleanse | None，仅处理掉落实例化；锅/净化池来源识别缺口见下节 |
 | `ScrapperHandler` | Scrapper | None，仅处理输出的废料 |

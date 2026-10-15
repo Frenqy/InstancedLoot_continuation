@@ -1,3 +1,4 @@
+using System;
 using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
@@ -55,7 +56,23 @@ public class MultiShopHandler : AbstractObjectHandler
             if (multiShopController != null)
                 foreach (var terminalGameObject in multiShopController.terminalGameObjects)
                 {
-                    InstanceSingleObjectFrom(terminalGameObject, terminalGameObject, players);
+                    // A CopyObject source is owned by the first player only.  The
+                    // terminals are separate interactables, so they must use the same
+                    // owner as the source instead of accidentally remaining eligible
+                    // for every player (which also prevents client candidate filtering
+                    // from selecting the wrong terminal).
+                    InstanceHandler terminalHandler = base.InstanceSingleObjectFrom(
+                        terminalGameObject, terminalGameObject, new[] { instanceHandler.OrigPlayer });
+
+                    // Each terminal has its own copy group.  The controller's shared
+                    // group only contains controller copies, while terminal copies are
+                    // spawned asynchronously by CreateTerminals and need a source
+                    // handler to receive their state and permissions.
+                    terminalHandler.SharedInfo = new InstanceHandler.SharedInstanceInfo
+                    {
+                        SourceObject = terminalGameObject,
+                        ObjectInstanceMode = ObjectInstanceMode
+                    };
                     
                     if(instanceInfoTracker != null)
                         instanceInfoTracker.Info.AttachTo(terminalGameObject);
@@ -83,7 +100,8 @@ public class MultiShopHandler : AbstractObjectHandler
                 var sourceTerminalGameObjects = sourceMultiShopController.terminalGameObjects;
                 var targetTerminalGameObjects = targetMultiShopController.terminalGameObjects;
 
-                for (int i = 0; i < targetTerminalGameObjects.Length; i++)
+                int terminalCount = Math.Min(sourceTerminalGameObjects.Length, targetTerminalGameObjects.Length);
+                for (int i = 0; i < terminalCount; i++)
                     AwaitObjectFor(targetTerminalGameObjects[i],
                         new AwaitedObjectInfo
                         {

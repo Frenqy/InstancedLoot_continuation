@@ -16,7 +16,7 @@ public class Utils
         {
             if (instanceHandler.AllPlayers.Contains(player))
             {
-                return instanceHandler.LinkedHandlers.Where(handler => handler.Players.Contains(player)).Any(handler =>
+                return instanceHandler.LinkedHandlers.Where(handler => handler.IsInstancedFor(player)).Any(handler =>
                 {
                     if (handler.GetComponent<IInteractable>() is var interactable && interactable != null
                         && player.body is var body && body
@@ -39,7 +39,7 @@ public class Utils
     {
         if (gameObject == null) return true;
         
-        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null) return instanceHandler.Players.Contains(player);
+        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null) return instanceHandler.IsInstancedFor(player);
 
         return true;
     }

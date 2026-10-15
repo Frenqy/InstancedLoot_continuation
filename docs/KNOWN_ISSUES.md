@@ -18,7 +18,7 @@
 
 2026-10-15 的多人修复覆盖以下静态问题，不能据此将关联 GitHub issue 视为已通过游戏实测：
 
-- #3/#5/#6 的低价报告：CopyObject 副本现在统一复制源对象最终购买成本，并通过原生网络属性同步。旧实际游戏 DLL 与更新后的 build `25921972` 均显示 SceneDirector 在 SpawnCard 后设置金币难度价格，副本此前绕过该步骤。#5 还报告 InstanceItems，单独该模式不产生交互物副本，仍须独立复现。
+- #3/#5/#6 的低价报告：CopyObject 副本现在统一复制源对象最终购买成本，并通过原生网络属性同步。旧实际游戏 DLL 与更新后的 build `25921972` 均显示 SceneDirector 在 SpawnCard 后设置金币难度价格，副本此前绕过该步骤。#5 还报告 InstanceItems，单独该模式不产生交互物副本，仍须独立复现。隔离回归已覆盖 CopyObject 源对象即使暂时带有全员 `Players` 时仍按 `OrigPlayer` 拒绝其他玩家购买；真实多人价格和扣款仍未实测。
 - #3/#6/#8 的重叠显示报告：修正 source 存在性校验、超过 40 帧即放弃、旧等待快照覆盖新资格、销毁成员残留与 dither 资格缓存。它们是可能影响客户端归属/显示的确定源码问题；Swarms、host-only、特定关卡仍需分别验证，不能断言全部同源。
 - 增加服务器购买入口资格校验；各副本后续价格仍由原生祭坛/商店逻辑独立更新，没有团队扣款行为。
 - #9 的共享掉落路径：普通 pickup 现在在实际授予前检查资格；失败授予保留资格，成功后改原生 GrantContext 本身，防止只拦截 consumed 的第一次读取而仍在第二次读取时销毁。旧实际 DLL 与 build `25921972` 均可见两次 shouldDestroy 读取。droplet 上下文改为覆盖 CreatePickup，包含 ForcePickupInitialization，并在轮盘/选择器/droplet 路径用 finally 恢复。当前真实 DLL 的静态模式和结构检查通过，Command/Sacrifice/Swarms 组合仍需游戏矩阵验证。
@@ -52,7 +52,7 @@
 
 ## 构建与发布注意项
 
-- 插件、manifest 与项目版本现为 1.5.2，目标游戏仍为 1.5.0，BepInEx.Core 已固定；仓库仍没有 SDK 或包锁文件，完整依赖版本见开发文档。
+- 插件、manifest 与项目版本现为 1.5.3，目标游戏仍为 1.5.0，BepInEx.Core 已固定；仓库仍没有 SDK 或包锁文件，完整依赖版本见开发文档。
 - Debug 包会启用改变网络行为的开发 Hook；发布流程应使用 Release。
 - 打包脚本硬编码 ZIP 前缀，且会删除 Release 目录、覆盖同版本 ZIP。
 - 打包脚本没有复制 LICENSE；仓库采用 MIT License，应在正式分发流程中核对和保留其要求的许可文本。

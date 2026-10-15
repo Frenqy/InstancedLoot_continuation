@@ -140,10 +140,19 @@ sourcePurchase.cost = 735;
 sourcePurchase.costType = 7;
 sourcePurchase.rng = new(123UL);
 var copyPurchase = pricedCopy.AddComponent<PurchaseInteraction>();
-var copyRenderer = pricedCopy.AddComponent<Renderer>();
 copyPurchase.cost = 25;
-objectHandler.InstanceSingleObjectFrom(pricedSource, pricedSource, [p1]).SharedInfo = new() { SourceObject = pricedSource, ObjectInstanceMode = ObjectInstanceMode.CopyObject };
-objectHandler.InstanceSingleObjectFrom(pricedSource, pricedCopy, [p2]);
+var sourceCopyHandler = objectHandler.InstanceSingleObjectFrom(pricedSource, pricedSource, [p1]);
+sourceCopyHandler.SharedInfo = new() { SourceObject = pricedSource, ObjectInstanceMode = ObjectInstanceMode.CopyObject };
+var cloneCopyHandler = objectHandler.InstanceSingleObjectFrom(pricedSource, pricedCopy, [p2]);
+// A CopyObject source can temporarily carry the aggregate player set while a
+// snapshot or handler-specific initialization is being rebuilt. Interaction
+// eligibility must still follow OrigPlayer, and the clone must remain exclusive.
+sourceCopyHandler.SetPlayers([p1, p2], false);
+Check(sourceCopyHandler.OrigPlayer == p1 && sourceCopyHandler.IsInstancedFor(p1) &&
+    !sourceCopyHandler.IsInstancedFor(p2), "Copy source uses OrigPlayer for interaction permission");
+Check(cloneCopyHandler.OrigPlayer == p2 && cloneCopyHandler.IsInstancedFor(p2) &&
+    !cloneCopyHandler.IsInstancedFor(p1), "Copy clone uses its own OrigPlayer for interaction permission");
+sourceCopyHandler.SetPlayers([p1], false);
 Check(copyPurchase.cost == 735 && copyPurchase.costType == 7 && copyPurchase.CostWrites == 1 && copyPurchase.CostTypeWrites == 1, "Copy final cost with SyncVar setters");
 Check(sourcePurchase.CostWrites == 0 && !ReferenceEquals(copyPurchase.rng, sourcePurchase.rng) && copyPurchase.rng.State == 123, "Preserve source and independently copy RNG");
 sourcePurchase.cost = 999;
@@ -161,12 +170,56 @@ Interactor Actor(PlayerCharacterMasterController player)
     return actor.AddComponent<Interactor>();
 }
 NetworkServer.active = true;
+On.RoR2.PurchaseInteraction.Buy(sourcePurchase, Actor(p2));
+Check(On.RoR2.PurchaseInteraction.Purchases == 0, "Reject other player's aggregate CopyObject source");
 On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p1));
 Check(On.RoR2.PurchaseInteraction.Purchases == 0, "Reject other player's copy before purchase callback");
 On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p2));
 Check(On.RoR2.PurchaseInteraction.Purchases == 1, "Allow eligible player");
+copyPurchase.available = false;
+On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p2));
+Check(On.RoR2.PurchaseInteraction.Purchases == 1, "Reject unavailable purchase before callback");
+copyPurchase.available = true;
 hooks.UnregisterHooks();
 NetworkServer.active = false;
+
+// TripleShop controller copies keep one shared group, while each terminal has
+// its own source/clone group.  This mirrors the asynchronous terminal path used
+// after a controller clone is spawned.
+var multiShop = new InstancedLoot.ObjectHandlers.MultiShopHandler();
+multiShop.Init(new ObjectHandlerManager());
+var multiSource = Obj(80);
+var sourceController = multiSource.AddComponent<MultiShopController>();
+sourceController.CreateTerminals();
+var multiSourceHandler = multiShop.InstanceSingleObjectFrom(multiSource, multiSource, [p1]);
+multiSourceHandler.SharedInfo = new() { SourceObject = multiSource, ObjectInstanceMode = ObjectInstanceMode.CopyObject };
+var sourceTerminalHandlers = sourceController.terminalGameObjects
+    .Select(terminal => terminal.GetComponent<InstanceHandler>()).ToArray();
+Check(sourceTerminalHandlers.Length == 3 && sourceTerminalHandlers.All(handler => handler != null) &&
+    sourceTerminalHandlers.Select(handler => handler.SharedInfo).Distinct().Count() == 3,
+    "Each three-choice source terminal has its own SharedInfo group");
+Check(sourceTerminalHandlers.All(handler => handler.OrigPlayer == p1 && handler.IsInstancedFor(p1) &&
+    !handler.IsInstancedFor(p2)), "Three-choice source terminals belong only to first player");
+
+var multiClone = Obj(81);
+var cloneController = multiClone.AddComponent<MultiShopController>();
+multiShop.InstanceSingleObjectFrom(multiSource, multiClone, [p2]);
+var cloneTerminals = cloneController.terminalGameObjects;
+foreach (var cloneTerminal in cloneTerminals)
+    multiShop.HandleAwaitedObject(cloneTerminal);
+var cloneTerminalHandlers = cloneTerminals.Select(terminal => terminal.GetComponent<InstanceHandler>()).ToArray();
+Check(multiClone.GetComponent<InstanceHandler>().SharedInfo == multiSourceHandler.SharedInfo &&
+    multiClone.GetComponent<InstanceHandler>().OrigPlayer == p2,
+    "Three-choice controller clone shares only controller state");
+Check(cloneTerminalHandlers.Length == 3 &&
+    cloneTerminalHandlers.Zip(sourceTerminalHandlers).All(pair =>
+        pair.First.SharedInfo == pair.Second.SharedInfo &&
+        pair.First.SharedInfo != multiSourceHandler.SharedInfo &&
+        pair.First.OrigPlayer == p2 && pair.First.IsInstancedFor(p2) &&
+        !pair.First.IsInstancedFor(p1)),
+    "Each three-choice clone terminal keeps matching group and clone permission");
+Check(cloneTerminalHandlers.Select(handler => handler.SharedInfo).Distinct().Count() == 3,
+    "Three-choice terminal groups remain independent by slot");
 
 // Interactor candidate filtering must resolve the player through the body/master
 // chain carried by the Interactor GameObject. PlayerCharacterMasterController is
@@ -174,6 +227,7 @@ NetworkServer.active = false;
 var interactableObject = Obj(62);
 var interactableHandler = interactableObject.AddComponent<InstanceHandler>();
 interactableHandler.SetPlayers([p2], false);
+interactableHandler.OrigPlayer = p2;
 interactableHandler.SharedInfo = new() { ObjectInstanceMode = ObjectInstanceMode.CopyObject };
 Check(!interactableHandler.IsInstancedForInteractor(Actor(p1)), "Reject ineligible interactor candidate");
 Check(interactableHandler.IsInstancedForInteractor(Actor(p2)), "Accept eligible interactor candidate");
@@ -200,22 +254,26 @@ Check(pickupHandler.Players.Count == 0 && context.shouldDestroy, "Last successfu
 
 // Dither visibility must change when permissions change while viewing with the
 // same camera/player, and split-screen cameras retain their own player lookup.
-var fade = pricedCopy.GetComponent<FadeBehavior>();
+var fadeObject = Obj(63);
+var fadeRenderer = fadeObject.AddComponent<Renderer>();
+var fadeHandler = fadeObject.AddComponent<InstanceHandler>();
+fadeHandler.SetPlayers([p1, p2], false);
+fadeHandler.SharedInfo = new() { ObjectInstanceMode = ObjectInstanceMode.InstancedObject };
+var fade = fadeObject.GetComponent<FadeBehavior>();
 var camera1 = new CameraRigController { targetBody = Actor(p1).GetComponent<CharacterBody>() };
 var camera2 = new CameraRigController { targetBody = Actor(p2).GetComponent<CharacterBody>() };
 Check(fade.GetFadeLevelForCameraRigController(camera2) == 1f, "Eligible camera starts visible");
-pricedCopy.GetComponent<InstanceHandler>().RemovePlayer(p2);
+fadeHandler.RemovePlayer(p2);
 Check(fade.GetFadeLevelForCameraRigController(camera2) == fade.FadeLevel, "Same-camera eligibility update invalidates dither state");
-pricedCopy.GetComponent<InstanceHandler>().SetPlayers([p1]);
+fadeHandler.SetPlayers([p1]);
 Check(fade.GetFadeLevelForCameraRigController(camera1) == 1f && fade.GetFadeLevelForCameraRigController(camera2) == fade.FadeLevel, "Split-screen camera eligibility remains separate");
-fade.RefreshForPreCull(p1);
-Check(!copyRenderer.enabled, "Other player's model and hologram renderers are hidden");
-fade.RefreshForPreCull(p2);
-Check(copyRenderer.enabled, "Own model is restored for second camera");
-fade.RefreshForPreCull(p1);
-pricedCopy.GetComponent<InstanceHandler>().OnDestroy();
+fade.RefreshForPreRender(p1);
+Check(fadeRenderer.fade == 1f, "Own player's instanced object is fully visible");
+fade.RefreshForPreRender(p2);
+Check(fadeRenderer.fade == fade.FadeLevel, "Other player's instanced object is faded");
+fadeHandler.OnDestroy();
 fade.OnDestroy();
-Check(copyRenderer.enabled && copyRenderer.fade == 1f, "Unloading restores renderers after group has detached");
+Check(fadeRenderer.enabled && fadeRenderer.fade == 1f, "Unloading restores renderers after group has detached");
 
 Console.WriteLine($"PASS: {assertions} assertions against linked production sources (stub runtime, no real game or transport test).");
 

@@ -22,9 +22,18 @@ public class ShrineChanceBehaviorHandler : AbstractHookHandler
     {
         if (self.GetComponent<InstanceInfoTracker>() is var instanceInfoTracker && instanceInfoTracker != null)
         {
-            hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = instanceInfoTracker.Info;
-            orig(self, activator);
-            hookManager.GetHandler<PickupDropletControllerHandler>().InstanceOverrideInfo = null;
+            PickupDropletControllerHandler pickupDropletControllerHandler =
+                hookManager.GetHandler<PickupDropletControllerHandler>();
+            InstanceInfoTracker.InstanceOverrideInfo? previous = pickupDropletControllerHandler.InstanceOverrideInfo;
+            pickupDropletControllerHandler.InstanceOverrideInfo = instanceInfoTracker.Info;
+            try
+            {
+                orig(self, activator);
+            }
+            finally
+            {
+                pickupDropletControllerHandler.InstanceOverrideInfo = previous;
+            }
         }
         else
         {

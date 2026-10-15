@@ -2,6 +2,15 @@
 
 ## Continuation
 
+### 1.5.3 (Unreleased)
+
+- Isolated each TripleShop terminal's source/copy state group and restricted the source terminal to its owning player, so each player keeps an independent three-choice purchase.
+- Copied terminal pickup, hidden, RNG and finalized purchase cost state through the awaited terminal path.
+- Made every `CopyObject` interaction check follow `OrigPlayer`, preventing an aggregate source `Players` set from authorizing another player's hidden source; `InstancedObject` and shared pickup eligibility retain their per-handler player sets.
+- Rechecked server purchase eligibility and native availability before charging or closing an interactable; restored nested shop drop ownership context with `try/finally`.
+
+**Validation:** The Release build passed with one existing obsolete-API warning. MultiplayerRegression passed 48 assertions, including CopyObject source/clone permissions and independent three-choice terminal groups; host/client gameplay and three-choice terminal state, cost, and one-shot purchase behavior still require an in-game multiplayer run.
+
 ### 1.5.2 (Unreleased)
 
 - Registered the interactable candidate filter so clients skip overlapping chest copies that belong to another player.

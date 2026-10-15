@@ -12,5 +12,6 @@
     <Compile Include="../../InstancedLoot/AbstractObjectHandler.cs" Link="Production/AbstractObjectHandler.cs" />
     <Compile Include="../../InstancedLoot/Hooks/PurchaseInteractionHandler.cs" Link="Production/PurchaseInteractionHandler.cs" />
     <Compile Include="../../InstancedLoot/Hooks/PickupGrantPolicy.cs" Link="Production/PickupGrantPolicy.cs" />
+    <Compile Include="../../InstancedLoot/ObjectHandlers/MultiShopHandler.cs" Link="Production/MultiShopHandler.cs" />
   </ItemGroup>
 </Project>
