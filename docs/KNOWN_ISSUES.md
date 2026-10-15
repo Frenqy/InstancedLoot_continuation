@@ -42,7 +42,7 @@
 
 ## 未注册或识别不完整
 
-`LunarShopHandler` 和 `InteractorHandler` 未启用；TripleShopLarge 从类型表注释掉；VoidFields、PickupLunarCoin 没有注册处理器。锅和净化池虽然登记到 PrinterHandler，但缺少当前名称识别路径。具体映射见 [代码导航](CODE_MAP.md)。
+`LunarShopHandler` 未启用；TripleShopLarge 从类型表注释掉；VoidFields、PickupLunarCoin 没有注册处理器。锅和净化池虽然登记到 PrinterHandler，但缺少当前名称识别路径。具体映射见 [代码导航](CODE_MAP.md)。
 
 ## 历史 TODO，不等于已确认缺陷
 
@@ -52,7 +52,7 @@
 
 ## 构建与发布注意项
 
-- 插件、manifest 与项目版本现为 1.5.1，目标游戏仍为 1.5.0，BepInEx.Core 已固定；仓库仍没有 SDK 或包锁文件，完整依赖版本见开发文档。
+- 插件、manifest 与项目版本现为 1.5.2，目标游戏仍为 1.5.0，BepInEx.Core 已固定；仓库仍没有 SDK 或包锁文件，完整依赖版本见开发文档。
 - Debug 包会启用改变网络行为的开发 Hook；发布流程应使用 Release。
 - 打包脚本硬编码 ZIP 前缀，且会删除 Release 目录、覆盖同版本 ZIP。
 - 打包脚本没有复制 LICENSE；仓库采用 MIT License，应在正式分发流程中核对和保留其要求的许可文本。

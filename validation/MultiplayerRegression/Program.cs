@@ -168,6 +168,16 @@ Check(On.RoR2.PurchaseInteraction.Purchases == 1, "Allow eligible player");
 hooks.UnregisterHooks();
 NetworkServer.active = false;
 
+// Interactor candidate filtering must resolve the player through the body/master
+// chain carried by the Interactor GameObject. PlayerCharacterMasterController is
+// attached to the master object, not to the Interactor itself.
+var interactableObject = Obj(62);
+var interactableHandler = interactableObject.AddComponent<InstanceHandler>();
+interactableHandler.SetPlayers([p2], false);
+interactableHandler.SharedInfo = new() { ObjectInstanceMode = ObjectInstanceMode.CopyObject };
+Check(!interactableHandler.IsInstancedForInteractor(Actor(p1)), "Reject ineligible interactor candidate");
+Check(interactableHandler.IsInstancedForInteractor(Actor(p2)), "Accept eligible interactor candidate");
+
 var pickupObject = Obj(70);
 var pickup = pickupObject.AddComponent<GenericPickupController>();
 var body1 = Actor(p1).GetComponent<CharacterBody>();

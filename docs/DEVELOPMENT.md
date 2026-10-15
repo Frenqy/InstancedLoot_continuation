@@ -131,7 +131,7 @@ GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅�
 脚本把工作目录设为自身目录，删除并重建根目录 `Release/`，复制元数据，执行构建并复制 DLL，再根据 manifest 版本压缩。它会覆盖同版本 ZIP。当前产物结构为：
 
 ```text
-Nicebowl-InstancedLoot-1.5.1.zip
+Nicebowl-InstancedLoot-1.5.2.zip
 ├── CHANGELOG.md
 ├── icon.png
 ├── manifest.json
@@ -144,14 +144,18 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 
 | 位置 | 当前版本/用途 |
 | --- | --- |
-| `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.1`，插件元数据 |
-| `manifest.json` | `1.5.1`，发布包版本及 ZIP 命名依据 |
-| `InstancedLoot.csproj` | `1.5.1`，项目/程序集构建版本元数据 |
-| `CHANGELOG.md` | `1.5.1 (Unreleased)` 记录指挥精华启动修复与版本规则；`1.5.0 (Unreleased)` 保留游戏适配记录，`1.4.0` 为历史 Alloyed Collective DLC 记录 |
+| `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.2`，插件元数据 |
+| `manifest.json` | `1.5.2`，发布包版本及 ZIP 命名依据 |
+| `InstancedLoot.csproj` | `1.5.2`，项目/程序集构建版本元数据 |
+| `CHANGELOG.md` | `1.5.2 (Unreleased)` 记录客户端重叠交互物筛选修复；`1.5.1 (Unreleased)` 保留指挥精华启动修复，`1.5.0 (Unreleased)` 保留游戏适配记录 |
 
-本次将三个模组版本从 1.5.0 统一递增为 1.5.1，保留原 GUID；目标游戏仍为 1.5.0，GameLibs 仍为 1.5.0-r.1。上面的 ZIP 名称是按当前版本打包时的预期产物，此次没有执行打包，也没有重建用户已有的 1.5.0 ZIP。CHANGELOG 的 1.5.0 与 1.5.1 都尚未发布，不补写发布日期；历史兼容性声明不能替代具体对象注册检查和游戏实测。
+本次将三个模组版本从 1.5.1 统一递增为 1.5.2，保留原 GUID；目标游戏仍为 1.5.0，GameLibs 仍为 1.5.0-r.1。上面的 ZIP 名称是按当前版本打包时的预期产物，此次没有执行打包，也没有重建用户已有的 1.5.0 ZIP。CHANGELOG 的 1.5.0、1.5.1 与 1.5.2 都尚未发布，不补写发布日期；历史兼容性声明不能替代具体对象注册检查和游戏实测。
 
 后续每个修改批次/交付必须递增模组版本，包含仅文档或协作规则修改；默认递增 patch，新增功能递增 minor，破坏兼容性递增 major。同一任务的配套修改只递增一次，版本与文档同步是该批次的一部分，不另触发升级，也不要求每次临时编辑或同一批次内的提交分别升级。交付前同步上述三处版本、CHANGELOG、此版本表及其他当前版本描述；保留历史验证记录的原版本与事实。目标游戏与编译/运行依赖版本独立维护，不机械替换。完整约束见 [AGENTS.md](../AGENTS.md)。
+
+### 模组 1.5.2 版本与客户端交互筛选修复（2026-10-15）
+
+本批启用 `InteractorHandler`，并让它从交互者所在 `CharacterBody.master` 解析玩家控制器；重叠箱子候选会在客户端筛掉其他玩家无资格的副本。Release 构建成功（0 错误、1 条既有过时 API 警告），MultiplayerRegression 通过 39 条断言，当前游戏 1.5.0 build 25921972 的 `FindBestInteractableObject` 静态模式检查通过。未执行 Unity/Mono Hook 安装、主机/客户端联机或分屏实测，也未打包或改写现有 ZIP。
 
 ## 新增交互物/掉落来源
 

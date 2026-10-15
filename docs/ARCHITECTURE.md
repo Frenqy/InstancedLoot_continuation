@@ -126,6 +126,7 @@ SourceObject(NetworkInstanceId，允许 Invalid)
 ## 权限与视觉
 
 - `PurchaseInteractionHandler`、`GenericPickupControllerHandler`、`PickupPickerControllerHandler` 检查 Players；购买路径在服务器调用原 `OnInteractionBegin` 扣款和购买事件之前再次校验资格，防止直接调用绕过提示判断。普通拾取物还通过 `OnTriggerStay` 阻止无资格自动拾取。
+- `InteractorHandler` 在客户端 `FindBestInteractableObject` 的重叠候选筛选阶段检查 `InstanceHandler.Players`；它通过交互者所在 `CharacterBody` 的 master 找到 `PlayerCharacterMasterController`，让重叠箱子优先保留当前玩家有资格使用的副本。
 - `FadeBehavior` 监听 SceneCamera 的 PreCull/PreRender，按相机目标玩家隐藏其他副本，或设置 `_Fade`（默认淡化值 `0.3`）。它维护 Renderer、DitherModel、灯光、高亮及额外效果对象列表。
 - `DitherModelHandler` 对原生淡化值叠加实例可见性；不支持相关 shader 的材质仍可能显示异常。
 - Dither 可见性每次按当前相机目标玩家查当前资格，避免同一玩家领取后仍复用旧值；组件销毁恢复 renderer 和淡化状态，分屏仍分别查询各相机。

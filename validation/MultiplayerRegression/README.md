@@ -23,8 +23,9 @@ They deliberately do not emulate real UNet serialization/SyncVar dirty bits,
 R2API transport, RoR2 method IL, actual rendering or two installed game clients.
 Passing this harness does not establish game-version or multiplayer compatibility.
 
-On 2026-10-15, the Release run passed 37 assertions. The earlier 1.5.0 adaptation
+On 2026-10-15, the Release run passed 39 assertions. The earlier 1.5.0 adaptation
 record had 33; the additional checks cover the explicit clone placement rule,
-direct placement mode and retained source transform. See
+direct placement mode, retained source transform, and interactor eligibility
+resolution. See
 [DEVELOPMENT.md](../../docs/DEVELOPMENT.md) for the separate installed-assembly
 IL checks and outstanding game tests.

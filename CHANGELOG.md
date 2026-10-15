@@ -2,6 +2,13 @@
 
 ## Continuation
 
+### 1.5.2 (Unreleased)
+
+- Registered the interactable candidate filter so clients skip overlapping chest copies that belong to another player.
+- Resolved the interactor's player through its `CharacterBody` and master, matching the runtime component layout.
+
+**Validation:** The Release build and MultiplayerRegression stub passed; the stub now covers eligible and ineligible interactor candidates. The current game 1.5.0 build's `FindBestInteractableObject` contains the expected overlap `ShouldIgnoreSpherecastForInteractibility` match, but host/client gameplay remains untested.
+
 ### 1.5.1 (Unreleased)
 
 - Fixed the inherited command cube IL hook's invalid stack on the max-option branch by redirecting incoming Spawn labels to the injected GameObject duplication.

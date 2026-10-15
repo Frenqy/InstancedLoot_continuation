@@ -79,6 +79,6 @@
 | `AnimationEventsHandler.cs`、`AnimationPrefabIL.cs`、`EffectManagerHandler.cs` | CreatePrefab 的 DoSpawnEffect 返回点注入与非池化效果归属；SpawnEffect 的 Instantiate 路径；池化显示关联未覆盖 |
 | `PingHandler.cs` | 标记消息、实例归属文字、提示保留与位置指示器 |
 | `DevelopmentHooksHandler.cs` | 仅 DEBUG 注册；修改连接回调、消息 hash、空玩家名 |
-| `InteractorHandler.cs` | 源码存在，但 HookManager 的注册语句被注释；当前不是有效交互过滤路径 |
+| `InteractorHandler.cs` | 在 `FindBestInteractableObject` 的重叠候选阶段跳过不属于当前玩家的实例，避免客户端按命中顺序选中其他玩家的副本 |
 
 通用 Hook 在 HookManager 构造函数登记；各对象专用 Hook 由 ObjectHandler.Init 登记。判断某个 Hook 是否生效，应追到这两处注册入口，不应只检查 `RegisterHooks` 方法是否存在。

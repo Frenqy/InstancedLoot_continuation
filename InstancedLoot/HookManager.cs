@@ -33,7 +33,7 @@ public class HookManager
         RegisterHandler<PickupPickerControllerHandler>();
         RegisterHandler<PickupDropletControllerHandler>();
         
-        // RegisterHandler<InteractorHandler>();
+        RegisterHandler<InteractorHandler>();
     }
 
     public void RegisterHandler<T>() where T : AbstractHookHandler, new()
