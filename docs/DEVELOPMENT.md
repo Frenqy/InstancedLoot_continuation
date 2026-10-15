@@ -127,3 +127,9 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 提交前检查 `git diff --check` 和 `git status --short`，避免加入生成文件。`bin/`、`obj/`、`Release/` 已被忽略；根目录 ZIP 不一定被忽略。
 
 每次关键修改完成并完成相应验证后，必须创建 Git commit。功能新增、缺陷修复、架构/配置/依赖调整及重要文档更新都属于关键修改；同一目的的配套改动可合为一个提交，不同目的应分别提交。提交前检查暂存区，确保只包含本次任务相关文件；提交后报告 commit hash、修改内容及验证结果。完整协作约束见 [AGENTS.md](../AGENTS.md)。
+
+凡 Codex 参与完成的提交，必须在提交信息末尾添加以下 Git trailer，与前面的提交说明以空行分隔，并在提交后核对：
+
+```text
+Co-authored-by: Codex <codex@openai.com>
+```
