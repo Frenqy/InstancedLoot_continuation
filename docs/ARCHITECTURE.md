@@ -63,9 +63,11 @@ flowchart TD
 6. 副本进入 `AwaitedObjects` 和该处理器的 `InfoForAwaitedObjects`。后续 `Start` 回调复制源状态，挂接 `InstanceHandler` 与同一个 `SharedInfo`。
 7. 该来源的等待项清空后 `FinalizeObject` 同步整个组，刷新显示。
 
-具体处理器负责复制 RNG、物品、数量和价格。多重商店还需要创建和关联终端，其主对象和各终端有各自的关联组。不能只克隆主对象就认为商店逻辑完整。
+具体处理器负责复制 RNG、物品和数量；基类在初始化副本时统一通过 `PurchaseInteraction.NetworkcostType`、`Networkcost` 复制源对象最终成本，并为购买 RNG 建立独立副本。价格仍通过游戏原生 SyncVar 同步，不加入 `SyncInstances` 消息，也不持续绑定各副本后续价格。多重商店还需要创建和关联终端，其主对象和各终端有各自的关联组。不能只克隆主对象就认为商店逻辑完整。
 
-复制优先使用 Tracker 保存的 SpawnCard；否则扫描已加载的 `InteractableSpawnCard` 并按 prefab 名寻找。找不到会记录 `Failed to find spawn card ...`。这个回退有名称处理风险，见问题记录。
+价格复制不能只依赖 SpawnCard：本机旧游戏程序集 build `21587608` 中，`PurchaseInteraction.Awake` 仅在开关启用时缩放价格，`Start` 只缓存解锁过滤器；`SceneDirector.PopulateScene` 在 SpawnCard 生成之后另为金币交互物设置难度成本。模组副本绕过 SceneDirector，因此必须复制已初始化源对象的成本。该依据解释 CopyObject 路径的客户端低价，并不证明 issue #5 所报 InstanceItems 情形有同一根因；目标 1.5 游戏的实际方法体及双端行为仍需验证。
+
+复制优先使用 Tracker 保存的 SpawnCard；否则扫描已加载的 `InteractableSpawnCard` 并按去除 `(Clone)` / 历史 `(Cloned)` 后的 prefab 名寻找。找不到会记录 `Failed to find spawn card ...`。
 
 ## 掉落与领取流程
 
@@ -76,14 +78,16 @@ PurchaseInteraction.OnInteractionBegin → SetOwner
 ChestBehavior.ItemDrop（或其他来源 Hook）
   → 临时设置 PickupDropletControllerHandler.InstanceOverrideInfo
   → CreatePickupDroplet 的 IL 注入把来源附加到 droplet
-  → OnCollisionEnter 将来源传到 GenericPickupControllerHandler
+  → CreatePickup 将来源传到 GenericPickupControllerHandler（覆盖碰撞与强制初始化路径）
   → CreatePickup 的 IL 注入附加来源与 CreatePickupInfoTracker
   → GenericPickupController.Start → HandleInstancing(isObject: false)
   → InstanceHandler 记录可领取玩家
-  → AttemptGrant 移除已领取玩家；还有资格时阻止原生销毁
+  → AttemptGrant 前置资格校验；成功授予后移除玩家，还有资格时修改原生 GrantContext.shouldDestroy
 ```
 
 调用 `HandleInstancing` 的 droplet 阶段主要传递信息；并非所有中间对象都会得到独立领取 Handler。最终普通拾取物要有有效 `itemIndex` 才进入物品实例化分支，装备交换不在此实现范围。
+
+`PickupGrantPolicy` 将前置资格判断和成功后的资格更新分离。只有原生 `GrantContext.shouldDestroy=true`（已消费）时才移除领取者；还有玩家资格时把 context 改为 false，供原生 consumed 与最终 Destroy 两处读取。旧实际游戏 DLL build `21587608` 有两次读取，旧实现只改第一处读出的值，不能阻止第二处销毁；目标新游戏 IL 仍须运行验证。临时来源通过 `try/finally` 恢复旧值，避免 droplet、选择器或轮盘的嵌套/异常调用污染后续输出。
 
 `InstanceItems` 使用有效玩家集合；`InstanceBoth` 与 `InstanceItemForOwnerOnly` 的物品分支使用拥有者。显式 `PlayerOverride` 优先于拥有者和全员集合。有效玩家目前直接来自 `PlayerCharacterMasterController.instances`，没有额外的断线/存活过滤。
 
@@ -107,15 +111,18 @@ SourceObject(NetworkInstanceId，允许 Invalid)
 每条：target ID → origPlayer ID → 玩家数(int) → players ID 列表
 ```
 
-客户端等待相关网络对象可解析，再创建/复用各目标的 `InstanceHandler`，设置玩家与原拥有者、重建共享组和显示。循环使用 `retryCount > 40` 截止，失败时记录错误并把条目保存在静态 `FailedSyncs`；没有后台自动重放该列表的实现。来源对象校验条件存在疑点，不能将其描述为已验证的可靠重试协议。
+客户端等待所有 target、player、非 Invalid 的 source 都可解析，并检查玩家组件存在；每轮重新解析，避免另一条引用等待期间已解析对象被销毁。等待按实时计时最多 30 秒，不再受 40 帧阈值限制。较晚收到的同组快照会取消仍在等待的旧快照，避免旧协程稍后恢复已领取资格；这仅按本地接收顺序处理，不提供传输层乱序检测或新增协议版本号。成功后创建/复用各目标的 `InstanceHandler`，设置玩家与原拥有者（包括清空）、重建共享组和显示。
+
+切换 Run、插件失效或卸载时取消等待；卸载时同步清空 pending，防止同一帧重启后复活旧任务。超时记录来源和目标 ID，`FailedSyncs` 最多保留 32 组诊断条目，没有后台重放实现；同一 Run 内换关可能仍等到超时。`InstanceHandler.OnDestroy` 会从共享组移出自身、清空已销毁的来源并重算玩家聚合，防止后续快照引用已销毁成员。迟加入仍只补发已有状态，不增加新份额。
 
 此协议只传实例组状态，不同步配置文件，也没有独立的“移除实例化组件”消息。`uninstance` 因此采用重新生成公开 droplet 的临时方案，而不是直接让现有组件在两端消失。
 
 ## 权限与视觉
 
-- `PurchaseInteractionHandler`、`GenericPickupControllerHandler`、`PickupPickerControllerHandler` 检查 Players；普通拾取物还通过 `OnTriggerStay` 阻止无资格自动拾取。
+- `PurchaseInteractionHandler`、`GenericPickupControllerHandler`、`PickupPickerControllerHandler` 检查 Players；购买路径在服务器调用原 `OnInteractionBegin` 扣款和购买事件之前再次校验资格，防止直接调用绕过提示判断。普通拾取物还通过 `OnTriggerStay` 阻止无资格自动拾取。
 - `FadeBehavior` 监听 SceneCamera 的 PreCull/PreRender，按相机目标玩家隐藏其他副本，或设置 `_Fade`（默认淡化值 `0.3`）。它维护 Renderer、DitherModel、灯光、高亮及额外效果对象列表。
 - `DitherModelHandler` 对原生淡化值叠加实例可见性；不支持相关 shader 的材质仍可能显示异常。
+- Dither 可见性每次按当前相机目标玩家查当前资格，避免同一玩家领取后仍复用旧值；组件销毁恢复 renderer 和淡化状态，分屏仍分别查询各相机。
 - `HologramProjectorHandler` 过滤价格提示的观察者，并在模型变化后刷新显示列表；月球舱的文本依赖下一帧刷新。
 - `PingHandler` 调整标记文本、可用性和 UI 位置提示；`PingerControllerRenderBehaviour` 按相机玩家隐藏标记，但其中实际高亮目标赋值已被注释，不能宣称完整重定向已实现。
 - `AnimationEventsHandler` 和 `EffectManagerHandler` 把部分动态生成的效果纳入对应 FadeBehavior；不是所有效果系统都已覆盖。

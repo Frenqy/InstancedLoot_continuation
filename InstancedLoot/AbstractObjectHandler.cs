@@ -117,7 +117,7 @@ public abstract class AbstractObjectHandler
         //Fall back to scanning SpawnCards
         if (spawnCard == null)
         {
-            string name = gameObject.name.Replace("(Cloned)", "");
+            string name = gameObject.name.Replace("(Clone)", "").Replace("(Cloned)", "").Trim();
 
             SpawnCardsForPrefabName.TryGetValue(name, out spawnCard);
         }
@@ -148,6 +148,21 @@ public abstract class AbstractObjectHandler
     public virtual InstanceHandler InstanceSingleObjectFrom(GameObject source, GameObject target,
         PlayerCharacterMasterController[] players)
     {
+        if (source != target)
+        {
+            // SceneDirector applies the final money cost after SpawnCard.DoSpawn. Copies bypass
+            // that step, so use the initialized source and the SyncVar setters for remote clients.
+            PurchaseInteraction sourcePurchase = source.GetComponent<PurchaseInteraction>();
+            PurchaseInteraction targetPurchase = target.GetComponent<PurchaseInteraction>();
+            if (sourcePurchase != null && targetPurchase != null)
+            {
+                targetPurchase.NetworkcostType = sourcePurchase.costType;
+                targetPurchase.Networkcost = sourcePurchase.cost;
+                if (sourcePurchase.rng != null)
+                    targetPurchase.rng = new Xoroshiro128Plus(sourcePurchase.rng);
+            }
+        }
+
         InstanceHandler instanceHandler = target.AddComponent<InstanceHandler>();
         instanceHandler.SetPlayers(players, false);
         if (ObjectInstanceMode == ObjectInstanceMode.CopyObject)

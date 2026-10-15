@@ -1,6 +1,6 @@
 # 已知限制与维护风险
 
-本页区分历史说明、源码确认的实现缺口和需要运行时验证的疑点。核对日期 2026-10-15；本次文档整理没有修复这些逻辑，也没有复现游戏内症状。
+本页区分历史说明、源码确认的实现缺口和需要运行时验证的疑点。核对日期 2026-10-15；多人修复已通过构建与 stub 回归，未复现双端游戏内症状。
 
 ## 用户侧限制
 
@@ -14,18 +14,24 @@
 
 ## 源码直接可见的问题和待核实风险
 
+2026-10-15 的多人修复覆盖以下静态问题，不能据此将关联 GitHub issue 视为已通过游戏实测：
+
+- #3/#5/#6 的低价报告：CopyObject 副本现在统一复制源对象最终购买成本，并通过原生网络属性同步。旧实际游戏 DLL 显示 SceneDirector 在 SpawnCard 后设置金币难度价格，副本此前绕过该步骤。#5 还报告 InstanceItems，单独该模式不产生交互物副本，仍须独立复现。
+- #3/#6/#8 的重叠显示报告：修正 source 存在性校验、超过 40 帧即放弃、旧等待快照覆盖新资格、销毁成员残留与 dither 资格缓存。它们是可能影响客户端归属/显示的确定源码问题；Swarms、host-only、特定关卡仍需分别验证，不能断言全部同源。
+- 增加服务器购买入口资格校验；各副本后续价格仍由原生祭坛/商店逻辑独立更新，没有团队扣款行为。
+- #9 的共享掉落路径：普通 pickup 现在在实际授予前检查资格；失败授予保留资格，成功后改原生 GrantContext 本身，防止只拦截 consumed 的第一次读取而仍在第二次读取时销毁。旧实际 DLL 中可见两次 shouldDestroy 读取。droplet 上下文改为覆盖 CreatePickup，包含 ForcePickupInitialization，并在轮盘/选择器/droplet 路径用 finally 恢复。目标新 IL、Command/Sacrifice/Swarms 组合仍需游戏矩阵验证。
+- [回归执行器](../validation/MultiplayerRegression/README.md) 直接链接生产源码，以替身控制对象生成/销毁和协程时序。它不运行游戏 IL、真实网络、SyncVar 脏位或实际渲染。最新构建与未测边界见 [开发文档](DEVELOPMENT.md)。
+
+同步仍有限制：超过 30 秒的缺失引用会超时并仅保存诊断，不会后台重放；按本地接收顺序淘汰旧 pending，不识别网络包本身乱序；同一 Run 的换关没有专用取消事件；迟加入不会新增副本或份额。
+
 | 位置 | 静态证据 | 影响或后续核实方向 |
 | --- | --- | --- |
 | `Hooks/ChatHandler.cs` 的 UnregisterHooks | 使用 `+= On_Chat_CCSay`，不是 `-=` | 卸载方法会增加订阅；最终是否残留还受插件的 RemoveAllOwnedBy 清理影响，应验证启停流程 |
 | `Hooks/SacrificeArtifactManagerHandler.cs` 的 UnregisterHooks | On 钩子使用 `-=`，IL 钩子仍使用 `+=` | 同样存在卸载不对称，不能认为所有 Hook 已干净卸载 |
-| `Networking/SyncInstances.cs` 的 HandleMessageInternal | 来源对象解析后使用 `validated = validated && sourceObject == null` | 校验方向与“等待来源对象存在”的目标不一致，可能接受尚不存在的来源；需要有延迟的多人场景验证后修复 |
-| `SyncInstances` / `InstancedLoot.FailedSyncs` | 超过重试阈值后只保存失败条目，未发现重放逻辑 | 不应把失败列表当作自动恢复队列；排查时同时核对 target、player、source 的生成时序 |
-| `AbstractObjectHandler.CloneObject` | 回退查找只移除字符串 `(Cloned)` | 与常见 Unity `(Clone)` 命名不同；有 SpawnCardTracker 时走首选路径，回退失败要核对实际名称 |
 | `InstanceInfoTracker.InstanceOverrideInfo.AttachTo` | 已有 Tracker 时不更新 Owner | 传入新 Owner 不保证覆盖已有组件；应显式检查 SetOwner 的调用 |
 | 多个掉落 Hook、AnimationEventsHandler | 设置全局/Handler 临时上下文，调用 orig 后置 null，无 finally | 原调用抛异常或嵌套时可能遗留/丢失来源；新增路径应恢复旧值，现有路径待专项修复 |
 | `BossGroupHandler.On_BossGroup_Start` | 替代实现没有调用 orig(self) | 是否丢失当前游戏版本的初始化行为需核对游戏实现；不要据此直接假定所有 Boss 掉落已坏 |
 | `Config.GetValidPlayersSet`、`BossGroupHandler` | 前者直接使用 instances；后者按 participatingPlayerCount 取模再索引 instances | 断线/人数修正模组可能导致计数与顺序不一致，入口 TODO 也提到此问题 |
-| `Components/InstanceHandler.cs` 的 OnDestroy | 从静态 Instances 删除，但未显式从 SharedInfo.LinkedHandlers 删除 | 若组内成员单独销毁，需检查共享引用与后续同步；未实测是否出现故障 |
 | `Components/PingerControllerRenderBehaviour.cs` | 目标 Renderer 的实际 highlight 赋值被注释 | 当前存在显示过滤，不等于完整的高亮目标重定向 |
 | `Configuration/Config.cs` | Ready 恒 true，迁移表当前为空 | 不要依赖它作为异步配置初始化完成信号；新增迁移需重新核对绑定时机 |
 
@@ -41,9 +47,8 @@
 
 ## 构建与发布注意项
 
-- 插件和 manifest 为 1.4.0，项目 Version 为 3.0.0；发布前需要明确版本策略。
-- BepInEx.Core 使用浮动 `5.*`，仓库没有 SDK 或包锁文件；未来还原结果可能不同。
+- 插件、manifest 与项目版本现为 1.5.0，BepInEx.Core 已固定；仓库仍没有 SDK 或包锁文件，完整依赖版本见开发文档。
 - Debug 包会启用改变网络行为的开发 Hook；发布流程应使用 Release。
 - 打包脚本硬编码 ZIP 前缀，且会删除 Release 目录、覆盖同版本 ZIP。
 - 打包脚本没有复制 LICENSE；仓库采用 MIT License，应在正式分发流程中核对和保留其要求的许可文本。
-- 本次 Release 编译通过但有 4 个现有警告，详见 [验证记录](DEVELOPMENT.md)。无游戏内测试结果，不代表最新游戏运行时已验证兼容。
+- 本次 Release 编译和 stub 回归通过，详见 [验证记录](DEVELOPMENT.md)。本机实际游戏 DLL 为待更新的旧版本；没有双端游戏内测试结果，不代表最新游戏运行时已验证兼容。

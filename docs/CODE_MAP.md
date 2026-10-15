@@ -10,7 +10,7 @@
 | `InstancedLoot/Enums.cs` | InstanceMode、ObjectInstanceMode、ObjectType、ObjectAlias 及描述/能力限制属性 |
 | `InstancedLoot/HookManager.cs` | 通用 Hook 注册表，按类型去重；Debug 条件注册 |
 | `InstancedLoot/ObjectHandlerManager.cs` | 对象类型注册表、复制体等待初始化表 |
-| `InstancedLoot/AbstractObjectHandler.cs` | SpawnCard 复制、实例组组装、等待/完成初始化流程 |
+| `InstancedLoot/AbstractObjectHandler.cs` | SpawnCard 复制、统一复制最终购买成本/独立 RNG、实例组组装、等待/完成初始化流程 |
 | `InstancedLoot/AbstractHookHandler.cs` | Hook 基类，定义注册与卸载接口；命名空间为 `InstancedLoot.Hooks` |
 | `InstancedLoot/Utils.cs` | 单副本/整个实例组的交互判断、相机对应玩家、物品总量是否增加 |
 | `InstancedLoot/Configuration/Config.cs` | 生成配置、模式能力计算、覆盖优先级、缓存、有效玩家集合 |
@@ -59,14 +59,14 @@
 | --- | --- |
 | `SpawnCardHandler.cs` | 记录对象实际使用的 SpawnCard |
 | `SceneDirectorHandler.cs` | 交互物生成预算；Lockbox、LockboxVoid、FreeChest 的拥有者注入 |
-| `PurchaseInteractionHandler.cs` | 购买资格检查；交互前记录购买者 Owner |
+| `PurchaseInteractionHandler.cs` | 提示与服务器实际购买入口的资格检查；交互前记录购买者 Owner |
 | `ChestBehaviorHandler.cs`、`OptionChestBehaviorHandler.cs` | Start 中名称识别/复制体接管；掉落上下文 |
 | `RouletteChestControllerHandler.cs`、`ShrineChanceBehaviorHandler.cs` | 轮盘箱与机会祭坛的识别和掉落上下文 |
 | `MultiShopControllerHandler.cs`、`ShopTerminalBehaviorHandler.cs` | 商店/终端初始化、源类型继承和掉落 |
 | `ShrineBloodBehaviorHandler.cs`、`ShrineRestackBehaviorHandler.cs` | 血之祭坛/秩序祭坛的识别与复制体接管 |
 | `ScrapperControllerHandler.cs` | 在 ScrappingToIdle 的 IL 中取得交互者并标记废料来源 |
-| `PickupDropletControllerHandler.cs` | droplet 创建、落地转换、指挥精华转换时传递来源 |
-| `GenericPickupControllerHandler.cs` | pickup 来源保存、实例化、交互/自动拾取限制、领取后保留对象 |
+| `PickupDropletControllerHandler.cs` | droplet 创建、CreatePickup（碰撞/强制初始化）、指挥精华转换时传递来源；临时上下文保存并恢复 |
+| `GenericPickupControllerHandler.cs`、`PickupGrantPolicy.cs` | pickup 来源保存、实例化、交互/自动拾取与授予前资格检查；按引用更新 GrantContext，让剩余玩家仍可领取 |
 | `PickupPickerControllerHandler.cs` | picker 延迟初始化、选择资格、共享选择、输出玩家列表、销毁控制 |
 | `SacrificeArtifactManagerHandler.cs` | 牺牲神器掉落归属及概率调整；攻击者优先 attackerOwnerMaster，后取 attackerMaster |
 | `BossHunterHandler.cs` | 猎人三角帽使用者及掉落来源 |

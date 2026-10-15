@@ -27,10 +27,7 @@ public class FadeBehavior : InstancedLootBehaviour
 
     public static readonly List<FadeBehavior> InstancesList = new();
     
-    private CameraRigController lastCameraRigController;
     private PlayerCharacterMasterController lastPlayer;
-    private PlayerCharacterMasterController lastDitherModelPlayer;
-    private bool lastVisible;
 
     private bool isBeingDestroyed;
 
@@ -124,11 +121,7 @@ public class FadeBehavior : InstancedLootBehaviour
             && body.master is var master && master
             && master.playerCharacterMasterController is var player && player)
         {
-            if (player == lastDitherModelPlayer)
-            {
-                isVisible = lastVisible;
-            }
-            else if(GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler)
+            if (GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler)
             {
                 isVisible = instanceHandler.IsInstancedFor(player);
             }
@@ -136,33 +129,7 @@ public class FadeBehavior : InstancedLootBehaviour
             {
                 isVisible = true;
             }
-
-            lastDitherModelPlayer = player;
         }
-        else
-        {
-            lastDitherModelPlayer = null;
-        }
-        
-        
-        // if (lastCameraRigController == cameraRigController)
-        // {
-        //     isVisible = lastVisible;
-        // }
-        // else
-        // {
-        //     if (cameraRigController.targetBody is var body 
-        //         && body 
-        //         && body.master is var master && master
-        //         && master.playerCharacterMasterController is var player && player
-        //         && GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler)
-        //     {
-        //         isVisible = instanceHandler.IsInstancedFor(player);
-        //     }
-        // }
-
-        // lastCameraRigController = cameraRigController;
-        lastVisible = isVisible;
 
         return isVisible ? 1.0f : FadeLevel;
     }
@@ -193,7 +160,6 @@ public class FadeBehavior : InstancedLootBehaviour
     {
         needsRefresh = false;
         lastPlayer = null;
-        lastCameraRigController = null;
 
         ExtraGameObjects.RemoveWhere(obj => obj == null);
         
@@ -233,9 +199,9 @@ public class FadeBehavior : InstancedLootBehaviour
         var instanceHandler = GetComponent<InstanceHandler>();
         bool isCopyObject = instanceHandler != null ? instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject : true;
 
-        if (isCopyObject && (instanceHandler == null || instanceHandler.AllOrigPlayers.Contains(player)))
+        if (isBeingDestroyed || isCopyObject && (instanceHandler == null || instanceHandler.AllOrigPlayers.Contains(player)))
         {
-            bool isOrigForCurrent = isBeingDestroyed || instanceHandler.OrigPlayer == player;
+            bool isOrigForCurrent = isBeingDestroyed || instanceHandler == null || instanceHandler.OrigPlayer == player;
             foreach (var renderer in Renderers)
             {
                 if (renderer == null)

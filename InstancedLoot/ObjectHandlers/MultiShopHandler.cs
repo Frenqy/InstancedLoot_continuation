@@ -104,14 +104,6 @@ public class MultiShopHandler : AbstractObjectHandler
                 targetShopTerminalBehavior.UpdatePickupDisplayAndAnimations();
             }
 
-            PurchaseInteraction targetPurchaseInteraction = target.GetComponent<PurchaseInteraction>();
-            if (targetPurchaseInteraction != null)
-            {
-                PurchaseInteraction sourcePurchaseInteraction = source.GetComponent<PurchaseInteraction>();
-
-                targetPurchaseInteraction.rng = sourcePurchaseInteraction.rng;
-                targetPurchaseInteraction.Networkcost = sourcePurchaseInteraction.Networkcost;
-            }
         }
 
         return instanceHandler;

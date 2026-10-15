@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../InstancedLoot/Networking/SyncInstances.cs" Link="Production/SyncInstances.cs" />
+    <Compile Include="../../InstancedLoot/Components/InstanceHandler.cs" Link="Production/InstanceHandler.cs" />
+    <Compile Include="../../InstancedLoot/Components/FadeBehavior.cs" Link="Production/FadeBehavior.cs" />
+    <Compile Include="../../InstancedLoot/AbstractObjectHandler.cs" Link="Production/AbstractObjectHandler.cs" />
+    <Compile Include="../../InstancedLoot/Hooks/PurchaseInteractionHandler.cs" Link="Production/PurchaseInteractionHandler.cs" />
+    <Compile Include="../../InstancedLoot/Hooks/PickupGrantPolicy.cs" Link="Production/PickupGrantPolicy.cs" />
+  </ItemGroup>
+</Project>

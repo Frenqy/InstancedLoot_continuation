@@ -112,6 +112,10 @@ public class InstanceHandler : InstancedLootBehaviour
 
     public void OnDestroy()
     {
+        if (sharedInfo != null && sharedInfo.SourceObject == gameObject)
+            sharedInfo.SourceObject = null;
+        SharedInfo = null;
+
         var fadeBehavior = GetComponent<FadeBehavior>();
         
         if (fadeBehavior)

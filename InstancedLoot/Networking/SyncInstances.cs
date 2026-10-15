@@ -22,7 +22,7 @@ public class SyncInstances : INetMessage
         private NetworkInstanceId _target;
         private NetworkInstanceId[] _players;
         private NetworkInstanceId _origPlayer;
-        private bool validated;
+        public NetworkInstanceId TargetId => _target;
 
         public InstanceHandlerEntry(InstanceHandler instanceHandler)
         {
@@ -33,26 +33,24 @@ public class SyncInstances : INetMessage
 
         public bool TryProcess()
         {
-            if (validated) return true;
-
             target = Util.FindNetworkObject(_target);
             if (target == null) return false;
 
+            origPlayer = null;
             if (_origPlayer != NetworkInstanceId.Invalid)
             {
                 origPlayer = Util.FindNetworkObject(_origPlayer);
-                if (origPlayer == null) return false;
+                if (origPlayer == null || !origPlayer.GetComponent<PlayerCharacterMasterController>()) return false;
             }
 
             players = new GameObject[_players.Length];
             for (int i = 0; i < _players.Length; i++)
             {
                 var player = Util.FindNetworkObject(_players[i]);
-                if (player == null) return false;
+                if (player == null || !player.GetComponent<PlayerCharacterMasterController>()) return false;
                 players[i] = player;
             }
 
-            validated = true;
             return true;
         }
 
@@ -68,7 +66,6 @@ public class SyncInstances : INetMessage
         public static InstanceHandlerEntry Deserialize(NetworkReader reader)
         {
             InstanceHandlerEntry entry = new();
-            entry.validated = false;
             entry._target = reader.ReadNetworkId();
             entry._origPlayer = reader.ReadNetworkId();
             
@@ -85,6 +82,17 @@ public class SyncInstances : INetMessage
     private NetworkInstanceId _sourceObject;
     private ObjectInstanceMode objectInstanceMode;
     private InstanceHandlerEntry[] instanceHandlerEntries;
+    // Only unresolved snapshots are retained. A later received message replaces an
+    // overlapping pending snapshot before its coroutine can apply stale permissions.
+    private static readonly List<SyncInstances> PendingMessages = new();
+    private bool superseded;
+    private InstancedLoot receiver;
+
+    public static void ClearPending()
+    {
+        foreach (var pending in PendingMessages) pending.superseded = true;
+        PendingMessages.Clear();
+    }
 
     public SyncInstances()
     {
@@ -129,72 +137,96 @@ public class SyncInstances : INetMessage
             // InstancedLoot.Instance._logger.LogWarning("SyncInstances ran on Host, ignoring");
             return;
 
-        InstancedLoot.Instance.StartCoroutine(HandleMessageInternal(objectInstanceMode, instanceHandlerEntries, _sourceObject));
+        receiver = InstancedLoot.Instance;
+        if (!receiver || !receiver.enabled) return;
+
+        var targetIds = new HashSet<NetworkInstanceId>(instanceHandlerEntries.Select(entry => entry.TargetId));
+        foreach (var pending in PendingMessages.ToArray())
+        {
+            if (pending.receiver != receiver || pending.instanceHandlerEntries.Any(entry => targetIds.Contains(entry.TargetId)))
+            {
+                pending.superseded = true;
+                PendingMessages.Remove(pending);
+            }
+        }
+
+        PendingMessages.Add(this);
+        receiver.StartCoroutine(HandleMessageInternal());
     }
 
-    private IEnumerator HandleMessageInternal(ObjectInstanceMode objectInstanceMode, InstanceHandlerEntry[] entries, NetworkInstanceId _sourceObject)
+    private IEnumerator HandleMessageInternal()
     {
-        bool validated = false;
-        int retryCount = 0;
-
+        var entries = instanceHandlerEntries;
+        var run = Run.instance;
+        float deadline = Time.realtimeSinceStartup + 30f;
         GameObject sourceObject = null;
-        
-        while (!validated)
+
+        try
         {
-            if (retryCount > 40)
+            while (true)
             {
-                InstancedLoot.Instance._logger.LogError("SyncInstances failed to process too many times; aborting.");
-                InstancedLoot.FailedSyncs.Add(entries);
-                yield break;
+                if (superseded || !receiver || !receiver.enabled || receiver != InstancedLoot.Instance || Run.instance != run)
+                    yield break;
+
+                bool validated = true;
+                // Resolve again on every pass: previously resolved objects can be destroyed
+                // while a different target/player is still spawning.
+                for (int i = 0; i < entries.Length; i++)
+                    if (!entries[i].TryProcess()) validated = false;
+
+                sourceObject = _sourceObject == NetworkInstanceId.Invalid ? null : Util.FindNetworkObject(_sourceObject);
+                if (_sourceObject != NetworkInstanceId.Invalid && sourceObject == null) validated = false;
+
+                if (validated) break;
+
+                if (Time.realtimeSinceStartup >= deadline)
+                {
+                    receiver._logger.LogError($"SyncInstances timed out waiting for network objects (source {_sourceObject}, targets {string.Join(", ", entries.Select(entry => entry.TargetId))}).");
+                    // Diagnostic history, not a replay queue. Keep it bounded across long runs.
+                    if (InstancedLoot.FailedSyncs.Count >= 32) InstancedLoot.FailedSyncs.RemoveAt(0);
+                    InstancedLoot.FailedSyncs.Add(entries);
+                    yield break;
+                }
+
+                yield return null;
             }
 
-            retryCount++;
-            validated = true;
+            InstanceHandler.SharedInstanceInfo sharedInstanceInfo = new();
+            sharedInstanceInfo.ObjectInstanceMode = objectInstanceMode;
+            sharedInstanceInfo.SourceObject = sourceObject;
 
-            for(int i = 0; i < entries.Length; i++) validated = validated && entries[i].TryProcess();
-
-            if (sourceObject == null && _sourceObject != NetworkInstanceId.Invalid)
+            foreach (var entry in entries)
             {
-                sourceObject = Util.FindNetworkObject(_sourceObject);
-
-                validated = validated && sourceObject == null;
-            }
-
-            if (!validated) yield return 0;
-        }
-
-        InstanceHandler.SharedInstanceInfo sharedInstanceInfo = new();
-        sharedInstanceInfo.ObjectInstanceMode = objectInstanceMode;
-        sharedInstanceInfo.SourceObject = sourceObject;
-
-        foreach (var entry in entries)
-        {
-            InstanceHandler instanceHandler = entry.target.GetComponent<InstanceHandler>();
+                InstanceHandler instanceHandler = entry.target.GetComponent<InstanceHandler>();
             
-            if (instanceHandler == null)
-                instanceHandler = entry.target.AddComponent<InstanceHandler>();
+                if (instanceHandler == null)
+                    instanceHandler = entry.target.AddComponent<InstanceHandler>();
 
-            instanceHandler.SetPlayers(entry.players.Select(player =>
-                player.GetComponent<PlayerCharacterMasterController>()), false);
+                instanceHandler.SetPlayers(entry.players.Select(player =>
+                    player.GetComponent<PlayerCharacterMasterController>()), false);
 
-            if(entry.origPlayer)
-                instanceHandler.OrigPlayer = entry.origPlayer.GetComponent<PlayerCharacterMasterController>();
+                instanceHandler.OrigPlayer = entry.origPlayer ? entry.origPlayer.GetComponent<PlayerCharacterMasterController>() : null;
 
-            if (sourceObject != null)
-            {
-                entry.target.transform.position = sourceObject.transform.position;
-                entry.target.transform.rotation = sourceObject.transform.rotation;
-                entry.target.transform.localScale = sourceObject.transform.localScale;
+                if (sourceObject != null)
+                {
+                    entry.target.transform.position = sourceObject.transform.position;
+                    entry.target.transform.rotation = sourceObject.transform.rotation;
+                    entry.target.transform.localScale = sourceObject.transform.localScale;
+                }
+
+                instanceHandler.SharedInfo = sharedInstanceInfo;
             }
-
-            instanceHandler.SharedInfo = sharedInstanceInfo;
-        }
         
-        sharedInstanceInfo.RecalculateAllPlayers();
+            sharedInstanceInfo.RecalculateAllPlayers();
 
-        InstanceHandler[] instanceHandlers = entries
-            .Select(entry => entry.target.GetComponent<InstanceHandler>()).Where(handler => handler != null).ToArray();
+            InstanceHandler[] instanceHandlers = entries
+                .Select(entry => entry.target.GetComponent<InstanceHandler>()).Where(handler => handler != null).ToArray();
 
-        foreach (var instanceHandler in instanceHandlers) instanceHandler.UpdateVisuals();
+            foreach (var instanceHandler in instanceHandlers) instanceHandler.UpdateVisuals();
+        }
+        finally
+        {
+            PendingMessages.Remove(this);
+        }
     }
 }

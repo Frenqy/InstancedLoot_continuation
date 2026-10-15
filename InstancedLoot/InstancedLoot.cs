@@ -95,6 +95,7 @@ public class InstancedLoot : BaseUnityPlugin
 
     public void OnDisable()
     {
+        SyncInstances.ClearPending();
         if (Instance == this) Instance = null;
         
         HookManager.UnregisterHooks();
