@@ -1,84 +1,42 @@
-# 代码导航与支持边界
+# 2.0 代码导航与支持边界
 
-路径均相对仓库根目录。下表用于缩小阅读范围；完整控制流见 [架构文档](ARCHITECTURE.md)。
+所有路径相对仓库根目录。旧 HandleInstancing/ObjectHandlerManager/SharedInfo、物品共享和 owner-only 源码已移除；历史在 Git 及 [HISTORY_1_X.md](HISTORY_1_X.md)。
 
-## 顶层与基础模块
-
-| 文件/目录 | 职责 |
+| 文件 | 当前职责 |
 | --- | --- |
-| `InstancedLoot/InstancedLoot.cs` | 插件生命周期、`HandleInstancing`、放弃领取、玩家加入时补发状态 |
-| `InstancedLoot/Enums.cs` | InstanceMode、ObjectInstanceMode、ObjectType、ObjectAlias 及描述/能力限制属性 |
-| `InstancedLoot/HookManager.cs` | 通用 Hook 注册表，按类型去重；Debug 条件注册 |
-| `InstancedLoot/ObjectHandlerManager.cs` | 对象类型注册表、复制体等待初始化表 |
-| `InstancedLoot/AbstractObjectHandler.cs` | SpawnCard 复制、统一复制最终购买成本/独立 RNG、实例组组装、等待/完成初始化流程 |
-| `InstancedLoot/AbstractHookHandler.cs` | Hook 基类，定义注册与卸载接口；命名空间为 `InstancedLoot.Hooks` |
-| `InstancedLoot/Utils.cs` | 单副本/整个实例组的交互判断、相机对应玩家、物品总量是否增加 |
-| `InstancedLoot/Configuration/Config.cs` | 生成配置、模式能力计算、覆盖优先级、缓存、有效玩家集合 |
-| `InstancedLoot/Configuration/DefaultPresets.cs`、`ConfigPreset.cs` | 内置预设及预设查询模型 |
-| `InstancedLoot/Configuration/Attributes.cs` | ObjectType/alias 元数据属性 |
-| `InstancedLoot/Configuration/AcceptableValuesInstanceMode.cs` | BepInEx 可接受模式列表及非法值回退 |
-| `InstancedLoot/Configuration/ConfigMigrator.cs` | 反射访问 BepInEx 未绑定条目；当前迁移表为空 |
-| `InstancedLoot/Configuration/ItemTierSet.cs` | ItemTier 集合序列化辅助类；当前无有效配置绑定使用它 |
-| `InstancedLoot/Components/` | 来源跟踪、实例状态、显示和标记组件，字段解释见架构文档；`InstanceAccessPolicy` 统一 CopyObject/InstancedObject 权限，`InstanceStateSynchronizer` 快照源/副本购买状态 |
-| `InstancedLoot/Networking/SyncInstances.cs` | 唯一自定义网络消息，实例组状态的序列化与客户端重建 |
-| `InstancedLoot/InstancedLoot.csproj`、`nuget.config` | 编译目标、依赖版本、包源 |
-| `manifest.json`、`build-release.ps1` | Thunderstore 元数据与本地 ZIP 打包 |
-| `icon.png`、`Icon.xcf` | 发布图标和可编辑图像源；不参与插件逻辑 |
+| InstancedLoot/InstancedLoot.cs | 插件生命周期、Run/场景清理、每两秒归属重发、玩家加入补发 |
+| InstancedLoot/ObjectInstancing/ObjectInstanceService.cs | 服务器源排队、SpawnCard 复制、不可变快照、待初始化副本与失败回滚 |
+| InstancedLoot/ObjectInstancing/ObjectAdapter.cs | Purchase 成本/类型/available/RNG 的快照边界 |
+| InstancedLoot/ObjectInstancing/NativeAdapters.cs | 箱、选择箱、轮盘、商店、三类神龛与修理物适配 |
+| InstancedLoot/Hooks/ObjectLifecycleHooks.cs | 成对 Hook 各组件 Start；接管副本初始化和损坏修理物识别 |
+| InstancedLoot/Components/InstanceHandler.cs | 固定 Owner、groupId、revision；显示关联 |
+| InstancedLoot/Components/PendingOwnership.cs | 初始化/归属解析期间的交互与显示封锁 |
+| InstancedLoot/Components/InstanceAccessPolicy.cs | Interactor/Body 到玩家的解析与权限 |
+| InstancedLoot/Hooks/PurchaseInteractionHandler.cs | 受管购买权限与事务重入；未受管原生透传 |
+| InstancedLoot/Hooks/InteractorHandler.cs、InteractorCandidateIL.cs | raycast/overlap、多 IInteractable 候选及服务器实际交互权限 |
+| InstancedLoot/Networking/OwnerSnapshot.cs | 新版单实体消息、session/epoch/revision、延迟解析与清理 |
+| InstancedLoot/Configuration/Config.cs、Enums.cs | 唯一 InstanceObject 策略、逐类布尔开关、两项平衡配置 |
+| InstancedLoot/Components/FadeBehavior.cs | 分屏逐相机模型/效果过滤与 PostRender 恢复 |
+| InstancedLoot/Hooks/DitherModelHandler.cs、HologramProjectorHandler.cs | 原生 dither 与价格提示适配 |
+| InstancedLoot/Hooks/PingHandler.cs、Components/PingerControllerRenderBehaviour.cs、Utils.cs | 对应玩家副本的标记可见性 |
+| InstancedLoot/Hooks/AnimationEventsHandler.cs、AnimationPrefabIL.cs、EffectManagerHandler.cs | 动画及非池化效果归属显示 |
+| InstancedLoot/Hooks/SpawnCardHandler.cs | 保存实际 SpawnCard，避免只靠名称搜索 |
+| InstancedLoot/Hooks/SceneDirectorHandler.cs、DeathRewardsHandler.cs | 可选生成预算与怪物金币缩减 |
 
-## 当前注册的 ObjectHandler
+## 支持表（源码接入，尚无 2.0 游戏实测）
 
-以下都位于 `InstancedLoot/ObjectHandlers/`；“已登记”指在 ObjectHandlerManager 中存在，不等同于所有游戏版本都已实测。
-
-| 处理器 | 已登记的类型 | 实现方式 / 特点 |
-| --- | --- | --- |
-| `ChestHandler` | Chest1、Chest2、GoldChest、Chest1StealthedVariant；CategoryChestDamage/Healing/Utility 及 CategoryChest2Damage/Healing/Utility；EquipmentBarrel、LunarChest、VoidChest、Lockbox、ScavBackpack | CopyObject；复制 RNG、dropCount、currentPickup；Lockbox 支持固有拥有者 |
-| `ShrineChanceHandler` | ShrineChance | CopyObject；复制 RNG 与价格 |
-| `RouletteChestHandler` | CasinoChest | CopyObject；复制 RNG |
-| `MultiShopHandler` | TripleShop、TripleShopEquipment、FreeChestMultiShop | CopyObject；控制器与每个三选一终端分别复制 RNG、价格、商品和隐藏状态；源终端按首位玩家隔离；FreeChestMultiShop 支持固有拥有者 |
-| `OptionChestHandler` | VoidTriple、LockboxVoid | CopyObject；复制 RNG 和 generatedPickups；LockboxVoid 支持固有拥有者 |
-| `PrinterHandler` | Duplicator、DuplicatorLarge、DuplicatorWild、DuplicatorMilitary；三个 LunarCauldron 类型；ShrineCleanse | None，仅处理掉落实例化；锅/净化池来源识别缺口见下节 |
-| `ScrapperHandler` | Scrapper | None，仅处理输出的废料 |
-| `SpecialItemHandler` | Sacrifice、TrophyHuntersTricorn、BossGroup、TeleporterBoss、SuperRoboBallEncounter | None，无可复制实体；来源由专用 Hook 提供 |
-| `SpecialObjectHandler` | ShrineBlood、ShrineRestack | CopyObject；没有实例化物品的能力；处理祭坛组件状态 |
-
-`TrophyHuntersTricorn` 是实际配置字符串，对应 C# 常量 `ObjectType.HuntersTricorn`。三个锅的字符串为 `LunarCauldron_WhiteToGreen`、`LunarCauldron_GreenToRed`、`LunarCauldron_RedToWhite`。
-
-## 不完整或未接入的对象路径
-
-- `LunarShopHandler.cs` 存在但未被 ObjectHandlerManager 注册。虽然 ShopTerminal Hook 识别 `LunarShopTerminal`，默认配置生成不包含它，最终通常回退为 None。
-- `TripleShopLarge` 有常量和名称识别，但从 MultiShopHandler 的类型表中注释掉；不要把识别代码当作有效支持。
-- `VoidFields`、`PickupLunarCoin` 仅有常量，没有当前注册的处理器。
-- 三个 LunarCauldron 类型及 ShrineCleanse 已登记到 PrinterHandler，但 `ShopTerminalBehaviorHandler.Start` 没有识别它们的名称，仓库中未发现对应的其他来源注入。配置可出现，运行时是否进入这条路径仍需补查/实测。
-- 无人机、炮塔未实现；第三方交互物需要显式接入。
-
-## Hook 按任务导航
-
-以下文件都位于 `InstancedLoot/Hooks/`。多数名称与游戏组件一致，但不能仅据名称推断处理范围。
-
-| 文件 | 关注点 |
+| 类型 | 当前处理 |
 | --- | --- |
-| `SpawnCardHandler.cs` | 记录对象实际使用的 SpawnCard |
-| `SceneDirectorHandler.cs` | 交互物生成预算；Lockbox、LockboxVoid、FreeChest 的拥有者注入 |
-| `PurchaseInteractionHandler.cs` | 提示与服务器实际购买入口的资格检查、同对象重入保护和成功后的共享资格消费；交互前记录购买者 Owner |
-| `ChestBehaviorHandler.cs`、`OptionChestBehaviorHandler.cs` | Start 中名称识别/复制体接管；掉落上下文 |
-| `RouletteChestControllerHandler.cs`、`ShrineChanceBehaviorHandler.cs` | 轮盘箱与机会祭坛的识别和掉落上下文 |
-| `MultiShopControllerHandler.cs`、`ShopTerminalBehaviorHandler.cs` | 商店/终端初始化、源类型继承和掉落 |
-| `ShrineBloodBehaviorHandler.cs`、`ShrineRestackBehaviorHandler.cs` | 血之祭坛/秩序祭坛的识别与复制体接管 |
-| `ScrapperControllerHandler.cs` | 在 ScrappingToIdle 的 IL 中取得交互者并标记废料来源 |
-| `PickupDropletControllerHandler.cs`、`CommandCubeIL.cs` | droplet 创建、CreatePickup（碰撞/强制初始化）、指挥精华转换时传递来源；临时上下文保存并恢复；Spawn 前 duplication 接管分支标签，生产 emitter 被独立回归直接链接 |
-| `GenericPickupControllerHandler.cs`、`PickupGrantPolicy.cs`、`PickupGrantIL.cs` | pickup 来源保存、实例化、交互/自动拾取与授予前资格检查；按引用更新 GrantContext，让剩余玩家仍可领取；IL emitter 被隔离结构检查直接链接 |
-| `PickupPickerControllerHandler.cs` | picker 延迟初始化、选择资格、共享选择、CreatePickup 输出玩家列表、销毁控制；未接入 AttemptGrantPickupDirectly，调用该方法的资产尚未核对 |
-| `SacrificeArtifactManagerHandler.cs` | 牺牲神器掉落归属及概率调整；攻击者优先 attackerOwnerMaster，后取 attackerMaster |
-| `BossHunterHandler.cs` | 猎人三角帽使用者及掉落来源 |
-| `BossGroupHandler.cs` | Boss 类型识别、掉落数缩放、按掉落循环分配拥有者 |
-| `ScavBackpackOpeningHandler.cs` | 拾荒者背包最大掉落数缩减 |
-| `DeathRewardsHandler.cs` | 怪物金币奖励按人数缩减 |
-| `ChatHandler.cs` | `uninstance`、`uninstanceall` 的命令解析和标记目标查找 |
-| `DitherModelHandler.cs` | 原生 DitherModel 与 FadeBehavior 的淡化叠加 |
-| `HologramProjectorHandler.cs` | 价格提示的观察者过滤与刷新 |
-| `AnimationEventsHandler.cs`、`AnimationPrefabIL.cs`、`EffectManagerHandler.cs` | CreatePrefab 的 DoSpawnEffect 返回点注入与非池化效果归属；SpawnEffect 的 Instantiate 路径；池化显示关联未覆盖 |
-| `PingHandler.cs` | 标记消息、实例归属文字、提示保留与位置指示器 |
-| `DevelopmentHooksHandler.cs` | 仅 DEBUG 注册；修改连接回调、消息 hash、空玩家名 |
-| `InteractorHandler.cs` | 在 `FindBestInteractableObject` 的重叠候选阶段跳过不属于当前玩家的实例，避免客户端按命中顺序选中其他玩家的副本 |
+| Chest1/Chest2/GoldChest/Chest1StealthedVariant、六种 CategoryChest | 每玩家原生箱，商品/价格/RNG 快照 |
+| EquipmentBarrel、LunarChest、VoidChest、Lockbox、ScavBackpack | Chest 适配；普通掉落公开 |
+| VoidTriple、LockboxVoid | 每玩家选择箱；选择列表独立 |
+| CasinoChest | 每玩家轮盘箱 |
+| TripleShop、TripleShopEquipment、FreeChestMultiShop | 每玩家一套原生 controller+terminal；不重复生成终端 |
+| ShrineChance、ShrineBlood、ShrineRestack | 三个独立开关；保留原生各玩家刷新/使用次数 |
+| Drone、Turret | 损坏待修复购买物；需可用 SpawnCard，保留原生召唤归属 |
+| 打印机、炼金锅、净化池、Scrapper、月球商店、未知/全局神龛 | 原版，无对象/掉落实例化 Hook |
+| 普通掉落、Boss、牺牲掉落、Command essence | 原版拾取/选择，无共享物品资格 |
 
-通用 Hook 在 HookManager 构造函数登记；各对象专用 Hook 由 ObjectHandler.Init 登记。判断某个 Hook 是否生效，应追到这两处注册入口，不应只检查 `RegisterHooks` 方法是否存在。
+修理物识别要求 Broken 名称与 Drone/Turret 字样，同时具备 PurchaseInteraction、有效 masterPrefab 及 destroyAfterSummoning；无 card 的特殊 BrokenBody 记录错误并整源回退原版。TripleShopLarge、DLC 新交互物及第三方对象没有被名称前缀误认为已支持。
+
+验证入口是 [MultiplayerRegression](../validation/MultiplayerRegression/README.md) 与 [IL/lifecycle audit](../validation/PickupGrantILRegression/README.md)。

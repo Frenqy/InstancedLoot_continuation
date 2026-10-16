@@ -1,313 +1,364 @@
 using InstancedLoot;
 using InstancedLoot.Components;
-using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
 using InstancedLoot.Networking;
+using InstancedLoot.ObjectInstancing;
 using RoR2;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
 
 int assertions = 0;
-void Check(bool condition, string name)
+void Check(bool condition, string message) { if (!condition) throw new Exception(message); assertions++; }
+uint nextId = 100;
+GameObject Obj(string name = "Chest1(Clone)")
 {
-    if (!condition) throw new Exception(name);
-    assertions++;
+    var target = new GameObject { name = name };
+    target.AddComponent<NetworkIdentity>().netId = new(++nextId);
+    Util.Objects[target.GetComponent<NetworkIdentity>().netId] = target;
+    return target;
 }
-GameObject Obj(uint id, bool player = false)
+void Index(GameObject target)
 {
-    var obj = new GameObject();
-    obj.AddComponent<NetworkIdentity>().netId = new(id);
-    if (player) obj.AddComponent<PlayerCharacterMasterController>();
-    Util.Objects[new(id)] = obj;
-    return obj;
+    if (!target.GetComponent<NetworkIdentity>()) target.AddComponent<NetworkIdentity>().netId = new(++nextId);
+    Util.Objects[target.GetComponent<NetworkIdentity>().netId] = target;
 }
-SyncInstances Message(uint source, params (uint target, uint owner, uint[] players)[] entries)
-{
-    var writer = new NetworkWriter();
-    writer.Write((int)ObjectInstanceMode.CopyObject);
-    writer.Write(new NetworkInstanceId(source));
-    writer.Write(entries.Length);
-    foreach (var (target, owner, players) in entries)
-    {
-        writer.Write(new NetworkInstanceId(target));
-        writer.Write(new NetworkInstanceId(owner));
-        writer.Write(players.Length);
-        foreach (uint player in players) writer.Write(new NetworkInstanceId(player));
-    }
-    var message = new SyncInstances();
-    message.Deserialize(new(writer.stream.ToArray()));
-    return message;
-}
-int PendingCount() => ((System.Collections.ICollection)typeof(SyncInstances).GetField("PendingMessages", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null)).Count;
-var p1 = Obj(1, true).GetComponent<PlayerCharacterMasterController>();
-var p2 = Obj(2, true).GetComponent<PlayerCharacterMasterController>();
-
-// The source must arrive even when every target/player already exists. 100 frames
-// exceeds the old frame-based limit, while remaining within the new real-time limit.
-var target = Obj(10);
-Message(20, (10, 1, [1])).OnReceived();
-for (int i = 0; i < 100; i++) Scheduler.Tick();
-Check(!target.GetComponent<InstanceHandler>(), "Do not accept missing source");
-var source = Obj(20);
-source.transform.position = 42;
-Scheduler.Tick();
-var handler = target.GetComponent<InstanceHandler>();
-Check(handler && handler.Players.Contains(p1) && target.transform.position == 42, "Resolve source after target");
-Check(PendingCount() == 0, "Completed snapshot removed");
-
-// A new snapshot can resolve before an old snapshot that still needs player 99.
-Message(0, (10, 1, [1, 99])).OnReceived();
-Message(0, (10, 2, [2])).OnReceived();
-Obj(99, true);
-Scheduler.Tick();
-Check(handler.Players.SetEquals([p2]) && handler.OrigPlayer == p2, "Older coroutine cannot restore stale permissions");
-Check(PendingCount() == 0, "Superseded snapshot removed");
-var roundTrip = new NetworkWriter();
-new SyncInstances(handler.SharedInfo).Serialize(roundTrip);
-Check(roundTrip.stream.Length == 28, "Original binary field layout remains unchanged");
-var decoded = new SyncInstances();
-decoded.Deserialize(new(roundTrip.stream.ToArray()));
-decoded.OnReceived();
-Check(handler.Players.SetEquals([p2]) && handler.OrigPlayer == p2, "Production serializer and reader round trip");
-Message(0, (10, 0, [])).OnReceived();
-Check(handler.OrigPlayer == null && handler.Players.Count == 0, "Clear previous owner and eligibility");
-
-// Recheck already resolved objects; do not use the cached, now-destroyed target.
-var vanishing = Obj(30);
-var delayed = Message(0, (30, 1, [1]), (31, 2, [2]));
-delayed.OnReceived();
-UnityEngine.Object.Destroy(vanishing);
-Obj(31);
-Scheduler.Tick();
-Check(!vanishing.GetComponent<InstanceHandler>(), "Do not apply to destroyed cached target");
-Scheduler.Tick(31);
-Check(PendingCount() == 0 && InstancedLoot.InstancedLoot.FailedSyncs.Count == 1, "Timeout removes pending message");
-
-Message(0, (40, 1, [1])).OnReceived();
-Run.instance = new();
-Scheduler.Tick();
-Check(PendingCount() == 0, "Run transition cancels pending message");
-Message(0, (41, 1, [1])).OnReceived();
-InstancedLoot.InstancedLoot.Instance.enabled = false;
-Scheduler.Tick();
-Check(PendingCount() == 0, "Disable cancels pending message");
-InstancedLoot.InstancedLoot.Instance.enabled = true;
-Message(0, (42, 1, [1])).OnReceived();
-SyncInstances.ClearPending(); // Production plugin calls this synchronously in OnDisable.
-Obj(42);
-Scheduler.Tick();
-Check(PendingCount() == 0 && !Util.FindNetworkObject(new(42)).GetComponent<InstanceHandler>(), "Disable/reenable in same frame cannot revive old snapshot");
-InstancedLoot.InstancedLoot.Instance = new();
-Obj(41);
-Message(0, (41, 2, [2])).OnReceived();
-Check(Util.FindNetworkObject(new(41)).GetComponent<InstanceHandler>().Players.SetEquals([p2]), "Reenabled receiver accepts new snapshot");
-
-// Shared group destruction must remove dead members before future serialization.
-var groupSource = Obj(50);
-var groupCopy = Obj(51);
-Message(50, (50, 1, [1]), (51, 2, [2])).OnReceived();
-var first = groupSource.GetComponent<InstanceHandler>();
-var second = groupCopy.GetComponent<InstanceHandler>();
-var group = first.SharedInfo;
-first.OnDestroy();
-Check(group.LinkedHandlers.Count == 1 && group.SourceObject == null && group.AllPlayers.SetEquals([p2]), "Destroy removes source and aggregated eligibility");
-new SyncInstances(group).Serialize(new NetworkWriter());
-second.OnDestroy();
-Check(group.LinkedHandlers.Count == 0 && group.AllPlayers.Count == 0, "Destroy complete group");
-
-// Clone initialization copies the final source cost via the network property. It
-// must not establish a runtime price link, so shrines can change independently.
-var objectHandler = new CopyHandler();
-objectHandler.Init(new());
-var cloneSource = Obj(59);
-cloneSource.transform.position = 100;
-cloneSource.transform.rotation = 205;
-cloneSource.transform.localScale = 3;
-var spawnCard = new InteractableSpawnCard();
-cloneSource.AddComponent<SpawnCardTracker>().SpawnCard = spawnCard;
-var cloned = objectHandler.CloneObject("Chest1", cloneSource);
-Check(cloned && spawnCard.LastRequest != null, "Production CloneObject reaches SpawnCard with a usable request");
-Check(spawnCard.LastRequest.placementRule.placementMode == DirectorPlacementRule.PlacementMode.DirectWithoutRandomRotation,
-    "Production clone request suppresses random rotation in native SpawnCard");
-Check(spawnCard.LastRequest.placementRule.position == 100 && spawnCard.LastRequest.placementRule.rotation == 205 &&
-    spawnCard.LastPosition == 100 && spawnCard.LastRotation == 205, "Clone rule and direct spawn arguments retain source position and rotation");
-Check(cloned.transform.position == 100 && cloned.transform.rotation == 205 && cloned.transform.localScale == 3,
-    "Clone restores complete source transform after SpawnCard placement");
-var pricedSource = Obj(60);
-var pricedCopy = Obj(61);
-var sourcePurchase = pricedSource.AddComponent<PurchaseInteraction>();
-sourcePurchase.cost = 735;
-sourcePurchase.costType = 7;
-sourcePurchase.rng = new(123UL);
-var copyPurchase = pricedCopy.AddComponent<PurchaseInteraction>();
-copyPurchase.cost = 25;
-var sourceCopyHandler = objectHandler.InstanceSingleObjectFrom(pricedSource, pricedSource, [p1]);
-sourceCopyHandler.SharedInfo = new() { SourceObject = pricedSource, ObjectInstanceMode = ObjectInstanceMode.CopyObject };
-var cloneCopyHandler = objectHandler.InstanceSingleObjectFrom(pricedSource, pricedCopy, [p2]);
-// A CopyObject source can temporarily carry the aggregate player set while a
-// snapshot or handler-specific initialization is being rebuilt. Interaction
-// eligibility must still follow OrigPlayer, and the clone must remain exclusive.
-sourceCopyHandler.SetPlayers([p1, p2], false);
-Check(sourceCopyHandler.OrigPlayer == p1 && sourceCopyHandler.IsInstancedFor(p1) &&
-    !sourceCopyHandler.IsInstancedFor(p2), "Copy source uses OrigPlayer for interaction permission");
-Check(cloneCopyHandler.OrigPlayer == p2 && cloneCopyHandler.IsInstancedFor(p2) &&
-    !cloneCopyHandler.IsInstancedFor(p1), "Copy clone uses its own OrigPlayer for interaction permission");
-sourceCopyHandler.SetPlayers([p1], false);
-Check(copyPurchase.cost == 735 && copyPurchase.costType == 7 && copyPurchase.CostWrites == 1 && copyPurchase.CostTypeWrites == 1, "Copy final cost with SyncVar setters");
-Check(sourcePurchase.CostWrites == 0 && !ReferenceEquals(copyPurchase.rng, sourcePurchase.rng) && copyPurchase.rng.State == 123, "Preserve source and independently copy RNG");
-sourcePurchase.cost = 999;
-Check(copyPurchase.cost == 735, "No runtime lock between copy prices");
-
-// Direct server purchase calls also enforce eligibility, not just UI prompts.
-var hooks = new PurchaseInteractionHandler();
-hooks.RegisterHooks();
+var plugin = new InstancedLoot.InstancedLoot();
+var p1 = Obj("p1").AddComponent<PlayerCharacterMasterController>();
+var p2 = Obj("p2").AddComponent<PlayerCharacterMasterController>();
+PlayerCharacterMasterController.instances.AddRange([p1, p2]);
 Interactor Actor(PlayerCharacterMasterController player)
 {
-    var actor = new GameObject();
-    var body = actor.AddComponent<CharacterBody>();
-    body.master = new GameObject().AddComponent<CharacterMaster>();
+    var target = Obj("actor");
+    var body = target.AddComponent<CharacterBody>();
+    body.master = Obj("master").AddComponent<CharacterMaster>();
     body.master.playerCharacterMasterController = player;
-    return actor.AddComponent<Interactor>();
+    player.body = body;
+    return target.AddComponent<Interactor>();
 }
+var actor1 = Actor(p1);
+var actor2 = Actor(p2);
+var life = new ObjectLifecycleHooks();
+var buy = new PurchaseInteractionHandler();
+var interact = new InteractorHandler();
+life.RegisterHooks(); buy.RegisterHooks(); interact.RegisterHooks();
 NetworkServer.active = true;
-On.RoR2.PurchaseInteraction.Buy(sourcePurchase, Actor(p2));
-Check(On.RoR2.PurchaseInteraction.Purchases == 0, "Reject other player's aggregate CopyObject source");
-On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p1));
-Check(On.RoR2.PurchaseInteraction.Purchases == 0, "Reject other player's copy before purchase callback");
-On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p2));
-Check(On.RoR2.PurchaseInteraction.Purchases == 1, "Allow eligible player");
-copyPurchase.available = false;
-On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p2));
-Check(On.RoR2.PurchaseInteraction.Purchases == 1, "Reject unavailable purchase before callback");
-copyPurchase.available = true;
-hooks.UnregisterHooks();
-NetworkServer.active = false;
-
-// The same policy applies to an InstancedObject purchase: the native
-// one-shot transition consumes only the player that completed it, while the
-// remaining player keeps eligibility. This is a stub-level transaction check,
-// not a real game's PayCost/network result.
-var sharedPurchaseObject = Obj(64);
-var sharedPurchase = sharedPurchaseObject.AddComponent<PurchaseInteraction>();
-var sharedHandler = sharedPurchaseObject.AddComponent<InstanceHandler>();
-sharedHandler.SetPlayers([p1, p2], false);
-sharedHandler.SharedInfo = new() { ObjectInstanceMode = ObjectInstanceMode.InstancedObject };
-var sharedHooks = new PurchaseInteractionHandler();
-sharedHooks.RegisterHooks();
-NetworkServer.active = true;
-On.RoR2.PurchaseInteraction.Buy(sharedPurchase, Actor(p1));
-Check(!sharedHandler.Players.Contains(p1) && sharedHandler.Players.Contains(p2),
-    "InstancedObject purchase consumes only the successful player");
-Check(!InstanceAccessPolicy.CanInteract(sharedHandler, Actor(p1)) &&
-    InstanceAccessPolicy.CanInteract(sharedHandler, Actor(p2)),
-    "Unified access policy reflects consumed shared purchase");
-sharedHooks.UnregisterHooks();
-NetworkServer.active = false;
-
-// TripleShop controller copies keep one shared group, while each terminal has
-// its own source/clone group.  This mirrors the asynchronous terminal path used
-// after a controller clone is spawned.
-var multiShop = new InstancedLoot.ObjectHandlers.MultiShopHandler();
-multiShop.Init(new ObjectHandlerManager());
-var multiSource = Obj(80);
-var sourceController = multiSource.AddComponent<MultiShopController>();
-sourceController.CreateTerminals();
-var multiSourceHandler = multiShop.InstanceSingleObjectFrom(multiSource, multiSource, [p1]);
-multiSourceHandler.SharedInfo = new() { SourceObject = multiSource, ObjectInstanceMode = ObjectInstanceMode.CopyObject };
-var sourceTerminalHandlers = sourceController.terminalGameObjects
-    .Select(terminal => terminal.GetComponent<InstanceHandler>()).ToArray();
-var sourceTerminalPurchase = sourceController.terminalGameObjects[0].GetComponent<PurchaseInteraction>();
-sourceTerminalPurchase.cost = 444;
-sourceTerminalPurchase.costType = 3;
-sourceTerminalPurchase.rng = new(88UL);
-Check(sourceTerminalHandlers.Length == 3 && sourceTerminalHandlers.All(handler => handler != null) &&
-    sourceTerminalHandlers.Select(handler => handler.SharedInfo).Distinct().Count() == 3,
-    "Each three-choice source terminal has its own SharedInfo group");
-Check(sourceTerminalHandlers.All(handler => handler.OrigPlayer == p1 && handler.IsInstancedFor(p1) &&
-    !handler.IsInstancedFor(p2)), "Three-choice source terminals belong only to first player");
-
-var multiClone = Obj(81);
-var cloneController = multiClone.AddComponent<MultiShopController>();
-multiShop.InstanceSingleObjectFrom(multiSource, multiClone, [p2]);
-var cloneTerminals = cloneController.terminalGameObjects;
-foreach (var cloneTerminal in cloneTerminals)
-    multiShop.HandleAwaitedObject(cloneTerminal);
-var cloneTerminalHandlers = cloneTerminals.Select(terminal => terminal.GetComponent<InstanceHandler>()).ToArray();
-Check(multiClone.GetComponent<InstanceHandler>().SharedInfo == multiSourceHandler.SharedInfo &&
-    multiClone.GetComponent<InstanceHandler>().OrigPlayer == p2,
-    "Three-choice controller clone shares only controller state");
-Check(cloneTerminalHandlers.Length == 3 &&
-    cloneTerminalHandlers.Zip(sourceTerminalHandlers).All(pair =>
-        pair.First.SharedInfo == pair.Second.SharedInfo &&
-        pair.First.SharedInfo != multiSourceHandler.SharedInfo &&
-        pair.First.OrigPlayer == p2 && pair.First.IsInstancedFor(p2) &&
-        !pair.First.IsInstancedFor(p1)),
-    "Each three-choice clone terminal keeps matching group and clone permission");
-Check(cloneTerminalHandlers.Select(handler => handler.SharedInfo).Distinct().Count() == 3,
-    "Three-choice terminal groups remain independent by slot");
-var cloneTerminalPurchase = cloneTerminals[0].GetComponent<PurchaseInteraction>();
-Check(cloneTerminalPurchase.cost == 444 && cloneTerminalPurchase.costType == 3 &&
-    cloneTerminalPurchase.rng.State == 88,
-    "Three-choice terminal copies snapshot the shared purchase state");
-
-// Interactor candidate filtering must resolve the player through the body/master
-// chain carried by the Interactor GameObject. PlayerCharacterMasterController is
-// attached to the master object, not to the Interactor itself.
-var interactableObject = Obj(62);
-var interactableHandler = interactableObject.AddComponent<InstanceHandler>();
-interactableHandler.SetPlayers([p2], false);
-interactableHandler.OrigPlayer = p2;
-interactableHandler.SharedInfo = new() { ObjectInstanceMode = ObjectInstanceMode.CopyObject };
-Check(!interactableHandler.IsInstancedForInteractor(Actor(p1)), "Reject ineligible interactor candidate");
-Check(interactableHandler.IsInstancedForInteractor(Actor(p2)), "Accept eligible interactor candidate");
-
-var pickupObject = Obj(70);
-var pickup = pickupObject.AddComponent<GenericPickupController>();
-var body1 = Actor(p1).GetComponent<CharacterBody>();
-var body2 = Actor(p2).GetComponent<CharacterBody>();
-Check(PickupGrantPolicy.CanGrant(pickup, body1), "Vanilla pickup retains original grant behavior");
-var pickupHandler = pickupObject.AddComponent<InstanceHandler>();
-pickupHandler.SetPlayers([p1, p2], false);
-pickupHandler.SharedInfo = new() { ObjectInstanceMode = ObjectInstanceMode.InstancedObject };
-var context = new PickupDef.GrantContext { shouldDestroy = false };
-PickupGrantPolicy.OnGranted(ref context, pickup, body1);
-Check(pickupHandler.Players.SetEquals([p1, p2]) && !context.shouldDestroy, "Failed native grant preserves all eligibility");
-context.shouldDestroy = true;
-PickupGrantPolicy.OnGranted(ref context, pickup, body1);
-Check(pickupHandler.Players.SetEquals([p2]) && !context.shouldDestroy, "First successful grant preserves shared pickup in native context");
-Check(!PickupGrantPolicy.CanGrant(pickup, body1) && PickupGrantPolicy.CanGrant(pickup, body2), "Reject repeated grants before native grant logic");
-Check(!PickupGrantPolicy.CanGrant(pickup, null), "Instanced pickup rejects missing player body");
-context.shouldDestroy = true;
-PickupGrantPolicy.OnGranted(ref context, pickup, body2);
-Check(pickupHandler.Players.Count == 0 && context.shouldDestroy, "Last successful grant allows native destruction");
-
-// Dither visibility must change when permissions change while viewing with the
-// same camera/player, and split-screen cameras retain their own player lookup.
-var fadeObject = Obj(63);
-var fadeRenderer = fadeObject.AddComponent<Renderer>();
-var fadeHandler = fadeObject.AddComponent<InstanceHandler>();
-fadeHandler.SetPlayers([p1, p2], false);
-fadeHandler.SharedInfo = new() { ObjectInstanceMode = ObjectInstanceMode.InstancedObject };
-var fade = fadeObject.GetComponent<FadeBehavior>();
-var camera1 = new CameraRigController { targetBody = Actor(p1).GetComponent<CharacterBody>() };
-var camera2 = new CameraRigController { targetBody = Actor(p2).GetComponent<CharacterBody>() };
-Check(fade.GetFadeLevelForCameraRigController(camera2) == 1f, "Eligible camera starts visible");
-fadeHandler.RemovePlayer(p2);
-Check(fade.GetFadeLevelForCameraRigController(camera2) == fade.FadeLevel, "Same-camera eligibility update invalidates dither state");
-fadeHandler.SetPlayers([p1]);
-Check(fade.GetFadeLevelForCameraRigController(camera1) == 1f && fade.GetFadeLevelForCameraRigController(camera2) == fade.FadeLevel, "Split-screen camera eligibility remains separate");
-fade.RefreshForPreRender(p1);
-Check(fadeRenderer.fade == 1f, "Own player's instanced object is fully visible");
-fade.RefreshForPreRender(p2);
-Check(fadeRenderer.fade == fade.FadeLevel, "Other player's instanced object is faded");
-fadeHandler.OnDestroy();
-fade.OnDestroy();
-Check(fadeRenderer.enabled && fadeRenderer.fade == 1f, "Unloading restores renderers after group has detached");
-
-Console.WriteLine($"PASS: {assertions} assertions against linked production sources (stub runtime, no real game or transport test).");
-
-sealed class CopyHandler : AbstractObjectHandler
+GameObject Chest()
 {
-    public override string[] HandledObjectTypes => [];
-    public override ObjectInstanceMode ObjectInstanceMode => ObjectInstanceMode.CopyObject;
+    var target = Obj();
+    target.AddComponent<ChestBehavior>();
+    target.AddComponent<PurchaseInteraction>().cost = 700;
+    target.AddComponent<Renderer>();
+    return target;
+}
+var source = Chest();
+var created = new List<GameObject>();
+source.AddComponent<SpawnCardTracker>().SpawnCard = new InteractableSpawnCard { Factory = () => { var copy = Chest(); created.Add(copy); return copy; } };
+int sourceStarts = 0, cloneStarts = 0;
+On.RoR2.ChestBehavior.Fire(source.GetComponent<ChestBehavior>(), () => { sourceStarts++; source.GetComponent<ChestBehavior>().rng.State = 431; });
+Check(PendingOwnership.IsPending(source) && !InstanceAccessPolicy.CanInteract(source, actor1), "Source initialization blocks purchase until complete");
+plugin.Objects.Pump();
+Check(sourceStarts == 1 && created.Count == 1, "One native source Start and N-1 native entities");
+var clone = created.Single();
+source.GetComponent<PurchaseInteraction>().cost = 999;
+source.GetComponent<ChestBehavior>().currentPickup = "consumed-source";
+On.RoR2.ChestBehavior.Fire(clone.GetComponent<ChestBehavior>(), () => cloneStarts++);
+Check(cloneStarts == 0, "Copy never rerolls via native Chest.Start");
+Check(clone.GetComponent<ChestBehavior>().currentPickup.Equals("item1") && clone.GetComponent<ChestBehavior>().rng.State == 431,
+    "Copy applies immutable initialized pickup and RNG snapshot after source changes");
+Check(clone.GetComponent<PurchaseInteraction>().cost == 700 && clone.GetComponent<PurchaseInteraction>().CostWrites == 1,
+    "Final source money price copied through native SyncVar setter");
+Check(source.GetComponent<InstanceHandler>().Owner == p1 && clone.GetComponent<InstanceHandler>().Owner == p2,
+    "Each independently consumable entity has one distinct owner");
+Check(!InstanceAccessPolicy.CanInteract(clone, actor1) && InstanceAccessPolicy.CanInteract(clone, actor2), "Body/master ownership resolves correctly");
+int paid1 = 0, paid2 = 0;
+On.RoR2.PurchaseInteraction.Buy(source.GetComponent<PurchaseInteraction>(), actor2, () => paid1++);
+Check(paid1 == 0, "Direct unauthorized purchase cannot pay or invoke purchase events");
+On.RoR2.PurchaseInteraction.Buy(source.GetComponent<PurchaseInteraction>(), actor1, () => { paid1++; source.GetComponent<PurchaseInteraction>().available = false; });
+Check(paid1 == 1 && clone.GetComponent<PurchaseInteraction>().available, "First player consumes source without consuming the other entity");
+On.RoR2.PurchaseInteraction.Buy(clone.GetComponent<PurchaseInteraction>(), actor2, () => { paid2++; clone.GetComponent<PurchaseInteraction>().available = false; });
+Check(paid2 == 1, "Second player still pays and consumes their own native object");
+On.RoR2.PurchaseInteraction.Buy(clone.GetComponent<PurchaseInteraction>(), actor2, () => paid2++);
+Check(paid2 == 1, "Unavailable duplicate purchase rejected");
+clone.GetComponent<PurchaseInteraction>().available = true;
+On.RoR2.PurchaseInteraction.Buy(clone.GetComponent<PurchaseInteraction>(), actor2, () =>
+{
+    paid2++;
+    On.RoR2.PurchaseInteraction.Buy(clone.GetComponent<PurchaseInteraction>(), actor2, () => paid2 += 99);
+});
+Check(paid2 == 2, "Same-entity purchase reentry is rejected");
+try { On.RoR2.PurchaseInteraction.Buy(clone.GetComponent<PurchaseInteraction>(), actor2, () => throw new InvalidOperationException()); } catch (InvalidOperationException) { }
+On.RoR2.PurchaseInteraction.Buy(clone.GetComponent<PurchaseInteraction>(), actor2, () => paid2++);
+Check(paid2 == 3, "Exception releases purchase reentry guard");
+On.RoR2.PurchaseInteraction.Buy(clone.GetComponent<PurchaseInteraction>(), actor2, () => clone.GetComponent<PurchaseInteraction>().available = false);
+clone.GetComponent<PurchaseInteraction>().available = true;
+On.RoR2.PurchaseInteraction.Buy(clone.GetComponent<PurchaseInteraction>(), actor2, () => paid2++);
+Check(paid2 == 4 && clone.GetComponent<InstanceHandler>().Owner == p2, "Native shrine refresh preserves owner and supports subsequent purchases");
+On.RoR2.Interactor.Perform(actor1, clone);
+On.RoR2.Interactor.Perform(actor2, clone);
+Check(On.RoR2.Interactor.Interactions == 1, "Server PerformInteraction guards all native IInteractable components");
+
+GameObject Shop()
+{
+    var root = Obj("TripleShop(Clone)");
+    var controller = root.AddComponent<MultiShopController>(); // Native Awake creates terminals once.
+    foreach (var terminal in controller.terminalGameObjects) Index(terminal);
+    return root;
+}
+var shopSource = Shop();
+var sourceShop = shopSource.GetComponent<MultiShopController>();
+sourceShop.Networkcost = 444;
+sourceShop.Networkavailable = true;
+for (int i = 0; i < 3; i++)
+{
+    var terminal = sourceShop.terminalGameObjects[i];
+    terminal.GetComponent<ShopTerminalBehavior>().Networkpickup = "choice" + i;
+    terminal.GetComponent<PurchaseInteraction>().cost = 444;
+}
+GameObject shopCopy = null;
+shopSource.AddComponent<SpawnCardTracker>().SpawnCard = new InteractableSpawnCard { Factory = () => shopCopy = Shop() };
+On.RoR2.MultiShopController.Fire(sourceShop, () => { });
+Check(sourceShop.terminalGameObjects.All(PendingOwnership.IsPending), "Unready source shop gates every terminal, not only the root");
+int premature = 0;
+On.RoR2.PurchaseInteraction.Buy(sourceShop.terminalGameObjects[0].GetComponent<PurchaseInteraction>(), actor1, () => premature++);
+plugin.Objects.Pump();
+Check(premature == 0 && shopCopy == null, "Cannot buy or capture shop before terminal Start completes");
+foreach (var terminal in sourceShop.terminalGameObjects)
+    On.RoR2.ShopTerminalBehavior.Fire(terminal.GetComponent<ShopTerminalBehavior>(), () => terminal.GetComponent<ShopTerminalBehavior>().hasStarted = true);
+plugin.Objects.Pump();
+Check(shopCopy && sourceShop.Creates == 1 && shopCopy.GetComponent<MultiShopController>().Creates == 1, "Exactly one Awake terminal group per native shop entity");
+int terminalRerolls = 0;
+foreach (var terminal in shopCopy.GetComponent<MultiShopController>().terminalGameObjects)
+    On.RoR2.ShopTerminalBehavior.Fire(terminal.GetComponent<ShopTerminalBehavior>(), () => terminalRerolls++);
+Check(terminalRerolls == 0, "Copy terminals skip native Start even when they start before their controller");
+On.RoR2.MultiShopController.Fire(shopCopy.GetComponent<MultiShopController>(), () => throw new Exception("Copy controller native Start reran"));
+var copyShop = shopCopy.GetComponent<MultiShopController>();
+Check(copyShop.terminalGameObjects.Select(t => t.GetComponent<ShopTerminalBehavior>().Networkpickup).SequenceEqual(new[] { "choice0", "choice1", "choice2" }), "Three choices preserve exact source goods");
+Check(copyShop.terminalGameObjects.All(t => t.GetComponent<PurchaseInteraction>().cost == 444 && t.GetComponent<InstanceHandler>().Owner == p2), "Every copied shop terminal receives matching price and exclusive owner");
+Check(sourceShop.terminalGameObjects[1].GetComponent<InstanceHandler>().GroupId == copyShop.terminalGameObjects[1].GetComponent<InstanceHandler>().GroupId &&
+      sourceShop.terminalGameObjects[0].GetComponent<InstanceHandler>().GroupId != copyShop.terminalGameObjects[1].GetComponent<InstanceHandler>().GroupId,
+    "Corresponding terminal slots share a visual group, different slots remain distinct");
+var terminalPurchase = sourceShop.terminalGameObjects[0].GetComponent<PurchaseInteraction>();
+On.RoR2.PurchaseInteraction.Buy(terminalPurchase, actor1, () => { foreach (var t in sourceShop.terminalGameObjects) t.GetComponent<PurchaseInteraction>().available = false; });
+Check(sourceShop.terminalGameObjects.All(t => !t.GetComponent<PurchaseInteraction>().available) && copyShop.terminalGameObjects.All(t => t.GetComponent<PurchaseInteraction>().available), "Native one-of-three closure stays within one player's controller");
+terminalPurchase.available = true;
+On.RoR2.PurchaseInteraction.Buy(terminalPurchase, actor1, () => { }); // Native Executive Card may leave other terminals available.
+Check(terminalPurchase.available, "No forced shop closure overrides native legal special mechanics");
+sourceShop.terminalGameObjects[1].GetComponent<PurchaseInteraction>().available = true; int nestedSlots = 0;
+On.RoR2.PurchaseInteraction.Buy(terminalPurchase, actor1, () => On.RoR2.PurchaseInteraction.Buy(sourceShop.terminalGameObjects[1].GetComponent<PurchaseInteraction>(), actor1, () => nestedSlots++));
+Check(nestedSlots == 0, "Reentrant purchases across terminals share the same native-controller transaction guard");
+
+var noCard = Chest();
+On.RoR2.ChestBehavior.Fire(noCard.GetComponent<ChestBehavior>(), () => { });
+var noCardFade = noCard.GetComponent<FadeBehavior>();
+noCardFade.RefreshForPreCull(p1);
+plugin.Objects.Pump();
+noCardFade.RefreshForPreCull(p1); noCardFade.RefreshForPreRender(p1);
+Check(!noCard.GetComponent<InstanceHandler>() && !PendingOwnership.IsPending(noCard) && noCard.GetComponent<Renderer>().enabled && noCard.GetComponent<Renderer>().fade == 1f,
+    "Missing SpawnCard restores complete vanilla access and display for all players");
+var doomedSource = Chest(); GameObject independent = null;
+doomedSource.AddComponent<SpawnCardTracker>().SpawnCard = new InteractableSpawnCard { Factory = () => independent = Chest() };
+plugin.Objects.InitializeSource(new NativeAdapters.Chest(), doomedSource, "Chest1"); plugin.Objects.Pump();
+NetworkServer.Destroy(doomedSource);
+Check(plugin.Objects.InitializeCopy(independent) && independent.GetComponent<InstanceHandler>().Owner == p2, "Source destruction cannot cancel another player's immutable copy initialization");
+var failedSource = Chest(); GameObject failedCopy = null;
+failedSource.AddComponent<SpawnCardTracker>().SpawnCard = new InteractableSpawnCard { Factory = () => failedCopy = Chest() };
+plugin.Objects.InitializeSource(new FailingAdapter(), failedSource, "Chest1"); plugin.Objects.Pump();
+Check(plugin.Objects.InitializeCopy(failedCopy) && !failedCopy, "Failed adapter initialization destroys its network entity instead of leaving unowned loot");
+var clearSource = Shop(); GameObject clearCopy = null;
+foreach (var t in clearSource.GetComponent<MultiShopController>().terminalGameObjects) t.GetComponent<ShopTerminalBehavior>().hasStarted = true;
+clearSource.AddComponent<SpawnCardTracker>().SpawnCard = new InteractableSpawnCard { Factory = () => clearCopy = Shop() };
+plugin.Objects.InitializeSource(new NativeAdapters.MultiShop(), clearSource, "TripleShop"); plugin.Objects.Pump();
+var orphanCandidates = clearCopy.GetComponent<MultiShopController>().terminalGameObjects;
+plugin.Objects.Clear();
+Check(!clearCopy && orphanCandidates.All(t => !t), "Transition cleanup destroys pending root and every independent network terminal");
+
+
+// Adapters for the explicitly supported shrine and repair lifecycles.
+GameObject Repair()
+{
+    var target = Obj("Drone1Broken(Clone)"); target.AddComponent<PurchaseInteraction>().cost = 889;
+    var summon = target.AddComponent<SummonMasterBehavior>(); summon.masterPrefab = Obj("DroneMaster"); summon.destroyAfterSummoning = true;
+    return target;
+}
+var repairSource = Repair(); var sourceSummon = repairSource.GetComponent<SummonMasterBehavior>(); sourceSummon.droneUpgradeCount = 3;
+GameObject repairCopy = null;
+repairSource.AddComponent<SpawnCardTracker>().SpawnCard = new InteractableSpawnCard { Factory = () => repairCopy = Repair() };
+int sourceRepairStarts = 0, copyRepairStarts = 0;
+On.RoR2.SummonMasterBehavior.Fire(sourceSummon, () => sourceRepairStarts++); plugin.Objects.Pump();
+On.RoR2.SummonMasterBehavior.Fire(repairCopy.GetComponent<SummonMasterBehavior>(), () => copyRepairStarts++);
+Check(sourceRepairStarts == 1 && copyRepairStarts == 1, "Repair display Start runs once for source and once after copied upgrade state");
+var copySummon = repairCopy.GetComponent<SummonMasterBehavior>();
+Check(copySummon.droneUpgradeCount == 3 && copySummon.UpgradeWrites == 1 && copySummon.masterPrefab == sourceSummon.masterPrefab && copySummon.destroyAfterSummoning,
+    "Damaged repair object preserves master prefab, networked upgrades and destroy-after-summoning policy");
+PlayerCharacterMasterController summonedOwner = null;
+On.RoR2.PurchaseInteraction.Buy(repairCopy.GetComponent<PurchaseInteraction>(), actor1, () => summonedOwner = p1);
+Check(summonedOwner == null, "Other player cannot summon through a foreign repair object");
+On.RoR2.PurchaseInteraction.Buy(repairCopy.GetComponent<PurchaseInteraction>(), actor2, () => { summonedOwner = InstanceAccessPolicy.ResolvePlayer(actor2); NetworkServer.Destroy(repairCopy); });
+Check(summonedOwner == p2 && repairSource, "Native repair receives its original activator and consumes only its own damaged entity");
+var livingDrone = Obj("Drone1Body").AddComponent<SummonMasterBehavior>();
+On.RoR2.SummonMasterBehavior.Fire(livingDrone, () => { }); plugin.Objects.Pump();
+Check(!livingDrone.GetComponent<InstanceHandler>(), "Active body or non-purchasable summon is never claimed as a repair instance");
+var chanceSource = Obj("ShrineChance"); chanceSource.AddComponent<PurchaseInteraction>().cost = 123;
+chanceSource.AddComponent<ShrineChanceBehavior>().rng.State = 992;
+var chanceCopy = Obj("ShrineChance"); chanceCopy.AddComponent<PurchaseInteraction>(); chanceCopy.AddComponent<ShrineChanceBehavior>();
+var shrineAdapter = new NativeAdapters.Shrine(); var chanceState = shrineAdapter.CaptureState(chanceSource);
+chanceSource.GetComponent<ShrineChanceBehavior>().rng.State = 1; chanceState(chanceCopy);
+Check(chanceCopy.GetComponent<ShrineChanceBehavior>().rng.State == 992 && chanceCopy.GetComponent<ShrineChanceBehavior>().purchaseInteraction == chanceCopy.GetComponent<PurchaseInteraction>(),
+    "Chance shrine keeps independent RNG and its own purchase component");
+var orderSource = Obj("ShrineRestack"); orderSource.AddComponent<PurchaseInteraction>(); orderSource.AddComponent<ShrineRestackBehavior>().rng.State = 332;
+var orderCopy = Obj("ShrineRestack"); orderCopy.AddComponent<PurchaseInteraction>(); orderCopy.AddComponent<ShrineRestackBehavior>();
+shrineAdapter.CaptureState(orderSource)(orderCopy);
+Check(orderCopy.GetComponent<ShrineRestackBehavior>().rng.State == 332 && !ReferenceEquals(orderCopy.GetComponent<ShrineRestackBehavior>().rng, orderSource.GetComponent<ShrineRestackBehavior>().rng), "Order shrine RNG is an independent snapshot");
+var bloodSource = Obj("ShrineBlood"); bloodSource.AddComponent<PurchaseInteraction>().cost = 75; bloodSource.AddComponent<ShrineBloodBehavior>();
+var bloodCopy = Obj("ShrineBlood"); bloodCopy.AddComponent<PurchaseInteraction>(); bloodCopy.AddComponent<ShrineBloodBehavior>();
+shrineAdapter.CaptureState(bloodSource)(bloodCopy);
+Check(bloodCopy.GetComponent<PurchaseInteraction>().cost == 75 && bloodCopy.GetComponent<ShrineBloodBehavior>().purchaseInteraction == bloodCopy.GetComponent<PurchaseInteraction>(), "Blood shrine copies its cost and uses its own native refresh component");
+var optionSource = Obj("VoidTriple"); optionSource.AddComponent<PurchaseInteraction>(); optionSource.AddComponent<OptionChestBehavior>();
+var optionCopy = Obj("VoidTriple"); optionCopy.AddComponent<PurchaseInteraction>(); optionCopy.AddComponent<OptionChestBehavior>();
+var optionState = new NativeAdapters.OptionChest().CaptureState(optionSource); optionSource.GetComponent<OptionChestBehavior>().generatedPickups.Clear(); optionState(optionCopy);
+Check(optionCopy.GetComponent<OptionChestBehavior>().generatedPickups.Count == 3, "Option chest snapshots its choices instead of sharing a mutable list");
+var extraOption = Obj("VoidTriple"); extraOption.AddComponent<PurchaseInteraction>(); extraOption.AddComponent<OptionChestBehavior>(); optionState(extraOption);
+optionCopy.GetComponent<OptionChestBehavior>().generatedPickups.Clear();
+Check(extraOption.GetComponent<OptionChestBehavior>().generatedPickups.Count == 3, "Each option copy gets its own choice list");
+var rouletteSource = Obj("CasinoChest"); rouletteSource.AddComponent<PurchaseInteraction>(); rouletteSource.AddComponent<RouletteChestController>().rng.State = 440;
+var rouletteCopy = Obj("CasinoChest"); rouletteCopy.AddComponent<PurchaseInteraction>(); rouletteCopy.AddComponent<RouletteChestController>();
+new NativeAdapters.Roulette().CaptureState(rouletteSource)(rouletteCopy);
+Check(rouletteCopy.GetComponent<RouletteChestController>().rng.State == 440, "Adaptive chest preserves the initialized roulette RNG");
+var p3 = Obj("p3").AddComponent<PlayerCharacterMasterController>(); PlayerCharacterMasterController.instances.Add(p3);
+var rollbackSource = Chest(); GameObject partialCopy = null; int spawnAttempts = 0;
+rollbackSource.AddComponent<SpawnCardTracker>().SpawnCard = new InteractableSpawnCard { Factory = () => ++spawnAttempts == 1 ? partialCopy = Chest() : throw new InvalidOperationException("injected second spawn failure") };
+plugin.Objects.InitializeSource(new NativeAdapters.Chest(), rollbackSource, "Chest1"); plugin.Objects.Pump();
+Check(!partialCopy && !rollbackSource.GetComponent<InstanceHandler>() && !PendingOwnership.IsPending(rollbackSource), "A later spawn exception rolls back earlier copies and leaves complete vanilla source");
+Check(!plugin.Objects.InitializeCopy(partialCopy), "Rolled-back clone cannot later initialize from leftover pending state");
+PlayerCharacterMasterController.instances.Remove(p3);
+plugin.ModConfig.Enabled = false; var toggledOff = Chest();
+On.RoR2.ChestBehavior.Fire(toggledOff.GetComponent<ChestBehavior>(), () => { }); plugin.Objects.Pump();
+Check(!PendingOwnership.IsPending(toggledOff) && !toggledOff.GetComponent<InstanceHandler>(), "Disabled object policy retains native source and access"); plugin.ModConfig.Enabled = true;
+
+// Both candidate search paths use the same policy, while unmanaged printers retain exact native component selection.
+var mixed = Obj(); var disabled = mixed.AddComponent<TestInteractable>(); disabled.enabled = false;
+var active = mixed.AddComponent<PurchaseInteraction>(); mixed.AddComponent<InstanceHandler>().Assign(p2, 333);
+foreach (bool sphere in new[] { false, true })
+{
+    Check(!InteractorHandler.TryCandidate(mixed, out _, actor1, sphere), "Foreign raycast/overlap candidate rejected");
+    Check(InteractorHandler.TryCandidate(mixed, out var result, actor2, sphere) && ReferenceEquals(result, active), "Disabled picker cannot shadow owned purchase in either search");
+}
+var printer = Obj("Duplicator"); var nativeFirst = printer.AddComponent<TestInteractable>(); nativeFirst.enabled = false;
+printer.AddComponent<PurchaseInteraction>();
+Check(InteractorHandler.TryCandidate(printer, out var originalCandidate, actor1, false) && ReferenceEquals(originalCandidate, nativeFirst), "Unmanaged printer keeps native TryGetComponent selection");
+int vanillaPurchase = 0;
+On.RoR2.PurchaseInteraction.Buy(printer.GetComponent<PurchaseInteraction>(), actor1, () => vanillaPurchase++);
+Check(vanillaPurchase == 1, "Unmanaged printer purchase events are untouched");
+printer.GetComponent<PurchaseInteraction>().available = false;
+On.RoR2.PurchaseInteraction.Buy(printer.GetComponent<PurchaseInteraction>(), actor1, () => vanillaPurchase++);
+Check(vanillaPurchase == 2, "Unmanaged purchase remains an exact pass-through even when native availability is false");
+var fadeRenderer = clone.GetComponent<Renderer>(); var fade = clone.GetComponent<FadeBehavior>();
+fade.RefreshForPreCull(p1); Check(fadeRenderer.forceRenderingOff, "Foreign player model hidden");
+fade.RefreshForPreCull(p2); Check(!fadeRenderer.forceRenderingOff, "Next split-screen camera sees its own model");
+fade.RefreshForPreCull(p1); Check(fadeRenderer.forceRenderingOff, "Each camera reapplies visibility without aggregate membership gating");
+fade.RestoreAfterCamera();
+Check(!fadeRenderer.forceRenderingOff && fadeRenderer.enabled, "PostRender restores the native renderer mask");
+fadeRenderer.enabled = false; fade.RefreshForPreCull(p2);
+Check(!fadeRenderer.enabled && !fadeRenderer.forceRenderingOff, "Owned view never re-enables a natively disabled renderer");
+fade.OnDestroy(); Check(!fadeRenderer.enabled && !fadeRenderer.forceRenderingOff, "Unload restores native state rather than enabling every model");
+
+// Nested native roots and terminals never own the same renderer restore state.
+var viewRoot = Obj(); viewRoot.AddComponent<InstanceHandler>().Assign(p2, 890);
+var viewChild = Obj(); viewChild.Parent = viewRoot; viewRoot.Children.Add(viewChild);
+var childRenderer = viewChild.AddComponent<Renderer>(); viewChild.AddComponent<InstanceHandler>().Assign(p2, 891);
+var rootView = viewRoot.GetComponent<FadeBehavior>(); var childView = viewChild.GetComponent<FadeBehavior>();
+rootView.RefreshForPreCull(p1); childView.RefreshForPreCull(p1);
+rootView.RestoreAfterCamera(); childView.RestoreAfterCamera();
+Check(!childRenderer.forceRenderingOff, "Nested shop root and terminal views restore each renderer exactly once");
+rootView.RefreshForPreCull(p2); childView.RefreshForPreCull(p2);
+Check(!childRenderer.forceRenderingOff, "Owner camera does not inherit another nested view's hidden mask");
+rootView.RestoreAfterCamera(); childView.RestoreAfterCamera();
+
+var pingerObject = Obj(); var pinger = pingerObject.AddComponent<PingerController>();
+pinger.pingIndicator = Obj().AddComponent<RoR2.UI.PingIndicator>(); var pingRenderer = pinger.pingIndicator.gameObject.AddComponent<Renderer>();
+pinger.pingIndicator.pingTarget = clone; var pingView = pingerObject.AddComponent<PingerControllerRenderBehaviour>();
+pingView.RefreshForPlayer(p1); Check(pingRenderer.forceRenderingOff, "Ping marker hides when the viewer's corresponding purchase is spent");
+pingView.RefreshForPlayer(p2); Check(!pingRenderer.forceRenderingOff, "Other split-screen camera keeps its available ping marker");
+pingView.RestoreAfterCamera(); Check(!pingRenderer.forceRenderingOff, "Ping marker restores its native mask after camera render");
+
+// The real production wire format, replay ordering and independent reference resolution.
+NetworkServer.active = false;
+OwnerSnapshot.Clear();
+var epochWire = new NetworkWriter(); new OwnerSnapshot(independent.GetComponent<InstanceHandler>()).Serialize(epochWire);
+var epochReader = new NetworkReader(epochWire.stream.ToArray()); epochReader.ReadInt32(); epochReader.ReadNetworkId(); epochReader.ReadInt32(); epochReader.ReadString();
+int wireEpoch = epochReader.ReadInt32();
+OwnerSnapshot Packet(GameObject target, uint owner, int revision = 1, int version = 2, int stage = 0, int epoch = 0)
+{
+    var writer = new NetworkWriter(); writer.Write(version); writer.Write(Run.instance.netId); writer.Write(stage); writer.Write(SceneManager.Name); writer.Write(epoch == 0 ? wireEpoch : epoch);
+    writer.Write(target.GetComponent<NetworkIdentity>().netId); writer.Write(new NetworkInstanceId(owner)); writer.Write(revision); writer.Write(555);
+    var snapshot = new OwnerSnapshot(); snapshot.Deserialize(new(writer.stream.ToArray())); return snapshot;
+}
+uint Pid(PlayerCharacterMasterController player) => player.GetComponent<NetworkIdentity>().netId.Value;
+var delayedTarget = Obj();
+Packet(delayedTarget, 999, 1).OnReceived();
+Check(OwnerSnapshot.PendingCount == 1 && PendingOwnership.IsPending(delayedTarget) && !InstanceAccessPolicy.CanInteract(delayedTarget, actor1), "Known snapshot with delayed owner gates access and display");
+var readyTarget = Obj(); Packet(readyTarget, Pid(p2)).OnReceived();
+Check(readyTarget.GetComponent<InstanceHandler>().Owner == p2 && OwnerSnapshot.PendingCount == 1, "One missing owner never blocks independent snapshot");
+Packet(delayedTarget, Pid(p2), 3).OnReceived(); Packet(delayedTarget, Pid(p1), 2).OnReceived();
+Check(delayedTarget.GetComponent<InstanceHandler>().Owner == p2 && OwnerSnapshot.PendingCount == 0, "Older received revision cannot restore stale ownership");
+var writerRound = new NetworkWriter(); new OwnerSnapshot(delayedTarget.GetComponent<InstanceHandler>()).Serialize(writerRound);
+var decoded = new OwnerSnapshot(); decoded.Deserialize(new(writerRound.stream.ToArray())); decoded.OnReceived();
+Check(delayedTarget.GetComponent<InstanceHandler>().Owner == p2 && writerRound.stream.Length > 28, "Production serializer/reader round trip uses versioned per-entity layout");
+var rejected = Obj(); Packet(rejected, Pid(p1), version: 1).OnReceived(); Packet(rejected, Pid(p1), stage: 99).OnReceived();
+Check(!rejected.GetComponent<InstanceHandler>(), "Incompatible protocol rejects; future stage waits without attaching ownership");
+OwnerSnapshot.Clear();
+var vanishing = Obj(); Packet(vanishing, 998).OnReceived(); Check(OwnerSnapshot.PendingCount == 1, "Destroyed-target test is actually waiting for a missing owner"); NetworkServer.Destroy(vanishing);
+OwnerSnapshot.Pump(); Check(!vanishing.GetComponent<InstanceHandler>(), "Destroyed target is never attached from a cached reference");
+Time.realtimeSinceStartup += 31; OwnerSnapshot.Pump(); Check(OwnerSnapshot.PendingCount == 0 && !PendingOwnership.IsPending(vanishing), "Missing reference timeout releases pending state");
+var late = Obj(); Packet(late, 997).OnReceived(); OwnerSnapshot.Clear();
+var lateOwner = Obj("late-owner"); lateOwner.GetComponent<NetworkIdentity>().netId = new(997); lateOwner.AddComponent<PlayerCharacterMasterController>(); Util.Objects[new(997)] = lateOwner;
+OwnerSnapshot.Pump(); Check(!late.GetComponent<InstanceHandler>(), "Transition clear prevents an old pending snapshot reviving after references arrive");
+var sessionTarget = Obj(); Packet(sessionTarget, 996).OnReceived(); SceneManager.Name = "bazaar"; OwnerSnapshot.Pump();
+OwnerSnapshot.SceneChanged();
+Check(OwnerSnapshot.PendingCount == 0, "Scene transition discards the old scene waiter rather than treating it as a future packet");
+OwnerSnapshot.Clear();
+Check(!PendingOwnership.IsPending(sessionTarget), "Clear removes temporary marker instead of leaving permanent invisible entities");
+SceneManager.Name = "golemplains";
+// Snapshot precedes Run and then precedes stage/scene activation.
+OwnerSnapshot.Clear();
+var earlyRunTarget = Obj(); var savedRun = Run.instance;
+var beforeRun = Packet(earlyRunTarget, Pid(p1)); Run.instance = null; beforeRun.OnReceived();
+Check(OwnerSnapshot.PendingCount == 1 && !earlyRunTarget.GetComponent<InstanceHandler>(), "Snapshot arriving before Run is queued");
+Run.instance = savedRun; OwnerSnapshot.RunChanged();
+Check(earlyRunTarget.GetComponent<InstanceHandler>().Owner == p1, "Run arrival resolves the queued snapshot without needing replay");
+var earlyStage = Obj(); Packet(earlyStage, Pid(p2), stage: 1, epoch: wireEpoch + 1).OnReceived();
+Check(!earlyStage.GetComponent<InstanceHandler>() && OwnerSnapshot.PendingCount == 1, "Incoming stage metadata waits until stage SyncVar arrives");
+Run.instance.stageClearCount = 1; OwnerSnapshot.SceneChanged();
+Check(earlyStage.GetComponent<InstanceHandler>().Owner == p2, "Future stage snapshot survives transition and resolves");
+var reused = Obj(); var reusedId = reused.GetComponent<NetworkIdentity>().netId;
+Packet(reused, Pid(p1), stage: 1, epoch: wireEpoch + 1).OnReceived();
+OwnerSnapshot.SceneChanged(); NetworkServer.Destroy(reused);
+var replacement = Obj(); replacement.GetComponent<NetworkIdentity>().netId = reusedId; Util.Objects[reusedId] = replacement;
+Packet(replacement, Pid(p1), stage: 1, epoch: wireEpoch + 1).OnReceived();
+Check(!replacement.GetComponent<InstanceHandler>(), "Old scene epoch cannot attach ownership to a reused netId");
+Packet(replacement, Pid(p2), stage: 1, epoch: wireEpoch + 2).OnReceived();
+Check(replacement.GetComponent<InstanceHandler>().Owner == p2, "New epoch can safely initialize a reused netId");
+OwnerSnapshot.Clear();
+var timeoutTarget = Obj(); Packet(timeoutTarget, 995, stage: 1).OnReceived();
+Check(PendingOwnership.IsPending(timeoutTarget), "Timeout test has a known target with an unresolved owner");
+Time.realtimeSinceStartup += 31; OwnerSnapshot.Pump();
+Check(!PendingOwnership.IsPending(timeoutTarget), "Timeout releases temporary ownership marker");
+// Scene activation can lag the message independently of the stage SyncVar.
+OwnerSnapshot.Clear();
+var futureScene = Obj(); var savedScene = SceneManager.Name;
+SceneManager.Name = "bazaar"; var beforeScene = Packet(futureScene, Pid(p1), stage: 1, epoch: wireEpoch + 3);
+SceneManager.Name = savedScene; beforeScene.OnReceived();
+Check(OwnerSnapshot.PendingCount == 1 && !futureScene.GetComponent<InstanceHandler>(), "Future scene snapshot waits without touching the current scene");
+SceneManager.Name = "bazaar"; OwnerSnapshot.SceneChanged();
+Check(futureScene.GetComponent<InstanceHandler>().Owner == p1, "Scene activation resolves an already queued future snapshot");
+life.UnregisterHooks(); buy.UnregisterHooks(); interact.UnregisterHooks();
+Console.WriteLine($"PASS: {assertions} assertions against the new production lifecycle, adapters, purchase policy, candidate policy, views and owner protocol. Stub boundary; no Unity/transport game test.");
+
+sealed class FailingAdapter : ObjectAdapter { public override Action<GameObject> CaptureState(GameObject source) => _ => throw new InvalidOperationException("injected initialization failure"); }
+sealed class TestInteractable : Behaviour, IInteractable
+{
+    public Interactability GetInteractability(Interactor actor) => Interactability.Available;
+    public bool ShouldIgnoreSpherecastForInteractibility(Interactor actor) => false;
+    public void OnInteractionBegin(Interactor actor) { }
 }

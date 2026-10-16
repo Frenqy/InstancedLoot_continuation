@@ -1,38 +1,31 @@
 # AI 协作指南
 
-适用范围：整个仓库。本文是后续 AI 的首读入口；先建立下面的项目模型，再按任务阅读相关文档与源码，不必先扫描所有文件。
+适用范围：整个仓库。先读本文件和 [文档索引](docs/README.md)，再读 [架构](docs/ARCHITECTURE.md)，按任务查 [代码导航](docs/CODE_MAP.md)、[已知问题](docs/KNOWN_ISSUES.md)。配置任务读配置文档；构建和扩展读开发文档。
 
 ## 项目速览
 
-- 这是《Risk of Rain 2》的 BepInEx 5 模组，不是可以用 Unity Editor 打开的 Unity 工程，也不是独立应用。
-- 目的：让多人游戏中的交互物和掉落物按玩家分别使用、领取，并同步归属和显示效果。主机与客户端均需安装。
-- 唯一模组项目：`InstancedLoot/InstancedLoot.csproj`；解决方案：`RoR2Mods.sln`；目标：`netstandard2.1`。隔离验证程序位于 `validation/`，不打入模组 DLL。
-- 插件入口：`InstancedLoot/InstancedLoot.cs`；GUID 为 `com.kuberoot.instancedloot`，也是配置文件名的基础。不要为 continuation 分支随意改 GUID。
-- 当前插件属性、`manifest.json` 和 `.csproj` 的模组版本统一为 `1.5.1`，编译目标为 Hallowed Concepts 游戏 `1.5.0`（2026-10-08 发布）；模组版本与游戏/依赖版本独立，依赖来源和未完成的游戏验证见开发文档。
-- 核心依赖为游戏程序集、MMHOOK、BepInEx、R2API.Networking。通过 NuGet 引用，不需要把游戏 DLL 复制进仓库。
-- 文档基于 2026-10-15 的源码整理；源码变化后应同步更新对应章节。编译成功不代表游戏中的 IL 钩子和多人行为有效。
-
-## 最小阅读路径
-
-1. 阅读本文件和 [文档索引](docs/README.md)。
-2. 阅读 [架构与数据流](docs/ARCHITECTURE.md)，理解对象复制、共享领取状态和同步边界。
-3. 按任务查 [代码导航](docs/CODE_MAP.md)，仅打开对应源码；修改前阅读 [已知问题](docs/KNOWN_ISSUES.md) 中相关部分。
-4. 改配置读 [配置说明](docs/CONFIGURATION.md)；构建、扩展或游戏升级适配读 [开发与验证](docs/DEVELOPMENT.md)。
+- 这是《Risk of Rain 2》的 BepInEx 5 模组，不是 Unity Editor 工程或独立应用；主机与客户端需要同版本。
+- 唯一项目 `InstancedLoot/InstancedLoot.csproj`，解决方案 `RoR2Mods.sln`，目标 netstandard2.1。validation 是隔离验证程序，不进模组 DLL。
+- 入口 `InstancedLoot/InstancedLoot.cs`，GUID 保持 `com.kuberoot.instancedloot`，配置文件沿用该 GUID。
+- 当前模组版本 **2.0.0**（插件、csproj、manifest 一致），目标仍是 Hallowed Concepts / 游戏 1.5.0。依赖通过 NuGet，不复制游戏 DLL 进仓库。
+- 2.0 只实现 PreferredInstanceMode=InstanceObject：每位生成时在场的玩家有一个独立原生购买物，物品掉落公开。旧 InstanceItems/owner-only/preset/alias/chat 路径已移除，历史见 Git 和 HISTORY_1_X。
+- 文档基于 2026-10-16 核对。编译和 stub 不证明 Unity/Mono Hook 安装或多人实测有效。
 
 ## 必须保留的设计约束
 
-- 区分 `InstanceMode`（用户策略）和 `ObjectInstanceMode`（对象实现能力）。`InstanceItems` 常用一个对象记录多个玩家的领取资格，并非给每人克隆一个掉落物。
-- `HandleInstancing` 是中心入口，但本身没有统一的服务器保护；调用方负责适当的 `NetworkServer.active` 检查。显示层需要在客户端执行。
-- `InstanceInfoTracker` 记录来源/拥有者；`InstanceHandler` 记录当前资格和关联实例。不要用视觉淡化代替交互权限检查。
-- 复制交互物依赖 `SpawnCard`、`AwaitedObjects` 和后续 `Start` 回调；不要未经核对就改成直接 `Instantiate`，或让复制体重复执行原生初始化并重新抽取物品。
-- 克隆体需要保留原对象的 RNG、物品、价格等状态；具体状态复制在各 `ObjectHandlers` 中。
-- 修改玩家集合时优先用 `SetPlayers`、`RemovePlayer`、`AddPlayer`，维护 `SharedInfo` 的聚合数据和同步。使用 `sync: false` 后必须由完整初始化流程完成同步。
-- `SharedInfo` 未设置时不能直接调用默认会同步的玩家集合方法；遵循现有初始化顺序。
-- owner-only 模式缺少拥有者且没有 `PlayerOverride` 时跳过实例化，避免意外复制物品。
-- 掉落来源通过钩子对象上的临时 `InstanceOverrideInfo` 跨调用传递。新代码应保存旧值并用 `try/finally` 恢复，兼顾异常与嵌套；现有代码多数尚未这样处理。
-- 新增 Hook 必须成对注册/卸载，并进入 `HookManager` 或已注册 ObjectHandler 的 `Init`。新增对象需同时处理识别、注册、能力限制、配置和掉落上下文；只有常量或类文件不表示已支持。
-- `SyncInstances` 是二进制消息；改变字段顺序、数量、枚举值时必须同时检查两端读写及版本兼容。
-- 保留基于当前相机对应玩家的显示逻辑，避免破坏分屏。不要把所有客户端显示判断替换为单一“本地玩家”。
+- ObjectInstanceService 管服务器生命周期，ObjectAdapter 捕获/恢复原生状态，InstanceHandler.Owner 是单一固定归属。不要再把用户 InstanceObject 策略等同于一个共享资格对象。
+- 初始化/复制/清理必须 server-only；客户端显示与快照解析必须可执行。权限不能由视觉隐藏代替。
+- 源原生初始化一次，副本通过 SpawnCard/Awake 后由 Start 接管；不要直接 Instantiate，也不要让副本重跑随机初始化。捕获闭包不依赖源后续存活。
+- 复制最终价格、成本类型、available、RNG、商品及子物状态，网络字段用 SyncVar setter。副本后续价格和开关独立。
+- MultiShop.Awake 已建终端，绝不再 CreateTerminals；源等所有终端 hasStarted，再捕获。副本终端先 Start 也要拦截。所有终端都有归属，根/对应槽位的 groupId 只用于显示关联。
+- 购买由原生 PayCost/onPurchase/关闭/冷却负责。受管对象只做归属与重入门禁，不能把 available=false 视为永久消费，不能强制关闭 Executive Card 保留的终端。未受管对象（尤其打印机）的购买和候选必须原生透传。
+- source pending 必须封锁全部关联购买子物；复制失败回滚已生成根与独立网络子物并让源回退原版。副本初始化失败不得留下无主可购买物。
+- 修理支持针对损坏待修复购买物，不是活动 CharacterBody；保留 masterPrefab、网络升级数和原生 activator 召唤归属。未知/全局神龛不宣称隔离。
+- OwnerSnapshot 是协议 v2 的单实体消息。字段变化同时核对两端、版本、session/epoch/revision、乱序、延迟和 netId 复用测试；不能重新依赖 source/整组解析。
+- pending 超时、场景/Run 切换和卸载要清理临时标记；保留未来 session 提前到达的消息，拒绝旧 epoch。周期重发不得给迟加入凭空增加份额。
+- 客户端候选覆盖 raycast 与 overlap；受管对象要处理多个 IInteractable、禁用组件，实际服务器 PerformInteraction 同样有归属检查。
+- 按每个相机的玩家显示，保留分屏；Renderer.forceRenderingOff 不覆盖原生 enabled。PostRender 恢复暂存状态，父子 view 不可重复管理同一 renderer/effect。
+- 新 Hook 成对注册/卸载并进入 HookManager；新增对象同时补适配器、识别、配置、网络/显示与验证。仅有常量或空类不表示支持。
 
 ## 常用命令
 
@@ -53,7 +46,7 @@ git diff --check
 - 提交前检查 diff 和暂存区，只纳入本次任务相关改动；提交信息应概括修改目的。完成后向用户报告 commit hash、主要内容与验证结果；若提交受阻，明确说明原因，不得声称已提交。
 - 凡 Codex 参与完成的提交，必须在提交信息末尾添加 Git trailer：`Co-authored-by: Codex <codex@openai.com>`，并与前面的提交说明以空行分隔。提交后核对该署名已写入 commit。
 - 沿用现有 C# 风格：文件范围命名空间、按功能分 Handler、四空格缩进；避免为单个修复重排全部文件。
-- 默认用 Release 验证。Debug 会启用改变联机连接和消息哈希行为的 `DevelopmentHooksHandler`，不能视为普通调试符号差异。
+- 默认用 Release 验证。2.0 已移除旧 `DevelopmentHooksHandler`；不得重新引入修改联机连接或消息哈希的开发行为。
 - `validation/MultiplayerRegression` 提供链接生产源码的隔离 stub 回归；没有 Unity 或自动化联机测试、CI 配置。按改动执行 Release 构建、相关回归和游戏内验证，不要把 stub 通过描述成联机实测。
 - 文档类任务不顺手修改游戏逻辑或依赖；仍按上述规则递增模组版本并维护当前 CHANGELOG，保留历史记录事实。发现问题记录证据，功能修复另按任务范围处理。
 - 不提交 `bin/`、`obj/`、`Release/`、本机配置、日志或 NuGet 缓存；根目录生成的 ZIP 也不要意外加入提交。

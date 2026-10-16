@@ -54,6 +54,7 @@ using (var module = ModuleDefinition.CreateModule("MissingGrantPattern", ModuleK
     }
 }
 
+InteractorRegression.Run();
 AnimationPrefabRegression.Run();
 CommandCubeRegression.Run();
 
@@ -68,11 +69,12 @@ if (args.Length > 0)
     if (!firstLoad.MatchLdloc(out int localIndex) && !firstLoad.MatchLdloca(out localIndex))
         throw new Exception("Installed assembly has an unexpected local load.");
     Verify(method, method.Body.Variables[localIndex], firstLoad);
-    Console.WriteLine("Installed assembly structure checked; this does not prove a different game version's IL.");
+    Console.WriteLine("Historical pickup emitter structure checked; this hook is not installed by 2.0.");
     InstalledHookAudit.Run(args[0]);
+    NativeLifecycleAudit.Run(assembly.MainModule);
 }
 
-Console.WriteLine($"Passed {assertions} IL structure assertions.");
+Console.WriteLine($"Passed {assertions} historical pickup IL structure assertions.");
 
 void Verify(MethodDefinition method, VariableDefinition local, Instruction originalLoad)
 {

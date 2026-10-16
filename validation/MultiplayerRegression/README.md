@@ -1,32 +1,13 @@
-# Multiplayer regression harness
-
-Run from the repository root with .NET 8 or newer:
+# Object-instancing lifecycle regression (2.0)
 
 ```powershell
 dotnet run --project validation/MultiplayerRegression --configuration Release
 ```
 
-This dependency-free executable links the actual production `SyncInstances`,
-`InstanceHandler`, `AbstractObjectHandler`, `PurchaseInteractionHandler`,
-`PickupGrantPolicy` and `FadeBehavior` sources. A deterministic stub boundary controls spawn timing,
-coroutine scheduling, game-object destruction, camera ownership and purchase callbacks.
-Assertions cover delayed source resolution beyond 40 frames, superseded pending
-snapshots, destroyed references, timeout/run/disable cleanup, group destruction,
-non-null clone placement rules and preserved rotation/transform, cost setter use
-and independent RNG, CopyObject source/clone permission, independent
-three-choice terminal groups, server purchase eligibility, failed/successful/
-last-player pickup grants, repeated-grant rejection and camera state.
+Run from the repository root with .NET 8 or later. This executable links the **new production** ObjectInstanceService, ObjectAdapter, NativeAdapters, OwnerSnapshot, ObjectLifecycleHooks, PurchaseInteractionHandler, InteractorHandler, InstanceHandler/AccessPolicy/PendingOwnership, FadeBehavior, PingerControllerRenderBehaviour and Utils. Only Unity/RoR2/UNet boundaries are stubbed.
 
-The stubs model destroyed Unity objects as false/null for overloaded equality;
-they do not run actual Unity Object lifetimes or MonoBehaviour callbacks. Tests
-invoke relevant lifecycle methods and advance coroutine scheduling explicitly.
-They deliberately do not emulate real UNet serialization/SyncVar dirty bits,
-R2API transport, RoR2 method IL, actual rendering or two installed game clients.
-Passing this harness does not establish game-version or multiplayer compatibility.
+Current result: **82 assertions**. Coverage includes independent native consumption and immutable goods/cost/RNG; controller/terminal Start ordering and one Awake terminal group; native legal shop outcomes and reentry; repair upgrade SyncVar/activator; shrine refresh/state; disabled/unmanaged passthrough; missing SpawnCard and partial generation failure rollback; source destruction, failed copy initialization and terminal cleanup; both candidate paths with multiple components; split-screen/native enabled/nested view restoration; actual wire serialization, delayed and early session references, stale revisions, scene epochs, timeout/clear and netId reuse.
 
-On 2026-10-16, the Release run passed 48 assertions. The earlier 1.5.2 run
-passed 39; the additional checks cover the CopyObject source/clone permission
-split and independent three-choice terminal groups. The earlier 1.5.0 adaptation
-record had 33. See
-[DEVELOPMENT.md](../../docs/DEVELOPMENT.md) for the separate installed-assembly
-IL checks and outstanding game tests.
+The delegates model boundary outcomes. They do not execute real PayCost, minion summoning, state machines, Unity rendering, real SyncVar dirtiness or packet transport. InteractorCandidateIL is stubbed here; its actual transformation/CLR execution is verified separately in PickupGrantILRegression. No stub pass is a host/client gameplay test.
+
+The former shared-pickup/SharedInfo regression contract is superseded by 2.0 and remains in Git history. The independent purchase regression is retained under the correct contract: player one consuming the source leaves player two's native entity available and consumable. Historical validation records are preserved in docs/HISTORY_1_X.md.

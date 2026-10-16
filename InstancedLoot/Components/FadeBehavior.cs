@@ -1,298 +1,131 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using InstancedLoot.Enums;
 using RoR2;
 using UnityEngine;
 
 namespace InstancedLoot.Components;
 
-public class FadeBehavior : InstancedLootBehaviour
+/// <summary>Render ownership is evaluated separately for each SceneCamera.</summary>
+public sealed class FadeBehavior : InstancedLootBehaviour
 {
     private static readonly int Fade = Shader.PropertyToID("_Fade");
-    
-    public float FadeLevel = 0.3f;
-
-    private bool needsRefresh = true;
-
-    public HashSet<GameObject> ExtraGameObjects = new();
-    
-    public HashSet<Renderer> Renderers;
-    public HashSet<Renderer> DitherModelRenderers;
-    public DitherModel[] DitherModels;
-    private MaterialPropertyBlock propertyStorage;
-    
-    public Behaviour[] ComponentsForPreCull;
-    // public Behaviour[] ComponentsForPreRender;
-
+    public float FadeLevel = 0f;
+    public readonly HashSet<GameObject> ExtraGameObjects = new();
     public static readonly List<FadeBehavior> InstancesList = new();
-    
-    private PlayerCharacterMasterController lastPlayer;
-
-    private bool isBeingDestroyed;
+    private readonly HashSet<Renderer> renderers = new();
+    private readonly HashSet<Behaviour> effects = new();
+    private MaterialPropertyBlock properties;
+    private bool dirty = true;
+    private readonly Dictionary<Renderer, bool> originalForce = new();
+    private readonly Dictionary<Behaviour, bool> originalEffects = new();
+    private readonly Dictionary<Renderer, MaterialPropertyBlock> originalProperties = new();
 
     static FadeBehavior()
     {
-        SceneCamera.onSceneCameraPreCull += RefreshForPreCull;
-        SceneCamera.onSceneCameraPreRender += RefreshForPreRender;
+        SceneCamera.onSceneCameraPreCull += camera => RefreshAll(camera, true);
+        SceneCamera.onSceneCameraPreRender += camera => RefreshAll(camera, false);
+        SceneCamera.onSceneCameraPostRender += _ => { foreach (var view in InstancesList) view.RestoreAfterCamera(); };
     }
-
+    private static void RefreshAll(SceneCamera camera, bool cull)
+    {
+        var body = camera.cameraRigController ? camera.cameraRigController.targetBody : null;
+        var player = body && body.master ? body.master.playerCharacterMasterController : null;
+        foreach (var view in InstancesList)
+            if (cull) view.RefreshForPreCull(player); else view.RefreshForPreRender(player);
+    }
+    public void Awake() { properties = new MaterialPropertyBlock(); }
+    public void OnEnable() { InstancesList.Add(this); }
+    public void OnDisable() { RestoreAfterCamera(); InstancesList.Remove(this); }
     public void OnDestroy()
     {
-        isBeingDestroyed = true;
-
-        RefreshForPreCull(lastPlayer);
-        RefreshForPreRender(lastPlayer);
-    }
-
-    public static void RefreshForPreCull(SceneCamera sceneCamera)
-    {
-        RefreshAllInstances(sceneCamera, true);
-    }
-
-    public static void RefreshForPreRender(SceneCamera sceneCamera)
-    {
-        RefreshAllInstances(sceneCamera, false);
-    }
-
-    public static void RefreshAllInstances(SceneCamera sceneCamera, bool isPreCull)
-    {
-        CameraRigController cameraRigController = sceneCamera.cameraRigController;
-        if (!cameraRigController) return;
-
-        CharacterBody body = cameraRigController.targetBody;
-        if (!body) return;
-
-        PlayerCharacterMasterController player = body.master != null ? body.master.playerCharacterMasterController : null;
-        if (!player) return;
-        
-        if(isPreCull)
-            foreach (var fadeBehavior in InstancesList)
-                fadeBehavior.RefreshForPreCull(player);
-        else
-            foreach (var fadeBehavior in InstancesList)
-                fadeBehavior.RefreshForPreRender(player);
-    }
-
-    public void RefreshInstanceForCamera(SceneCamera sceneCamera)
-    {
-        CameraRigController cameraRigController = sceneCamera.cameraRigController;
-        if (!cameraRigController) return;
-
-        CharacterBody body = cameraRigController.targetBody;
-        if (!body) return;
-
-        PlayerCharacterMasterController player = body.master != null ? body.master.playerCharacterMasterController : null;
-        if (!player) return;
-        
-        RefreshForPreRender(player);
-        RefreshForPreCull(player);
-    }
-    
-    private void Awake()
-    {
-        propertyStorage = new MaterialPropertyBlock();
-    }
-
-    private void Start()
-    {
-        Refresh();
-    }
-
-    private void OnEnable()
-    {
-        InstancesList.Add(this);
-    }
-
-    private void OnDisable()
-    {
+        RestoreAfterCamera();
         InstancesList.Remove(this);
     }
-
-    public float GetFadeLevelForCameraRigController(CameraRigController cameraRigController)
-    {
-        if(needsRefresh)
-            RefreshComponentLists();
-        
-        bool isVisible = false;
-
-        if (cameraRigController.targetBody is var body
-            && body
-            && body.master is var master && master
-            && master.playerCharacterMasterController is var player && player)
-        {
-            if (GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler)
-            {
-                isVisible = instanceHandler.IsInstancedFor(player);
-            }
-            else
-            {
-                isVisible = true;
-            }
-        }
-
-        return isVisible ? 1.0f : FadeLevel;
-    }
-
-    private static IEnumerable<T> CustomGetComponents<T>(IEnumerable<GameObject> gameObjects)
-    {
-        return gameObjects.SelectMany(obj => obj.GetComponentsInChildren<T>());
-    }
-
-    public void RefreshNextFrame()
-    {
-        StartCoroutine(RefreshNextFrameCoroutine());
-        return;
-
-        IEnumerator RefreshNextFrameCoroutine()
-        {
-            yield return 0;
-            Refresh();
-        }
-    }
-
-    public void Refresh()
-    {
-        needsRefresh = true;
-    }
-
+    public void Refresh() { dirty = true; }
+    public void RefreshNextFrame() { Refresh(); }
     public void RefreshComponentLists()
     {
-        needsRefresh = false;
-        lastPlayer = null;
-
-        ExtraGameObjects.RemoveWhere(obj => obj == null);
-        
-        HashSet<GameObject> gameObjects = [gameObject];
-        gameObjects.UnionWith(ExtraGameObjects);
-        
-        ModelLocator[] modelLocators = GetComponentsInChildren<ModelLocator>();
-        gameObjects.UnionWith(modelLocators.Select(modelLocator => modelLocator.modelTransform.gameObject));
-        gameObjects.UnionWith(CustomGetComponents<CostHologramContent>(gameObjects).ToArray().Select(hologram => hologram.targetTextMesh.gameObject));
-        
-        DitherModels = CustomGetComponents<DitherModel>(gameObjects).ToArray();
-        DitherModelRenderers = [..DitherModels.SelectMany(ditherModel => ditherModel.renderers)];
-        Renderers =
-            [..CustomGetComponents<Renderer>(gameObjects).Where(renderer => !DitherModelRenderers.Contains(renderer))];
-        
-        HashSet<Behaviour> componentsForPreCull = new(CustomGetComponents<Highlight>(gameObjects));
-        componentsForPreCull.UnionWith(CustomGetComponents<Light>(gameObjects));
-        
-        ComponentsForPreCull = componentsForPreCull.ToArray();
-
-        // HashSet<Behaviour> componentsForPreRender = new();
-        
-        // ComponentsForPreRender = componentsForPreRender.ToArray();
-
-        foreach (var renderer in Renderers)
-        foreach (var material in renderer.materials) material.EnableKeyword("DITHER");
+        dirty = false;
+        renderers.Clear();
+        effects.Clear();
+        ExtraGameObjects.RemoveWhere(target => !target);
+        var targets = new HashSet<GameObject>(ExtraGameObjects) { gameObject };
+        foreach (var locator in GetComponentsInChildren<ModelLocator>())
+            if (locator.modelTransform != null) targets.Add(locator.modelTransform.gameObject);
+        foreach (var target in targets.ToArray())
+            foreach (var hologram in target.GetComponentsInChildren<CostHologramContent>())
+                if (hologram.targetTextMesh) targets.Add(hologram.targetTextMesh.gameObject);
+        foreach (var target in targets)
+        {
+            renderers.UnionWith(target.GetComponentsInChildren<Renderer>());
+            effects.UnionWith(target.GetComponentsInChildren<Highlight>());
+            effects.UnionWith(target.GetComponentsInChildren<Light>());
+        }
+        // A MultiShop root can contain terminal models. Each renderer belongs to
+        // its nearest view, otherwise nested views restore different baselines.
+        renderers.RemoveWhere(renderer => renderer && renderer.GetComponentInParent<FadeBehavior>() is var view && view && view != this);
+        effects.RemoveWhere(effect => effect && effect.GetComponentInParent<FadeBehavior>() is var view && view && view != this);
     }
-
+    private bool Visible(PlayerCharacterMasterController player)
+    {
+        if (PendingOwnership.IsPending(gameObject)) return false;
+        var owner = GetComponent<InstanceHandler>();
+        // Spectator cameras have no player: show native objects without carrying
+        // over another split-screen camera's renderer state.
+        return !owner || !player || owner.IsInstancedFor(player);
+    }
+    public float GetFadeLevelForCameraRigController(CameraRigController camera)
+    {
+        var body = camera ? camera.targetBody : null;
+        return Visible(body && body.master ? body.master.playerCharacterMasterController : null) ? 1f : FadeLevel;
+    }
     public void RefreshForPreCull(PlayerCharacterMasterController player)
     {
-        if (needsRefresh)
-            RefreshComponentLists();
-        
-        if (player == lastPlayer && !isBeingDestroyed)
-            return;
-        
-        var instanceHandler = GetComponent<InstanceHandler>();
-        bool isCopyObject = instanceHandler != null ? instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject : true;
-
-        if (isBeingDestroyed || isCopyObject && (instanceHandler == null || instanceHandler.AllOrigPlayers.Contains(player)))
+        RestoreAfterCamera();
+        if (dirty) RefreshComponentLists();
+        bool visible = Visible(player);
+        foreach (var renderer in renderers)
         {
-            bool isOrigForCurrent = isBeingDestroyed || instanceHandler == null || instanceHandler.OrigPlayer == player;
-            foreach (var renderer in Renderers)
-            {
-                if (renderer == null)
-                {
-                    if (isBeingDestroyed) continue;
-                    RefreshComponentLists();
-                    return;
-                }
-                renderer.enabled = isOrigForCurrent;
-            }
-            
-            foreach (var renderer in DitherModelRenderers)
-            {
-                if (renderer == null)
-                {
-                    if (isBeingDestroyed) continue;
-                    RefreshComponentLists();
-                    return;
-                }
-                renderer.enabled = isOrigForCurrent;
-            }
-            
-            foreach (var component in ComponentsForPreCull)
-            {
-                if (component == null)
-                {
-                    if (isBeingDestroyed) continue;
-                    RefreshComponentLists();
-                    return;
-                }
-                component.enabled = isOrigForCurrent;
-            }
+            if (!renderer) continue;
+            originalForce[renderer] = renderer.forceRenderingOff;
+            renderer.forceRenderingOff = renderer.forceRenderingOff || !visible;
+        }
+        foreach (var effect in effects)
+        {
+            if (!effect) continue;
+            originalEffects[effect] = effect.enabled;
+            if (!visible) effect.enabled = false;
         }
     }
-    
     public void RefreshForPreRender(PlayerCharacterMasterController player)
     {
-        if (needsRefresh)
-            RefreshComponentLists();
-        
-        if (player == lastPlayer && !isBeingDestroyed)
-            return;
-        
-        var instanceHandler = GetComponent<InstanceHandler>();
-        bool isForCurrentPlayer = isBeingDestroyed || instanceHandler.IsInstancedFor(player);
-        float actualFadeLevel = isForCurrentPlayer ? 1.0f : FadeLevel;
-        
-        foreach (var renderer in Renderers)
+        if (dirty) RefreshComponentLists();
+        float fade = Visible(player) ? 1f : FadeLevel;
+        foreach (var renderer in renderers)
         {
-            if (renderer == null)
+            if (!renderer) continue;
+            if (!originalProperties.ContainsKey(renderer))
             {
-                if (isBeingDestroyed) continue;
-                RefreshComponentLists();
-                return;
+                var original = new MaterialPropertyBlock();
+                renderer.GetPropertyBlock(original);
+                originalProperties[renderer] = original;
             }
-            renderer.GetPropertyBlock(propertyStorage);
-            propertyStorage.SetFloat(Fade, actualFadeLevel);
-            renderer.SetPropertyBlock(propertyStorage);
+            renderer.GetPropertyBlock(properties);
+            properties.SetFloat(Fade, fade);
+            renderer.SetPropertyBlock(properties);
         }
-
-        // bool isCopyObject = instanceHandler != null ? instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject : true;
-        //
-        // if (isCopyObject)
-        // {
-        //     bool isOrigForCurrent = isBeingDestroyed || instanceHandler.OrigPlayer == player;
-        //     
-        //     foreach (var component in ComponentsForPreRender)
-        //     {
-        //         if (component == null)
-        //         {
-        //             if (isBeingDestroyed) continue;
-        //             RefreshComponentLists();
-        //             return;
-        //         }
-        //         component.enabled = isOrigForCurrent;
-        //     }
-        // }
-
-        lastPlayer = player;
     }
-
-    public static FadeBehavior Attach(GameObject obj)
+    public void RestoreAfterCamera()
     {
-        FadeBehavior fadeBehavior = obj.GetComponent<FadeBehavior>();
-        if (fadeBehavior != null)
-        {
-            fadeBehavior.Refresh();
-            return fadeBehavior;
-        }
-
-        fadeBehavior = obj.AddComponent<FadeBehavior>();
-        return fadeBehavior;
+        foreach (var pair in originalForce) if (pair.Key) pair.Key.forceRenderingOff = pair.Value;
+        foreach (var pair in originalEffects) if (pair.Key) pair.Key.enabled = pair.Value;
+        foreach (var pair in originalProperties) if (pair.Key) pair.Key.SetPropertyBlock(pair.Value);
+        originalForce.Clear(); originalEffects.Clear(); originalProperties.Clear();
+    }
+    public static FadeBehavior Attach(GameObject target)
+    {
+        var view = target.GetComponent<FadeBehavior>() ?? target.AddComponent<FadeBehavior>();
+        view.Refresh();
+        return view;
     }
 }

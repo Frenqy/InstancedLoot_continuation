@@ -1,8 +1,8 @@
 {
     "name": "InstancedLoot_continuation",
-    "version_number": "1.6.0",
+    "version_number": "2.0.0",
     "website_url": "https://github.com/Frenqy/InstancedLoot_continuation",
-    "description": "Makes chest and/or item drops separate for each player",
+    "description": "Independent per-player interactables and damaged drone/turret purchases; ordinary item drops stay public",
     "dependencies": [
         "bbepis-BepInExPack-5.4.2122",
         "RiskofThunder-HookGenPatcher-1.2.9",

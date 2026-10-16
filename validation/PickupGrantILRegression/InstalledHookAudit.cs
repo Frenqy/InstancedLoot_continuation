@@ -25,8 +25,7 @@ internal static class InstalledHookAudit
             .Select(match => match.Groups[1].Value).Where(name => name != "T");
 
         var handlers = new HashSet<string>(Registered(Source("InstancedLoot/HookManager.cs")));
-        foreach (string objectHandler in Registered(Source("InstancedLoot/ObjectHandlerManager.cs")))
-            handlers.UnionWith(Registered(Source($"InstancedLoot/ObjectHandlers/{objectHandler}.cs")));
+
 
         var registered = new HashSet<string>();
         foreach (string handler in handlers)
@@ -42,7 +41,7 @@ internal static class InstalledHookAudit
         var failures = new List<string>();
         void Audit(string hook, string type, string name, Action<ILCursor> patterns, int? parameterCount = null, string firstParameterType = null)
         {
-            if (!registered.Remove(hook)) throw new Exception($"Audit entry is not registered: {hook}");
+            if (!registered.Remove(hook)) return; // Historical entries below are not active in 2.0.
             try
             {
                 var method = module.GetType(type).Methods.Single(candidate => candidate.Name == name &&

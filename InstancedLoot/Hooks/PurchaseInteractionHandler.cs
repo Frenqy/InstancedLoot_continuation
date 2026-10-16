@@ -1,70 +1,40 @@
+using System.Collections.Generic;
 using InstancedLoot.Components;
 using RoR2;
 using UnityEngine.Networking;
 
 namespace InstancedLoot.Hooks;
 
-public class PurchaseInteractionHandler : AbstractHookHandler
+public sealed class PurchaseInteractionHandler : AbstractHookHandler
 {
-    private readonly System.Collections.Generic.HashSet<PurchaseInteraction> purchasesInProgress = new();
-
+    private readonly HashSet<UnityEngine.Object> inProgress = new();
     public override void RegisterHooks()
     {
-        On.RoR2.PurchaseInteraction.GetInteractability += On_PurchaseInteraction_GetInteractability;
-        On.RoR2.PurchaseInteraction.OnInteractionBegin += On_PurchaseInteraction_OnInteractionBegin;
+        On.RoR2.PurchaseInteraction.GetInteractability += GetInteractability;
+        On.RoR2.PurchaseInteraction.OnInteractionBegin += Begin;
     }
-
     public override void UnregisterHooks()
     {
-        On.RoR2.PurchaseInteraction.GetInteractability -= On_PurchaseInteraction_GetInteractability;
-        On.RoR2.PurchaseInteraction.OnInteractionBegin -= On_PurchaseInteraction_OnInteractionBegin;
+        On.RoR2.PurchaseInteraction.GetInteractability -= GetInteractability;
+        On.RoR2.PurchaseInteraction.OnInteractionBegin -= Begin;
+        inProgress.Clear();
     }
-
-    private Interactability On_PurchaseInteraction_GetInteractability(On.RoR2.PurchaseInteraction.orig_GetInteractability orig, PurchaseInteraction self, Interactor activator)
+    private Interactability GetInteractability(On.RoR2.PurchaseInteraction.orig_GetInteractability orig, PurchaseInteraction self, Interactor actor) =>
+        InstanceAccessPolicy.CanInteract(self.gameObject, actor) ? orig(self, actor) : Interactability.Disabled;
+    private void Begin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor actor)
     {
-        var interactability = orig(self, activator);
-
-        if (!CanInteract(self, activator))
-            interactability = Interactability.Disabled;
-
-        return interactability;
-    }
-
-    private void On_PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
-    {
-        // GetInteractability is also a client prompt check; enforce ownership and the
-        // native one-shot availability before the server invokes PayCost or purchase
-        // events, even for a direct interaction call. The availability check closes a
-        // small race where two server-side callers enter the callback before the
-        // terminal/chest has hidden itself.
-        if (NetworkServer.active && (!self.available || !CanInteract(self, activator)))
-            return;
-
-        if (NetworkServer.active && !purchasesInProgress.Add(self))
-            return;
-
-        try
+        if (!NetworkServer.active) { orig(self, actor); return; }
+        if (!self.GetComponent<InstanceHandler>() && !PendingOwnership.IsPending(self.gameObject))
         {
-            bool wasAvailable = self.available;
-            PlayerCharacterMasterController player = InstanceAccessPolicy.ResolvePlayer(activator);
-            if (player)
-                InstanceInfoTracker.InstanceOverrideInfo.SetOwner(self.gameObject, player);
-
-            orig(self, activator);
-
-            InstanceAccessPolicy.ConsumeCompletedPurchase(
-                self.GetComponent<InstanceHandler>(), player, wasAvailable, self.available);
+            orig(self, actor);
+            return;
         }
-        finally
-        {
-            purchasesInProgress.Remove(self);
-        }
-    }
-
-    private static bool CanInteract(PurchaseInteraction purchase, Interactor activator)
-    {
-        var instanceHandler = purchase.GetComponent<InstanceHandler>();
-        if (!instanceHandler) return true;
-        return InstanceAccessPolicy.CanInteract(instanceHandler, activator);
+        // Do not turn a cooldown/failed shrine roll into permanent consumption, or
+        // force-close shop terminals: native OnPurchase handles Executive Card etc.
+        var terminal = self.GetComponent<ShopTerminalBehavior>();
+        UnityEngine.Object transaction = terminal && terminal.serverMultiShopController ? terminal.serverMultiShopController : self;
+        if (!InstanceAccessPolicy.CanInteract(self.gameObject, actor) || !self.available || !inProgress.Add(transaction)) return;
+        try { orig(self, actor); }
+        finally { inProgress.Remove(transaction); }
     }
 }

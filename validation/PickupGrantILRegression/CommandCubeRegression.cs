@@ -100,7 +100,7 @@ internal static class CommandCubeRegression
             }
             catch (InvalidOperationException error) when (error.Message.Contains("Spawn(GameObject) pattern not found")) { }
         }
-        Console.WriteLine("Command cube: CLR and stack verifier rejected the old injector on both branch shapes; production emitter executed 6 captured-callback conditional/switch/unconditional/fallthrough paths and rejected 6 changed signatures.");
+        Console.WriteLine("Command cube: CLR and stack verifier rejected the old injector on both branch shapes; historical emitter executed 6 captured-callback conditional/switch/unconditional/fallthrough paths and rejected 6 changed signatures.");
     }
 
     internal static void VerifyInstalled(MethodDefinition method)
@@ -205,7 +205,7 @@ internal static class CommandCubeRegression
 
 namespace UnityEngine
 {
-    public class GameObject { }
+    public class GameObject { public bool TryGetComponent<T>(out T candidate) { candidate = default; return false; } }
 }
 
 namespace UnityEngine.Networking

@@ -1,67 +1,46 @@
-using System.Linq;
-using System.Reflection;
 using InstancedLoot.Components;
-using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RoR2;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace InstancedLoot.Hooks;
 
-public class InteractorHandler : AbstractHookHandler
+public sealed class InteractorHandler : AbstractHookHandler
 {
+    public delegate bool CandidateFilter(GameObject target, out IInteractable result, Interactor actor, bool spherecast);
     public override void RegisterHooks()
     {
-        IL.RoR2.Interactor.FindBestInteractableObject += IL_Interactor_FindBestInteractableObject;
+        IL.RoR2.Interactor.FindBestInteractableObject += FilterCandidates;
+        On.RoR2.Interactor.PerformInteraction += Perform;
     }
-
     public override void UnregisterHooks()
     {
-        IL.RoR2.Interactor.FindBestInteractableObject -= IL_Interactor_FindBestInteractableObject;
+        IL.RoR2.Interactor.FindBestInteractableObject -= FilterCandidates;
+        On.RoR2.Interactor.PerformInteraction -= Perform;
     }
-
-    private void IL_Interactor_FindBestInteractableObject(ILContext il)
+    private static void FilterCandidates(ILContext il) => InteractorCandidateIL.Apply<CandidateFilter>(il, TryCandidate);
+    public static bool TryCandidate(GameObject target, out IInteractable result, Interactor actor, bool spherecast)
     {
-        ILCursor cursor = new ILCursor(il);
-        
-        var methodGetComponent = typeof(Component).GetMethods(
-            BindingFlags.Instance | BindingFlags.Public
-        ).First(method =>
-            method.Name == nameof(Component.GetComponent)
-            && method.IsGenericMethod
-        );
-        var methodGetComponentFadeBehavior = methodGetComponent.MakeGenericMethod(typeof(InstanceHandler));
-
-        int interactableLocId = -1;
-        ILLabel labelIgnoreSpherecast = null;
-        ILLabel labelNoInstanceHandler = il.DefineLabel();
-        ILLabel labelDone = il.DefineLabel();
-        
-        cursor.GotoNext(MoveType.After,
-            i => i.MatchLdloc(out interactableLocId), // Load interactable
-            i => i.MatchLdarg(0), // Load interactor
-            i => i.MatchCallOrCallvirt<IInteractable>("ShouldIgnoreSpherecastForInteractibility"), // Check interactable's ShouldIgnoreSpherecastForInteractibility
-            i => i.MatchBrtrue(out labelIgnoreSpherecast)); // Skip processing interactable if true
-
-        cursor.Emit(OpCodes.Ldloc, interactableLocId);
-        // The candidate local is IInteractable. Every candidate is first cast to
-        // MonoBehaviour by the game, but the interface itself is not a Component
-        // receiver for Component.GetComponent<T>(); make that conversion explicit.
-        cursor.Emit(OpCodes.Castclass, typeof(Component));
-        cursor.Emit(OpCodes.Call, methodGetComponentFadeBehavior);
-        cursor.Emit(OpCodes.Dup);
-        cursor.Emit(OpCodes.Ldnull);
-        cursor.Emit(OpCodes.Ceq);
-        cursor.Emit(OpCodes.Brtrue, labelNoInstanceHandler);
-
-        cursor.Emit(OpCodes.Ldarg_0);
-        cursor.Emit<InstanceHandler>(OpCodes.Call, "IsInstancedForInteractor");
-        cursor.Emit(OpCodes.Brtrue, labelDone);
-        cursor.Emit(OpCodes.Br, labelIgnoreSpherecast);
-
-        cursor.MarkLabel(labelNoInstanceHandler);
-        cursor.Emit(OpCodes.Pop);
-
-        cursor.MarkLabel(labelDone);
+        result = null;
+        if (!target) return false;
+        if (!target.GetComponent<InstanceHandler>() && !PendingOwnership.IsPending(target))
+            return target.TryGetComponent(out result); // Exact native path for printers and other unmanaged objects.
+        if (!InstanceAccessPolicy.CanInteract(target, actor)) return false;
+        foreach (var candidate in target.GetComponents<IInteractable>())
+        {
+            if (candidate is Behaviour behaviour && !behaviour.isActiveAndEnabled) continue;
+            if (spherecast && candidate.ShouldIgnoreSpherecastForInteractibility(actor)) continue;
+            var state = candidate.GetInteractability(actor);
+            if (state == Interactability.Disabled) continue;
+            result = candidate;
+            if (state == Interactability.Available) return true;
+        }
+        return result != null;
+    }
+    private static void Perform(On.RoR2.Interactor.orig_PerformInteraction orig, Interactor self, GameObject target)
+    {
+        if (NetworkServer.active && !InstanceAccessPolicy.CanInteract(target, self)) return;
+        orig(self, target);
     }
 }

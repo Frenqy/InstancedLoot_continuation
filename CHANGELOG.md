@@ -1,5 +1,16 @@
 # Changelog
 
+### 2.0.0 (Unreleased)
+
+- Rebuilt object instancing around a server-owned lifecycle service, immutable native-state adapters and one fixed owner per independently consumable entity. Only PreferredInstanceMode=InstanceObject remains; public item drops stay vanilla.
+- Added a versioned per-entity owner protocol with run/scene epochs, revisions, independent delayed resolution and periodic replay. Source destruction no longer blocks sibling ownership snapshots.
+- Reused MultiShop terminals created by native Awake, waited for source terminal initialization, and prevented copy rerolls. Native one-of-three closure, Executive Card and shrine refresh behavior remain authoritative.
+- Added individual Chance/Blood/Order shrine toggles and damaged drone/turret repair adapters; missing SpawnCards fall back to vanilla. Printers and other unmanaged purchases keep their original paths.
+- Filtered both raycast and overlap interaction candidates, including multiple IInteractable components. Per-camera render masks preserve native enabled state and restore after rendering.
+- Removed legacy item-sharing, owner-only, preset/alias, pickup and forfeiture-command paths. Historical IL fixtures remain in validation only.
+
+**Validation:** Release build: 0 errors and 0 warnings. New production-linked regression: 82 assertions. Installed game build 25921972: 7 active IL pattern checks, actual candidate-emitter transformation, 10 native lifecycle/payment assertions; synthetic candidate CLR paths and retained historical IL regressions pass. No Unity/Mono hook installation, host/client gameplay, split-screen game test or archive operation was performed.
+
 ## Continuation
 
 ### 1.6.0 (Unreleased)

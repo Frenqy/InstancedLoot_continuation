@@ -26,7 +26,7 @@ public class DeathRewardsHandler : AbstractHookHandler
         cursor.EmitDelegate<Func<uint, uint>>(money =>
         {
             if (ModConfig.ReduceMoneyDrops.Value)
-                money /= (uint)Run.instance.participatingPlayerCount;
+                money /= (uint)Math.Max(1, Run.instance.participatingPlayerCount);
 
             return money;
         });
