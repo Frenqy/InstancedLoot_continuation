@@ -158,17 +158,9 @@ public abstract class AbstractObjectHandler
     {
         if (source != target)
         {
-            // SceneDirector applies the final money cost after SpawnCard.DoSpawn. Copies bypass
-            // that step, so use the initialized source and the SyncVar setters for remote clients.
-            PurchaseInteraction sourcePurchase = source.GetComponent<PurchaseInteraction>();
-            PurchaseInteraction targetPurchase = target.GetComponent<PurchaseInteraction>();
-            if (sourcePurchase != null && targetPurchase != null)
-            {
-                targetPurchase.NetworkcostType = sourcePurchase.costType;
-                targetPurchase.Networkcost = sourcePurchase.cost;
-                if (sourcePurchase.rng != null)
-                    targetPurchase.rng = new Xoroshiro128Plus(sourcePurchase.rng);
-            }
+            // SceneDirector applies the final money cost after SpawnCard.DoSpawn.
+            // Copies bypass that step, so snapshot the initialized source state.
+            InstanceStateSynchronizer.CopyPurchaseState(source, target);
         }
 
         InstanceHandler instanceHandler = target.AddComponent<InstanceHandler>();

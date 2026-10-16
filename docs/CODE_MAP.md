@@ -19,7 +19,7 @@
 | `InstancedLoot/Configuration/AcceptableValuesInstanceMode.cs` | BepInEx 可接受模式列表及非法值回退 |
 | `InstancedLoot/Configuration/ConfigMigrator.cs` | 反射访问 BepInEx 未绑定条目；当前迁移表为空 |
 | `InstancedLoot/Configuration/ItemTierSet.cs` | ItemTier 集合序列化辅助类；当前无有效配置绑定使用它 |
-| `InstancedLoot/Components/` | 来源跟踪、实例状态、显示和标记组件，字段解释见架构文档 |
+| `InstancedLoot/Components/` | 来源跟踪、实例状态、显示和标记组件，字段解释见架构文档；`InstanceAccessPolicy` 统一 CopyObject/InstancedObject 权限，`InstanceStateSynchronizer` 快照源/副本购买状态 |
 | `InstancedLoot/Networking/SyncInstances.cs` | 唯一自定义网络消息，实例组状态的序列化与客户端重建 |
 | `InstancedLoot/InstancedLoot.csproj`、`nuget.config` | 编译目标、依赖版本、包源 |
 | `manifest.json`、`build-release.ps1` | Thunderstore 元数据与本地 ZIP 打包 |
@@ -59,7 +59,7 @@
 | --- | --- |
 | `SpawnCardHandler.cs` | 记录对象实际使用的 SpawnCard |
 | `SceneDirectorHandler.cs` | 交互物生成预算；Lockbox、LockboxVoid、FreeChest 的拥有者注入 |
-| `PurchaseInteractionHandler.cs` | 提示与服务器实际购买入口的资格检查；交互前记录购买者 Owner |
+| `PurchaseInteractionHandler.cs` | 提示与服务器实际购买入口的资格检查、同对象重入保护和成功后的共享资格消费；交互前记录购买者 Owner |
 | `ChestBehaviorHandler.cs`、`OptionChestBehaviorHandler.cs` | Start 中名称识别/复制体接管；掉落上下文 |
 | `RouletteChestControllerHandler.cs`、`ShrineChanceBehaviorHandler.cs` | 轮盘箱与机会祭坛的识别和掉落上下文 |
 | `MultiShopControllerHandler.cs`、`ShopTerminalBehaviorHandler.cs` | 商店/终端初始化、源类型继承和掉落 |

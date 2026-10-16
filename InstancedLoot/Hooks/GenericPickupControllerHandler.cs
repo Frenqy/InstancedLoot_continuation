@@ -45,15 +45,9 @@ public class GenericPickupControllerHandler : AbstractHookHandler
     {
         var interactability = orig(self, activator);
 
-        var body = activator.GetComponent<CharacterBody>();
-        if (body)
-        {
-            var player = body.master.GetComponent<PlayerCharacterMasterController>();
-            var instanceHandler = self.GetComponent<InstanceHandler>();
-            if (player && instanceHandler)
-                if (!instanceHandler.Players.Contains(player))
-                    interactability = Interactability.Disabled;
-        }
+        var instanceHandler = self.GetComponent<InstanceHandler>();
+        if (instanceHandler && !InstanceAccessPolicy.CanInteract(instanceHandler, activator))
+            interactability = Interactability.Disabled;
 
         return interactability;
     }

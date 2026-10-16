@@ -131,7 +131,7 @@ GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅�
 脚本把工作目录设为自身目录，删除并重建根目录 `Release/`，复制元数据，执行构建并复制 DLL，再根据 manifest 版本压缩。它会覆盖同版本 ZIP。当前产物结构为：
 
 ```text
-Nicebowl-InstancedLoot-1.5.3.zip
+Nicebowl-InstancedLoot-1.6.0.zip
 ├── CHANGELOG.md
 ├── icon.png
 ├── manifest.json
@@ -144,12 +144,12 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 
 | 位置 | 当前版本/用途 |
 | --- | --- |
-| `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.3`，插件元数据 |
-| `manifest.json` | `1.5.3`，发布包版本及 ZIP 命名依据 |
-| `InstancedLoot.csproj` | `1.5.3`，项目/程序集构建版本元数据 |
-| `CHANGELOG.md` | `1.5.3 (Unreleased)` 记录三选一终端状态/资格修复；`1.5.2 (Unreleased)` 保留客户端重叠交互物筛选修复，历史版本继续保留 |
+| `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.6.0`，插件元数据 |
+| `manifest.json` | `1.6.0`，发布包版本及 ZIP 命名依据 |
+| `InstancedLoot.csproj` | `1.6.0`，项目/程序集构建版本元数据 |
+| `CHANGELOG.md` | `1.6.0 (Unreleased)` 记录统一权限/购买事务与状态同步重构；`1.5.3 (Unreleased)` 保留三选一终端修复，历史版本继续保留 |
 
-本次将三个模组版本从 1.5.2 统一递增为 1.5.3，保留原 GUID；目标游戏仍为 1.5.0，GameLibs 仍为 1.5.0-r.1。上面的 ZIP 名称是按当前版本打包时的预期产物，此次没有执行打包，也没有重建用户已有的 ZIP。CHANGELOG 的 1.5.0 至 1.5.3 都尚未发布，不补写发布日期；历史兼容性声明不能替代具体对象注册检查和游戏实测。
+本次将三个模组版本从 1.5.3 统一递增为 1.6.0，保留原 GUID；这是新增统一权限/购买事务边界的 minor 版本。目标游戏仍为 1.5.0，GameLibs 仍为 1.5.0-r.1。上面的 ZIP 名称是按当前版本打包时的预期产物，此次没有执行打包，也没有重建用户已有的 ZIP。CHANGELOG 的 1.5.0 至 1.6.0 都尚未发布，不补写发布日期；历史兼容性声明不能替代具体对象注册检查和游戏实测。
 
 后续每个修改批次/交付必须递增模组版本，包含仅文档或协作规则修改；默认递增 patch，新增功能递增 minor，破坏兼容性递增 major。同一任务的配套修改只递增一次，版本与文档同步是该批次的一部分，不另触发升级，也不要求每次临时编辑或同一批次内的提交分别升级。交付前同步上述三处版本、CHANGELOG、此版本表及其他当前版本描述；保留历史验证记录的原版本与事实。目标游戏与编译/运行依赖版本独立维护，不机械替换。完整约束见 [AGENTS.md](../AGENTS.md)。
 
@@ -162,6 +162,14 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 三选一副本现在为每个终端建立独立的 `SharedInfo` 组，并将源终端资格限制为源控制器的首位玩家；异步创建的目标终端会复制商品、隐藏、RNG 和最终购买价格后再同步资格。服务器 `PurchaseInteraction.OnInteractionBegin` 在进入原生扣款前检查 `available` 与实例资格，阻止不可用对象、错误玩家和同帧重复调用；商店掉落来源上下文使用 `try/finally` 恢复，避免异常或嵌套调用污染后续掉落。
 
 Release 构建成功（0 错误、1 条既有过时 API 警告）。MultiplayerRegression 通过 48 个断言，覆盖 CopyObject 源/副本资格和每个三选一终端的独立 `SharedInfo` 分组；三选一终端完整状态/权限仍需要在安装游戏的主机、客户端联机矩阵中复测，本批未打包且未改写已有 ZIP。
+
+### 模组 1.6.0 实例权限与购买事务重构（2026-10-16）
+
+权限入口集中在 `InstanceAccessPolicy`：它从 `Interactor`/`CharacterBody` 解析玩家，并调用 `InstanceHandler.IsInstancedFor` 保持 `CopyObject` 按 `OrigPlayer`、`InstancedObject` 按当前 `Players` 集合判定。普通箱、三选一终端、拾取物和客户端候选筛选共用这一层，避免在各 Hook 中重新解释聚合集合。
+
+源/副本购买成本、成本类型和 RNG 快照由 `InstanceStateSynchronizer` 统一复制；三选一控制器仍共享控制器组，而每个终端槽位保持独立 `SharedInfo`。服务器购买 Hook 增加同一对象的重入保护，并在原生逻辑把 `available` 从 true 变为 false 后才消费 `InstancedObject` 的玩家资格；`CopyObject` 每个副本仍由原生单次可用状态消费。隔离回归通过 51 个断言，覆盖普通箱价格/资格、三选一终端分组与终端购买状态快照及共享购买消费。
+
+这批验证未运行真实 RoR2 PayCost、UNet/R2API 传输或主机/客户端联机；原生购买失败时的资格恢复、不同版本游戏的可用状态时序以及三选一实际扣款仍需安装游戏后复测。未打包，也未改写工作树中已有或用户删除的 ZIP。
 
 ## 新增交互物/掉落来源
 

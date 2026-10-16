@@ -205,13 +205,6 @@ public class InstanceHandler : InstancedLootBehaviour
 
     public bool IsInstancedForInteractor(Interactor interactor)
     {
-        if (!interactor)
-            return false;
-
-        CharacterBody body = interactor.GetComponent<CharacterBody>();
-        PlayerCharacterMasterController player = body && body.master
-            ? body.master.playerCharacterMasterController
-            : null;
-        return player && IsInstancedFor(player);
+        return InstanceAccessPolicy.CanInteract(this, interactor);
     }
 }

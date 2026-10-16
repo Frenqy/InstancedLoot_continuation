@@ -2,6 +2,14 @@
 
 ## Continuation
 
+### 1.6.0 (Unreleased)
+
+- Centralized `CopyObject` and `InstancedObject` permission checks in `InstanceAccessPolicy`, including interactor/player resolution used by purchases, pickups, picker choices and client candidate filtering.
+- Added a server-side purchase transaction guard and post-native completion consumption for shared `InstancedObject` eligibility; each `CopyObject` remains one-shot through its native availability state.
+- Extracted source-to-copy purchase cost, cost type and independent RNG snapshotting into `InstanceStateSynchronizer`; ordinary chest copies and each TripleShop terminal use the same state boundary.
+
+**Validation:** Release build passed with one existing obsolete-API warning. MultiplayerRegression passed 51 assertions, including unified CopyObject/InstancedObject access, shared purchase consumption and TripleShop terminal purchase-state snapshots. The stub does not emulate real RoR2 PayCost, UNet transport or host/client gameplay; chest and TripleShop multiplayer behavior still requires an in-game run.
+
 ### 1.5.3 (Unreleased)
 
 - Isolated each TripleShop terminal's source/copy state group and restricted the source terminal to its owning player, so each player keeps an independent three-choice purchase.

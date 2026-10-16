@@ -6,6 +6,8 @@ namespace InstancedLoot.Hooks;
 
 public class PurchaseInteractionHandler : AbstractHookHandler
 {
+    private readonly System.Collections.Generic.HashSet<PurchaseInteraction> purchasesInProgress = new();
+
     public override void RegisterHooks()
     {
         On.RoR2.PurchaseInteraction.GetInteractability += On_PurchaseInteraction_GetInteractability;
@@ -38,21 +40,31 @@ public class PurchaseInteractionHandler : AbstractHookHandler
         if (NetworkServer.active && (!self.available || !CanInteract(self, activator)))
             return;
 
-        if(activator.GetComponent<CharacterBody>() is var characterBody && characterBody
-           && characterBody.master is var master && master
-           && master.playerCharacterMasterController is var player && player)
-            InstanceInfoTracker.InstanceOverrideInfo.SetOwner(self.gameObject, player);
+        if (NetworkServer.active && !purchasesInProgress.Add(self))
+            return;
 
-        orig(self, activator);
+        try
+        {
+            bool wasAvailable = self.available;
+            PlayerCharacterMasterController player = InstanceAccessPolicy.ResolvePlayer(activator);
+            if (player)
+                InstanceInfoTracker.InstanceOverrideInfo.SetOwner(self.gameObject, player);
+
+            orig(self, activator);
+
+            InstanceAccessPolicy.ConsumeCompletedPurchase(
+                self.GetComponent<InstanceHandler>(), player, wasAvailable, self.available);
+        }
+        finally
+        {
+            purchasesInProgress.Remove(self);
+        }
     }
 
     private static bool CanInteract(PurchaseInteraction purchase, Interactor activator)
     {
         var instanceHandler = purchase.GetComponent<InstanceHandler>();
         if (!instanceHandler) return true;
-
-        var body = activator ? activator.GetComponent<CharacterBody>() : null;
-        var player = body && body.master ? body.master.playerCharacterMasterController : null;
-        return player && instanceHandler.IsInstancedFor(player);
+        return InstanceAccessPolicy.CanInteract(instanceHandler, activator);
     }
 }

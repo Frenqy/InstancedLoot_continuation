@@ -8,6 +8,8 @@
   <ItemGroup>
     <Compile Include="../../InstancedLoot/Networking/SyncInstances.cs" Link="Production/SyncInstances.cs" />
     <Compile Include="../../InstancedLoot/Components/InstanceHandler.cs" Link="Production/InstanceHandler.cs" />
+    <Compile Include="../../InstancedLoot/Components/InstanceAccessPolicy.cs" Link="Production/InstanceAccessPolicy.cs" />
+    <Compile Include="../../InstancedLoot/Components/InstanceStateSynchronizer.cs" Link="Production/InstanceStateSynchronizer.cs" />
     <Compile Include="../../InstancedLoot/Components/FadeBehavior.cs" Link="Production/FadeBehavior.cs" />
     <Compile Include="../../InstancedLoot/AbstractObjectHandler.cs" Link="Production/AbstractObjectHandler.cs" />
     <Compile Include="../../InstancedLoot/Hooks/PurchaseInteractionHandler.cs" Link="Production/PurchaseInteractionHandler.cs" />

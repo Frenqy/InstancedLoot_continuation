@@ -183,6 +183,27 @@ copyPurchase.available = true;
 hooks.UnregisterHooks();
 NetworkServer.active = false;
 
+// The same policy applies to an InstancedObject purchase: the native
+// one-shot transition consumes only the player that completed it, while the
+// remaining player keeps eligibility. This is a stub-level transaction check,
+// not a real game's PayCost/network result.
+var sharedPurchaseObject = Obj(64);
+var sharedPurchase = sharedPurchaseObject.AddComponent<PurchaseInteraction>();
+var sharedHandler = sharedPurchaseObject.AddComponent<InstanceHandler>();
+sharedHandler.SetPlayers([p1, p2], false);
+sharedHandler.SharedInfo = new() { ObjectInstanceMode = ObjectInstanceMode.InstancedObject };
+var sharedHooks = new PurchaseInteractionHandler();
+sharedHooks.RegisterHooks();
+NetworkServer.active = true;
+On.RoR2.PurchaseInteraction.Buy(sharedPurchase, Actor(p1));
+Check(!sharedHandler.Players.Contains(p1) && sharedHandler.Players.Contains(p2),
+    "InstancedObject purchase consumes only the successful player");
+Check(!InstanceAccessPolicy.CanInteract(sharedHandler, Actor(p1)) &&
+    InstanceAccessPolicy.CanInteract(sharedHandler, Actor(p2)),
+    "Unified access policy reflects consumed shared purchase");
+sharedHooks.UnregisterHooks();
+NetworkServer.active = false;
+
 // TripleShop controller copies keep one shared group, while each terminal has
 // its own source/clone group.  This mirrors the asynchronous terminal path used
 // after a controller clone is spawned.
@@ -195,6 +216,10 @@ var multiSourceHandler = multiShop.InstanceSingleObjectFrom(multiSource, multiSo
 multiSourceHandler.SharedInfo = new() { SourceObject = multiSource, ObjectInstanceMode = ObjectInstanceMode.CopyObject };
 var sourceTerminalHandlers = sourceController.terminalGameObjects
     .Select(terminal => terminal.GetComponent<InstanceHandler>()).ToArray();
+var sourceTerminalPurchase = sourceController.terminalGameObjects[0].GetComponent<PurchaseInteraction>();
+sourceTerminalPurchase.cost = 444;
+sourceTerminalPurchase.costType = 3;
+sourceTerminalPurchase.rng = new(88UL);
 Check(sourceTerminalHandlers.Length == 3 && sourceTerminalHandlers.All(handler => handler != null) &&
     sourceTerminalHandlers.Select(handler => handler.SharedInfo).Distinct().Count() == 3,
     "Each three-choice source terminal has its own SharedInfo group");
@@ -220,6 +245,10 @@ Check(cloneTerminalHandlers.Length == 3 &&
     "Each three-choice clone terminal keeps matching group and clone permission");
 Check(cloneTerminalHandlers.Select(handler => handler.SharedInfo).Distinct().Count() == 3,
     "Three-choice terminal groups remain independent by slot");
+var cloneTerminalPurchase = cloneTerminals[0].GetComponent<PurchaseInteraction>();
+Check(cloneTerminalPurchase.cost == 444 && cloneTerminalPurchase.costType == 3 &&
+    cloneTerminalPurchase.rng.State == 88,
+    "Three-choice terminal copies snapshot the shared purchase state");
 
 // Interactor candidate filtering must resolve the player through the body/master
 // chain carried by the Interactor GameObject. PlayerCharacterMasterController is

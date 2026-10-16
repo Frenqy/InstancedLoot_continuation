@@ -282,6 +282,7 @@ namespace On.RoR2
         public static event Func<orig_GetInteractability, global::RoR2.PurchaseInteraction, global::RoR2.Interactor, global::RoR2.Interactability> GetInteractability;
         public static event Action<orig_OnInteractionBegin, global::RoR2.PurchaseInteraction, global::RoR2.Interactor> OnInteractionBegin;
         public static int Purchases;
-        public static void Buy(global::RoR2.PurchaseInteraction purchase, global::RoR2.Interactor interactor) => OnInteractionBegin((_, _) => Purchases++, purchase, interactor);
+        public static void Buy(global::RoR2.PurchaseInteraction purchase, global::RoR2.Interactor interactor) =>
+            OnInteractionBegin((_, _) => { Purchases++; purchase.available = false; }, purchase, interactor);
     }
 }
