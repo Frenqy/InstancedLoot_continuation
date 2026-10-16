@@ -172,16 +172,41 @@ Interactor Actor(PlayerCharacterMasterController player)
 NetworkServer.active = true;
 On.RoR2.PurchaseInteraction.Buy(sourcePurchase, Actor(p2));
 Check(On.RoR2.PurchaseInteraction.Purchases == 0, "Reject other player's aggregate CopyObject source");
+Check(InstancedLoot.InstancedLoot.Instance._logger.Infos.Count == 0,
+    "Interaction diagnostics stay quiet when disabled");
+InstancedLoot.InstancedLoot.Instance.InteractionLoggingEnabled = true;
 On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p1));
 Check(On.RoR2.PurchaseInteraction.Purchases == 0, "Reject other player's copy before purchase callback");
+Check(InstancedLoot.InstancedLoot.Instance._logger.Infos.Any(message =>
+    message.Contains("netId=") && message.Contains("OrigPlayer=") && message.Contains("Players=") &&
+    message.Contains("available=") && message.Contains("buyer=")),
+    "Opt-in interaction diagnostics include ownership and buyer state");
 On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p2));
 Check(On.RoR2.PurchaseInteraction.Purchases == 1, "Allow eligible player");
+Check(!copyPurchase.available && sourcePurchase.available,
+    "Close purchased handler while retaining the legal other-player copy");
 copyPurchase.available = false;
 On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p2));
 Check(On.RoR2.PurchaseInteraction.Purchases == 1, "Reject unavailable purchase before callback");
 copyPurchase.available = true;
 hooks.UnregisterHooks();
 NetworkServer.active = false;
+
+// A client must not authorize an object while its source/clone snapshot is still
+// waiting for a missing network object. Once the snapshot resolves, the handler is
+// installed and normal eligibility resumes.
+hooks.RegisterHooks();
+var pendingPurchaseObject = Obj(100);
+var pendingPurchase = pendingPurchaseObject.AddComponent<PurchaseInteraction>();
+Message(200, (100, 1, [1])).OnReceived();
+On.RoR2.PurchaseInteraction.Buy(pendingPurchase, Actor(p1));
+Check(On.RoR2.PurchaseInteraction.Purchases == 1,
+    "Reject client purchase while instance handler snapshot is pending");
+Obj(200);
+Scheduler.Tick();
+Check(pendingPurchaseObject.GetComponent<InstanceHandler>()?.OrigPlayer == p1,
+    "Install source/clone handler after all network references resolve");
+hooks.UnregisterHooks();
 
 // TripleShop controller copies keep one shared group, while each terminal has
 // its own source/clone group.  This mirrors the asynchronous terminal path used
@@ -220,6 +245,41 @@ Check(cloneTerminalHandlers.Length == 3 &&
     "Each three-choice clone terminal keeps matching group and clone permission");
 Check(cloneTerminalHandlers.Select(handler => handler.SharedInfo).Distinct().Count() == 3,
     "Three-choice terminal groups remain independent by slot");
+
+// Finalizing a controller must broadcast its controller group and all three
+// independent terminal groups so clients can install every terminal handler.
+R2API.Networking.Interfaces.Extensions.SentMessages.Clear();
+NetworkServer.active = true;
+multiShop.FinalizeObject(multiSource);
+Check(R2API.Networking.Interfaces.Extensions.SentMessages.Count == 4,
+    "Three-choice finalization broadcasts controller and all terminal groups");
+NetworkServer.active = false;
+
+// A three-choice shop is one purchase for each owner across all three slots.
+// Closing the purchased owner's source terminals must leave the legal clone set
+// available to the other player.
+hooks.RegisterHooks();
+NetworkServer.active = true;
+var sourceTerminalPurchase = sourceController.terminalGameObjects[0].GetComponent<PurchaseInteraction>();
+var purchasesBeforeReentry = On.RoR2.PurchaseInteraction.Purchases;
+On.RoR2.PurchaseInteraction.DuringNativePurchase = (_, actor) =>
+{
+    On.RoR2.PurchaseInteraction.DuringNativePurchase = null;
+    On.RoR2.PurchaseInteraction.Buy(sourceTerminalPurchase, actor);
+};
+On.RoR2.PurchaseInteraction.Buy(sourceTerminalPurchase, Actor(p1));
+Check(On.RoR2.PurchaseInteraction.Purchases == purchasesBeforeReentry + 1,
+    "Reentrant purchase in one SharedInfo group is executed only once");
+Check(sourceController.terminalGameObjects.All(terminal =>
+    !terminal.GetComponent<PurchaseInteraction>().available &&
+    terminal.GetComponent<ShopTerminalBehavior>().Networkhidden),
+    "One three-choice purchase closes every source terminal for that owner");
+Check(cloneTerminals.All(terminal => terminal.GetComponent<PurchaseInteraction>().available &&
+    !terminal.GetComponent<ShopTerminalBehavior>().Networkhidden),
+    "Three-choice purchase retains every legal client clone");
+hooks.UnregisterHooks();
+NetworkServer.active = false;
+InstancedLoot.InstancedLoot.Instance.InteractionLoggingEnabled = false;
 
 // Interactor candidate filtering must resolve the player through the body/master
 // chain carried by the Interactor GameObject. PlayerCharacterMasterController is

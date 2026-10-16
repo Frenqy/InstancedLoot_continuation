@@ -126,4 +126,23 @@ public class MultiShopHandler : AbstractObjectHandler
 
         return instanceHandler;
     }
+
+    public override void FinalizeObject(GameObject sourceObject)
+    {
+        // The controller and each of its three terminals intentionally have
+        // separate SharedInfo groups. AbstractObjectHandler only broadcasts the
+        // controller group, which leaves clients without terminal handlers until a
+        // later purchase. Publish every group together when the source is ready.
+        base.FinalizeObject(sourceObject);
+
+        MultiShopController controller = sourceObject.GetComponent<MultiShopController>();
+        if (controller == null) return;
+
+        foreach (var terminalObject in controller.terminalGameObjects ?? Array.Empty<GameObject>())
+        {
+            InstanceHandler terminalHandler = terminalObject?.GetComponent<InstanceHandler>();
+            if (terminalHandler?.SharedInfo == null) continue;
+            terminalHandler.SharedInfo.SyncToAll();
+        }
+    }
 }

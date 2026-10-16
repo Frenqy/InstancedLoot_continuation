@@ -88,6 +88,18 @@ public class SyncInstances : INetMessage
     private bool superseded;
     private InstancedLoot receiver;
 
+    public static bool IsPending(GameObject target)
+    {
+        if (!target) return false;
+
+        NetworkIdentity identity = target.GetComponent<NetworkIdentity>();
+        if (!identity) return false;
+
+        NetworkInstanceId targetId = identity.netId;
+        return PendingMessages.Any(message =>
+            message.instanceHandlerEntries.Any(entry => entry.TargetId == targetId));
+    }
+
     public static void ClearPending()
     {
         foreach (var pending in PendingMessages) pending.superseded = true;
@@ -111,6 +123,23 @@ public class SyncInstances : INetMessage
     public SyncInstances(IEnumerable<InstanceHandler> instanceHandlers)
     {
         instanceHandlerEntries = instanceHandlers.Select(instanceHandler => new InstanceHandlerEntry(instanceHandler)).ToArray();
+    }
+
+    public static void LogDiagnostic(string action, SyncInstances message)
+    {
+        InstancedLoot plugin = InstancedLoot.Instance;
+        if (plugin == null || !plugin.InteractionLoggingEnabled) return;
+
+        string source = message._sourceObject.ToString();
+        string sourceName = message._sourceObject == NetworkInstanceId.Invalid
+            ? "none"
+            : Util.FindNetworkObject(message._sourceObject)?.name ?? "pending";
+        string targets = string.Join(",", message.instanceHandlerEntries.Select(entry =>
+        {
+            string name = Util.FindNetworkObject(entry.TargetId)?.name ?? "pending";
+            return $"{entry.TargetId}({name})";
+        }));
+        plugin._logger.LogInfo($"SyncInstances {action}: sourceNetId={source} sourceName={sourceName} targets=[{targets}] mode={message.objectInstanceMode}");
     }
     
     public void Serialize(NetworkWriter writer)
@@ -139,6 +168,8 @@ public class SyncInstances : INetMessage
 
         receiver = InstancedLoot.Instance;
         if (!receiver || !receiver.enabled) return;
+
+        LogDiagnostic("receive", this);
 
         var targetIds = new HashSet<NetworkInstanceId>(instanceHandlerEntries.Select(entry => entry.TargetId));
         foreach (var pending in PendingMessages.ToArray())
@@ -218,6 +249,7 @@ public class SyncInstances : INetMessage
             }
         
             sharedInstanceInfo.RecalculateAllPlayers();
+            LogDiagnostic("apply", this);
 
             InstanceHandler[] instanceHandlers = entries
                 .Select(entry => entry.target.GetComponent<InstanceHandler>()).Where(handler => handler != null).ToArray();

@@ -65,7 +65,7 @@ flowchart TD
 
 具体处理器负责复制 RNG、物品和数量；基类在初始化副本时统一通过 `PurchaseInteraction.NetworkcostType`、`Networkcost` 复制源对象最终成本，并为购买 RNG 建立独立副本。价格仍通过游戏原生 SyncVar 同步，不加入 `SyncInstances` 消息，也不持续绑定各副本后续价格。多重商店还需要创建和关联终端：控制器副本共享一组状态，每个三选一终端按位置建立独立的源/副本组，并复制 `ShopTerminalBehavior` 的商品、隐藏和 RNG 状态。源终端只属于源控制器的首位玩家，避免客户端候选同时选中源终端和该玩家的复制终端。`CopyObject` 的交互资格统一由 `InstanceHandler.OrigPlayer` 判定，即使源对象的 `Players` 聚合集合暂时包含全员；`InstancedObject` 和共享领取状态仍按各 Handler 的 `Players` 集合判定。不能只克隆主对象就认为商店逻辑完整。
 
-服务器购买入口再次检查 `PurchaseInteraction.available` 和当前 `InstanceHandler` 资格后才调用原生扣款/关闭逻辑。原生路径负责成功后的单次消费和关闭；入口检查只挡住不可用对象、无资格玩家和同帧重复进入，不改变团队金币扣除规则。
+服务器购买入口再次检查 `PurchaseInteraction.available` 和当前 `InstanceHandler` 资格后才调用原生扣款/关闭逻辑。入口以 `SharedInfo` 作为同帧购买锁；原生购买成功后，服务器原子关闭购买者在该组中的对象。三选一终端还按所属 `MultiShopController` 关闭购买者的全部终端，同时保留其他玩家的合法副本。客户端在 `SyncInstances` 尚未解析完成时保持提示禁用。可选的 `Debug/LogInstanceInteractions` 记录购买状态，默认关闭。
 
 价格复制不能只依赖 SpawnCard：本机更新后的游戏程序集 build `25921972` 中，`PurchaseInteraction.Awake` 仅在开关启用时缩放价格，`Start` 只缓存解锁过滤器；`SceneDirector.PopulateScene` 在 SpawnCard 生成之后另为金币交互物设置难度成本。模组副本绕过 SceneDirector，因此必须复制已初始化源对象的成本。该依据解释 CopyObject 路径的客户端低价，并不证明 issue #5 所报 InstanceItems 情形有同一根因；双端行为仍需验证。
 

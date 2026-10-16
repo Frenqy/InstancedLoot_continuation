@@ -32,6 +32,7 @@ public class Config
 
     public ConfigEntry<string> SelectedPreset;
     public ConfigEntry<bool> SharePickupPickers;
+    public ConfigEntry<bool> LogInstanceInteractions;
     public ConfigEntry<InstanceMode> PreferredInstanceMode;
     
     public ConfigEntry<bool> ReduceInteractibleBudget;
@@ -120,6 +121,8 @@ public class Config
             "If true, pickup pickers (such as void orbs and command essences) will be shared among the players they are instanced for.\n" +
             "A shared pickup picker can only be opened by one player, and will then drop an item that can be picked up separately.\n" +
             "If a pickup picker is not shared, then the item can be selected separately by each player.");
+        LogInstanceInteractions = config.Bind("Debug", "LogInstanceInteractions", false,
+            "Log instanced purchase eligibility and one-shot state. Disabled by default to avoid log spam.");
         
         ReduceInteractibleBudget = config.Bind("General - Balance", "ReduceInteractibleBudget", true,
             "[UNTESTED]  Should the interactible budget be reduced to singleplayer levels? (NOTE: Does not account for instance modes)\n" +

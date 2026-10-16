@@ -121,10 +121,12 @@ namespace RoR2
         public Xoroshiro128Plus rng;
         public object Networkpickup;
         public bool Networkhidden;
+        public MultiShopController serverMultiShopController;
         public void UpdatePickupDisplayAndAnimations() { }
     }
     public class MultiShopController : UnityEngine.Component
     {
+        private static uint nextTerminalId = 1000;
         public UnityEngine.GameObject[] terminalGameObjects = [];
         public int cost;
         public int Networkcost { get => cost; set => cost = value; }
@@ -132,11 +134,14 @@ namespace RoR2
         public void CreateTerminals()
         {
             terminalGameObjects = [CreateTerminal(), CreateTerminal(), CreateTerminal()];
+            foreach (var terminal in terminalGameObjects)
+                terminal.GetComponent<ShopTerminalBehavior>().serverMultiShopController = this;
         }
 
         private static UnityEngine.GameObject CreateTerminal()
         {
             var terminal = new UnityEngine.GameObject { name = "ShopTerminal" };
+            terminal.AddComponent<UnityEngine.Networking.NetworkIdentity>().netId = new(nextTerminalId++);
             var shopTerminal = terminal.AddComponent<ShopTerminalBehavior>();
             shopTerminal.rng = new Xoroshiro128Plus(42);
             terminal.AddComponent<PurchaseInteraction>();
@@ -207,8 +212,9 @@ namespace R2API.Networking.Interfaces
     }
     public static class Extensions
     {
-        public static void Send(this INetMessage message, R2API.Networking.NetworkDestination destination) { }
-        public static void Send(this INetMessage message, UnityEngine.Networking.NetworkConnection connection) { }
+        public static readonly List<INetMessage> SentMessages = new();
+        public static void Send(this INetMessage message, R2API.Networking.NetworkDestination destination) => SentMessages.Add(message);
+        public static void Send(this INetMessage message, UnityEngine.Networking.NetworkConnection connection) => SentMessages.Add(message);
     }
 }
 namespace InstancedLoot.Enums
@@ -223,13 +229,14 @@ namespace InstancedLoot.Enums
 }
 namespace InstancedLoot
 {
-    public class Logger { public readonly List<string> Errors = new(); public void LogError(string error) => Errors.Add(error); }
+    public class Logger { public readonly List<string> Errors = new(); public readonly List<string> Infos = new(); public void LogError(string error) => Errors.Add(error); public void LogInfo(string info) => Infos.Add(info); }
     public class InstancedLoot : UnityEngine.MonoBehaviour
     {
         public static InstancedLoot Instance = new();
         public static readonly List<Networking.SyncInstances.InstanceHandlerEntry[]> FailedSyncs = new();
         public readonly Logger _logger = new();
         public readonly HookManager HookManager = new();
+        public bool InteractionLoggingEnabled;
     }
     public class ObjectHandlerManager
     {
@@ -282,6 +289,15 @@ namespace On.RoR2
         public static event Func<orig_GetInteractability, global::RoR2.PurchaseInteraction, global::RoR2.Interactor, global::RoR2.Interactability> GetInteractability;
         public static event Action<orig_OnInteractionBegin, global::RoR2.PurchaseInteraction, global::RoR2.Interactor> OnInteractionBegin;
         public static int Purchases;
-        public static void Buy(global::RoR2.PurchaseInteraction purchase, global::RoR2.Interactor interactor) => OnInteractionBegin((_, _) => Purchases++, purchase, interactor);
+        public static Action<global::RoR2.PurchaseInteraction, global::RoR2.Interactor> DuringNativePurchase;
+        public static void Buy(global::RoR2.PurchaseInteraction purchase, global::RoR2.Interactor interactor)
+        {
+            OnInteractionBegin((_, _) =>
+            {
+                DuringNativePurchase?.Invoke(purchase, interactor);
+                Purchases++;
+                purchase.available = false;
+            }, purchase, interactor);
+        }
     }
 }

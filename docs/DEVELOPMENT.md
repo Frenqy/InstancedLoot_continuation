@@ -131,7 +131,7 @@ GameLibs 1.5.0-r.1 内的方法体为 `throw null` 的编译桩，反编译仅�
 脚本把工作目录设为自身目录，删除并重建根目录 `Release/`，复制元数据，执行构建并复制 DLL，再根据 manifest 版本压缩。它会覆盖同版本 ZIP。当前产物结构为：
 
 ```text
-Nicebowl-InstancedLoot-1.5.3.zip
+Nicebowl-InstancedLoot-1.5.4.zip
 ├── CHANGELOG.md
 ├── icon.png
 ├── manifest.json
@@ -144,18 +144,24 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 
 | 位置 | 当前版本/用途 |
 | --- | --- |
-| `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.3`，插件元数据 |
-| `manifest.json` | `1.5.3`，发布包版本及 ZIP 命名依据 |
-| `InstancedLoot.csproj` | `1.5.3`，项目/程序集构建版本元数据 |
-| `CHANGELOG.md` | `1.5.3 (Unreleased)` 记录三选一终端状态/资格修复；`1.5.2 (Unreleased)` 保留客户端重叠交互物筛选修复，历史版本继续保留 |
+| `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.4`，插件元数据 |
+| `manifest.json` | `1.5.4`，发布包版本及 ZIP 命名依据 |
+| `InstancedLoot.csproj` | `1.5.4`，项目/程序集构建版本元数据 |
+| `CHANGELOG.md` | `1.5.4 (Unreleased)` 记录同步等待、原子购买和受控日志；`1.5.3` 及历史版本继续保留 |
 
-本次将三个模组版本从 1.5.2 统一递增为 1.5.3，保留原 GUID；目标游戏仍为 1.5.0，GameLibs 仍为 1.5.0-r.1。上面的 ZIP 名称是按当前版本打包时的预期产物，此次没有执行打包，也没有重建用户已有的 ZIP。CHANGELOG 的 1.5.0 至 1.5.3 都尚未发布，不补写发布日期；历史兼容性声明不能替代具体对象注册检查和游戏实测。
+本次将三个模组版本从 1.5.3 统一递增为 1.5.4，保留原 GUID；目标游戏仍为 1.5.0，GameLibs 仍为 1.5.0-r.1。此次没有执行打包，也没有重建用户已有的 ZIP。CHANGELOG 的 1.5.0 至 1.5.4 都尚未发布，不补写发布日期；历史兼容性声明不能替代具体对象注册检查和游戏实测。
 
 后续每个修改批次/交付必须递增模组版本，包含仅文档或协作规则修改；默认递增 patch，新增功能递增 minor，破坏兼容性递增 major。同一任务的配套修改只递增一次，版本与文档同步是该批次的一部分，不另触发升级，也不要求每次临时编辑或同一批次内的提交分别升级。交付前同步上述三处版本、CHANGELOG、此版本表及其他当前版本描述；保留历史验证记录的原版本与事实。目标游戏与编译/运行依赖版本独立维护，不机械替换。完整约束见 [AGENTS.md](../AGENTS.md)。
 
 ### 模组 1.5.2 版本与客户端交互筛选修复（2026-10-15）
 
 本批启用 `InteractorHandler`，并让它从交互者所在 `CharacterBody.master` 解析玩家控制器；重叠箱子候选会在客户端筛掉其他玩家无资格的副本。由于当前候选局部是 `IInteractable`，注入在调用 `Component.GetComponent<InstanceHandler>` 前显式执行 `Castclass Component`。Release 构建成功（0 错误、1 条既有过时 API 警告），MultiplayerRegression 通过 39 条断言；当前游戏 1.5.0 build 25921972 的 `FindBestInteractableObject` 接收者类型检查通过，注册 IL 审计通过 18 个模式和 22 个结构断言。未执行 Unity/Mono Hook 安装、主机/客户端联机或分屏实测，也未打包或改写现有 ZIP。
+
+### 模组 1.5.4 同步等待与原子购买修复（2026-10-16）
+
+客户端在 `SyncInstances` 仍等待 source、clone 或玩家引用时，购买提示和直接入口都会拒绝无 `InstanceHandler` 的目标；快照应用后再恢复合法副本资格。服务器购买入口用 `SharedInfo` 做同帧锁，原生购买成功后关闭购买者同组对象；三选一额外遍历所属 `MultiShopController` 的三个终端，只关闭购买者的终端并保留其他玩家副本。`MultiShopHandler.FinalizeObject` 会在 controller 准备完成时发送 controller 与各 terminal group 的同步消息，避免客户端永远缺少终端 handler。`Debug/LogInstanceInteractions` 默认关闭，启用后记录购买和 `SyncInstances` send/receive/apply 的 netId、source/clone、OrigPlayer、Players、available、hidden、pickup 与 buyer 信息。
+
+Release 构建成功（0 错误、1 条既有过时 API 警告）。MultiplayerRegression 通过 57 个断言，覆盖等待期拒绝、CopyObject 合法副本保留、三选一原子关闭、隔离终端组广播、同组重入和受控交互日志；未执行真实主机/客户端、Unity/Mono Hook 安装或网络传输验证，也未打包或改写已有 ZIP。
 
 ### 模组 1.5.3 三选一终端与金币购买资格修复（2026-10-16）
 

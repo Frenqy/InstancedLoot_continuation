@@ -52,7 +52,7 @@ using UnityEngine.Networking;
 
 namespace InstancedLoot;
 
-[BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.5.3")]
+[BepInPlugin("com.kuberoot.instancedloot", "InstancedLoot", "1.5.4")]
 [NetworkCompatibility]
 [BepInDependency(NetworkingAPI.PluginGUID)]
 public class InstancedLoot : BaseUnityPlugin
@@ -63,6 +63,7 @@ public class InstancedLoot : BaseUnityPlugin
     internal ManualLogSource _logger => Logger;
     public static InstancedLoot Instance { get; private set; }
     public Config ModConfig { get; private set; }
+    public bool InteractionLoggingEnabled => ModConfig?.LogInstanceInteractions?.Value == true;
 
     public static event Action<InstancedLoot> PreConfigInit;
 

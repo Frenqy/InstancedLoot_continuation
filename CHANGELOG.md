@@ -2,6 +2,14 @@
 
 ## Continuation
 
+### 1.5.4 (Unreleased)
+
+- Blocked client interaction while a `SyncInstances` snapshot is still resolving its source, clone, or player references, preventing an unsynchronized object from being authorized by the native prompt.
+- Added a server-side per-`SharedInfo` purchase lock and atomic one-shot closure for the purchasing player's linked objects; three-choice shop purchases close all of that owner's terminals while preserving the other players' legal copies.
+- Added opt-in `Debug/LogInstanceInteractions` diagnostics for netId, source/clone, `OrigPlayer`, `Players`, `available`, `hidden`, `pickup`, and buyer state.
+
+**Validation:** Release build passed with one existing obsolete-API warning. MultiplayerRegression passed 57 assertions, including pending client snapshot rejection, owner-preserving CopyObject purchase closure, atomic three-choice terminal closure, terminal-group broadcasts, same-group reentry, and opt-in diagnostics. Real host/client gameplay and network transport remain untested; no package was rebuilt.
+
 ### 1.5.3 (Unreleased)
 
 - Isolated each TripleShop terminal's source/copy state group and restricted the source terminal to its owning player, so each player keeps an independent three-choice purchase.

@@ -93,12 +93,22 @@ public class InstanceHandler : InstancedLootBehaviour
 
         public void SyncTo(NetworkConnection connection)
         {
-            if (NetworkServer.active) new SyncInstances(this).Send(connection);
+            if (NetworkServer.active)
+            {
+                SyncInstances message = new(this);
+                SyncInstances.LogDiagnostic("send", message);
+                message.Send(connection);
+            }
         }
 
         public void SyncToAll()
         {
-            if (NetworkServer.active) new SyncInstances(this).Send(NetworkDestination.Clients);
+            if (NetworkServer.active)
+            {
+                SyncInstances message = new(this);
+                SyncInstances.LogDiagnostic("send", message);
+                message.Send(NetworkDestination.Clients);
+            }
         }
     }
 

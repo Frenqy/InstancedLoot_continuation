@@ -4,6 +4,8 @@
 
 主机和每位客户端都需要安装模组及 `manifest.json` 中的运行依赖。手动安装时，将发布包内的 `InstancedLoot` 文件夹放入 `Risk of Rain 2/BepInEx/plugins/`。构建和发布包结构见 [开发文档](DEVELOPMENT.md)。
 
+`Debug/LogInstanceInteractions` 默认关闭。启用后，服务器购买路径和客户端交互提示拒绝会记录对象 netId、source/clone、OrigPlayer、Players、available、hidden、pickup 与购买者，适合复现归属问题；多人长时间运行时建议保持关闭。
+
 首次由 BepInEx 加载并初始化后，配置文件为：
 
 ```text
