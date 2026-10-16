@@ -14,8 +14,8 @@ Assertions cover delayed source resolution beyond 40 frames, superseded pending
 snapshots, destroyed references, timeout/run/disable cleanup, group destruction,
 non-null clone placement rules and preserved rotation/transform, cost setter use
 and independent RNG, CopyObject source/clone permission, independent
-three-choice terminal groups and terminal-group broadcast, pending client
-purchase rejection, atomic owner-only terminal closure, server purchase eligibility, failed/successful/
+three-choice terminal groups, reuse of Awake-spawned terminals and awaited-slot broadcasts, pending client
+purchase rejection, native-controlled terminal closure/cooldowns, cross-slot reentry rejection, server purchase eligibility, failed/successful/
 last-player pickup grants, repeated-grant rejection and camera state.
 
 The stubs model destroyed Unity objects as false/null for overloaded equality;
@@ -25,9 +25,15 @@ They deliberately do not emulate real UNet serialization/SyncVar dirty bits,
 R2API transport, RoR2 method IL, actual rendering or two installed game clients.
 Passing this harness does not establish game-version or multiplayer compatibility.
 
-On 2026-10-16, the Release run passed 57 assertions. The earlier 1.5.3 run
+On 2026-10-16, the revised 1.5.4 Release run passed 69 assertions. These include
+no second CreateTerminals call, preserved native sibling state, cooldown restoration,
+cross-slot reentry, copy visibility after the viewer's own copy is destroyed,
+same-camera ownership changes, prompt log deduplication, correct outgoing target IDs
+and missing-reference reasons. The earlier 57-assertion run omitted native Awake
+and wrongly expected the mod to force-close siblings; it did not validate this lifecycle.
+The earlier 1.5.3 run
 passed 48; the additional checks cover pending client purchase rejection,
-atomic three-choice closure, terminal-group broadcast, same-group reentry,
+the then-proposed atomic three-choice closure, terminal-group broadcast, same-group reentry,
 and opt-in interaction diagnostics. The earlier 1.5.2 run
 passed 39; the additional checks cover the CopyObject source/clone permission
 split and independent three-choice terminal groups. The earlier 1.5.0 adaptation

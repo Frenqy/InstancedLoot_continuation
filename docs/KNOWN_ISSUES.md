@@ -29,6 +29,10 @@
 
 同步仍有限制：超过 30 秒的缺失引用会超时并仅保存诊断，不会后台重放；按本地接收顺序淘汰旧 pending，不识别网络包本身乱序；同一 Run 的换关没有专用取消事件；迟加入不会新增副本或份额。
 
+1.5.4 审查确认一个不同的三终端根因：真实游戏 MultiShop Awake 已生成并 Spawn 终端，旧复制路径 Start 再次 CreateTerminals，产生不受实例权限控制的孤儿终端。当前复用 Awake 终端；原始递归其实已经建立源终端独立组，不能把“原本没有 SharedInfo/源终端全员”作为已证实原因。撤销未交付版本中强制关闭/hidden 及提前额外广播，保留原生 Executive Card 和冷却语义。另修复 CopyObject 自己份额销毁后 AllOrigPlayers 门槛导致其他副本 renderer 继承上个相机状态的问题。这些修订通过隔离及真实 DLL 静态检查，仍未联机实测。
+
+用户所报普通箱持续等主机开启才可购买，目前没有足够现场证据确诊；已收到快照的 pending 保护只覆盖部分窗口，不能作为该现象已修好的结论。原生 FindBest 返回单个 IInteractable 候选，而 PerformInteraction 可遍历多个组件；本次只观察实际选择/提示/购买/授予与同步状态，没有改变未证实有误的射线/距离算法。按[现场日志采集](CONFIGURATION.md#现场日志采集)双端复现。
+
 | 位置 | 静态证据 | 影响或后续核实方向 |
 | --- | --- | --- |
 | `Hooks/ChatHandler.cs` 的 UnregisterHooks | 使用 `+= On_Chat_CCSay`，不是 `-=` | 卸载方法会增加订阅；最终是否残留还受插件的 RemoveAllOwnedBy 清理影响，应验证启停流程 |

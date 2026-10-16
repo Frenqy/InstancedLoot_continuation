@@ -9,6 +9,7 @@ namespace UnityEngine
     public class Object
     {
         public bool destroyed;
+        public int GetInstanceID() => GetHashCode();
         public static implicit operator bool(Object value) => value is not null && !value.destroyed;
         public static bool operator !(Object value) => !((bool)value);
         public static bool operator ==(Object a, Object b) => ReferenceEquals(a, b) || (!((bool)a) && !((bool)b));
@@ -35,6 +36,7 @@ namespace UnityEngine
         public readonly Transform transform = new();
         private readonly List<Component> components = new();
         public T GetComponent<T>() => components.Where(c => c).OfType<T>().FirstOrDefault();
+        public T[] GetComponents<T>() => components.Where(c => c).OfType<T>().ToArray();
         public T[] GetComponentsInChildren<T>() => components.Where(c => c).OfType<T>().ToArray();
         public T AddComponent<T>() where T : Component, new()
         {
@@ -101,6 +103,7 @@ namespace RoR2
     public class GenericPickupController : UnityEngine.Component { }
     public class PickupDef { public struct GrantContext { public bool shouldDestroy; } }
     public enum Interactability { Disabled, Available }
+    public interface IInteractable { }
     public class PurchaseInteraction : UnityEngine.Component
     {
         public bool available = true;
@@ -128,11 +131,17 @@ namespace RoR2
     {
         private static uint nextTerminalId = 1000;
         public UnityEngine.GameObject[] terminalGameObjects = [];
+        public bool available;
+        public bool Networkavailable { get => available; set => available = value; }
+        public int CreateTerminalsCalls;
+        // Matches installed build 25921972, independently checked by the DLL audit.
+        private void Awake() { if (UnityEngine.Networking.NetworkServer.active) CreateTerminals(); }
         public int cost;
         public int Networkcost { get => cost; set => cost = value; }
         public Xoroshiro128Plus rng = new(0);
         public void CreateTerminals()
         {
+            CreateTerminalsCalls++;
             terminalGameObjects = [CreateTerminal(), CreateTerminal(), CreateTerminal()];
             foreach (var terminal in terminalGameObjects)
                 terminal.GetComponent<ShopTerminalBehavior>().serverMultiShopController = this;
@@ -290,13 +299,17 @@ namespace On.RoR2
         public static event Action<orig_OnInteractionBegin, global::RoR2.PurchaseInteraction, global::RoR2.Interactor> OnInteractionBegin;
         public static int Purchases;
         public static Action<global::RoR2.PurchaseInteraction, global::RoR2.Interactor> DuringNativePurchase;
+        public static Action<global::RoR2.PurchaseInteraction> NativeOutcome;
+        public static global::RoR2.Interactability Prompt(global::RoR2.PurchaseInteraction purchase, global::RoR2.Interactor interactor) =>
+            GetInteractability((_, _) => global::RoR2.Interactability.Available, purchase, interactor);
         public static void Buy(global::RoR2.PurchaseInteraction purchase, global::RoR2.Interactor interactor)
         {
             OnInteractionBegin((_, _) =>
             {
                 DuringNativePurchase?.Invoke(purchase, interactor);
                 Purchases++;
-                purchase.available = false;
+                  if (NativeOutcome != null) NativeOutcome(purchase);
+                  else purchase.available = false;
             }, purchase, interactor);
         }
     }

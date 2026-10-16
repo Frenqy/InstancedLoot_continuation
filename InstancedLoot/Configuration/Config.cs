@@ -122,7 +122,7 @@ public class Config
             "A shared pickup picker can only be opened by one player, and will then drop an item that can be picked up separately.\n" +
             "If a pickup picker is not shared, then the item can be selected separately by each player.");
         LogInstanceInteractions = config.Bind("Debug", "LogInstanceInteractions", false,
-            "Log instanced purchase eligibility and one-shot state. Disabled by default to avoid log spam.");
+            "Log purchase calls, changed selections/pickup states and instance snapshots, including missing references. Capped at 512 purchase, 512 selection/pickup and 1024 sync lines per plugin session. Restart to collect a new trace. Disabled by default.");
         
         ReduceInteractibleBudget = config.Bind("General - Balance", "ReduceInteractibleBudget", true,
             "[UNTESTED]  Should the interactible budget be reduced to singleplayer levels? (NOTE: Does not account for instance modes)\n" +

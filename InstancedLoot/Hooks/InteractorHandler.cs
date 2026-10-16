@@ -12,12 +12,23 @@ public class InteractorHandler : AbstractHookHandler
 {
     public override void RegisterHooks()
     {
+        On.RoR2.Interactor.FindBestInteractableObject += On_Interactor_FindBestInteractableObject;
         IL.RoR2.Interactor.FindBestInteractableObject += IL_Interactor_FindBestInteractableObject;
     }
 
     public override void UnregisterHooks()
     {
+        On.RoR2.Interactor.FindBestInteractableObject -= On_Interactor_FindBestInteractableObject;
         IL.RoR2.Interactor.FindBestInteractableObject -= IL_Interactor_FindBestInteractableObject;
+        InteractionDiagnostics.Clear();
+    }
+
+    private GameObject On_Interactor_FindBestInteractableObject(On.RoR2.Interactor.orig_FindBestInteractableObject orig,
+        Interactor self, Ray ray, float maxRaycastDistance, Vector3 overlapPosition, float overlapRadius)
+    {
+        GameObject selected = orig(self, ray, maxRaycastDistance, overlapPosition, overlapRadius);
+        InteractionDiagnostics.Selection(self, selected);
+        return selected;
     }
 
     private void IL_Interactor_FindBestInteractableObject(ILContext il)

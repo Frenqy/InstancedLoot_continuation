@@ -22,7 +22,21 @@ public class SyncInstances : INetMessage
         private NetworkInstanceId _target;
         private NetworkInstanceId[] _players;
         private NetworkInstanceId _origPlayer;
-        public NetworkInstanceId TargetId => _target;
+        public NetworkInstanceId TargetId => target ? target.GetComponent<NetworkIdentity>().netId : _target;
+        public NetworkInstanceId OwnerId => origPlayer ? origPlayer.GetComponent<NetworkIdentity>().netId : _origPlayer;
+        public IEnumerable<NetworkInstanceId> PlayerIds => _players != null ? _players : players != null
+            ? players.Select(player => player.GetComponent<NetworkIdentity>().netId)
+            : Array.Empty<NetworkInstanceId>();
+
+        public IEnumerable<string> MissingReferences()
+        {
+            if (!Util.FindNetworkObject(_target)) yield return $"target:{_target}";
+            if (_origPlayer != NetworkInstanceId.Invalid && !Util.FindNetworkObject(_origPlayer)?.GetComponent<PlayerCharacterMasterController>())
+                yield return $"owner:{_origPlayer}";
+            foreach (var playerId in _players ?? Array.Empty<NetworkInstanceId>())
+                if (!Util.FindNetworkObject(playerId)?.GetComponent<PlayerCharacterMasterController>())
+                    yield return $"player:{playerId}";
+        }
 
         public InstanceHandlerEntry(InstanceHandler instanceHandler)
         {
@@ -85,6 +99,7 @@ public class SyncInstances : INetMessage
     // Only unresolved snapshots are retained. A later received message replaces an
     // overlapping pending snapshot before its coroutine can apply stale permissions.
     private static readonly List<SyncInstances> PendingMessages = new();
+    private static int diagnosticCount;
     private bool superseded;
     private InstancedLoot receiver;
 
@@ -104,6 +119,7 @@ public class SyncInstances : INetMessage
     {
         foreach (var pending in PendingMessages) pending.superseded = true;
         PendingMessages.Clear();
+        diagnosticCount = 0;
     }
 
     public SyncInstances()
@@ -129,6 +145,9 @@ public class SyncInstances : INetMessage
     {
         InstancedLoot plugin = InstancedLoot.Instance;
         if (plugin == null || !plugin.InteractionLoggingEnabled) return;
+        if (diagnosticCount >= 1024) return;
+        if (++diagnosticCount == 1024)
+            plugin._logger.LogInfo("SyncInstances diagnostic limit reached (1024 lines); restart the game to collect a new trace.");
 
         string source = message._sourceObject.ToString();
         string sourceName = message._sourceObject == NetworkInstanceId.Invalid
@@ -136,10 +155,10 @@ public class SyncInstances : INetMessage
             : Util.FindNetworkObject(message._sourceObject)?.name ?? "pending";
         string targets = string.Join(",", message.instanceHandlerEntries.Select(entry =>
         {
-            string name = Util.FindNetworkObject(entry.TargetId)?.name ?? "pending";
-            return $"{entry.TargetId}({name})";
+            string name = entry.target?.name ?? Util.FindNetworkObject(entry.TargetId)?.name ?? "pending";
+            return $"{entry.TargetId}({name};owner={entry.OwnerId};players={string.Join("/", entry.PlayerIds)})";
         }));
-        plugin._logger.LogInfo($"SyncInstances {action}: sourceNetId={source} sourceName={sourceName} targets=[{targets}] mode={message.objectInstanceMode}");
+        plugin._logger.LogInfo($"SyncInstances {action}: server={NetworkServer.active} sourceNetId={source} sourceName={sourceName} targets=[{targets}] mode={message.objectInstanceMode}");
     }
     
     public void Serialize(NetworkWriter writer)
@@ -190,7 +209,16 @@ public class SyncInstances : INetMessage
         var entries = instanceHandlerEntries;
         var run = Run.instance;
         float deadline = Time.realtimeSinceStartup + 30f;
+        bool loggedWaiting = false;
         GameObject sourceObject = null;
+
+        string DescribeMissing()
+        {
+            var missing = entries.SelectMany(entry => entry.MissingReferences()).ToList();
+            if (_sourceObject != NetworkInstanceId.Invalid && sourceObject == null)
+                missing.Add($"source:{_sourceObject}");
+            return string.Join(",", missing);
+        }
 
         try
         {
@@ -210,9 +238,16 @@ public class SyncInstances : INetMessage
 
                 if (validated) break;
 
+                if (!loggedWaiting)
+                {
+                    if (receiver.InteractionLoggingEnabled)
+                        LogDiagnostic($"pending missing=[{DescribeMissing()}]", this);
+                    loggedWaiting = true;
+                }
+
                 if (Time.realtimeSinceStartup >= deadline)
                 {
-                    receiver._logger.LogError($"SyncInstances timed out waiting for network objects (source {_sourceObject}, targets {string.Join(", ", entries.Select(entry => entry.TargetId))}).");
+                    receiver._logger.LogError($"SyncInstances timed out waiting for network objects (source {_sourceObject}, targets {string.Join(", ", entries.Select(entry => entry.TargetId))}, missing [{DescribeMissing()}]).");
                     // Diagnostic history, not a replay queue. Keep it bounded across long runs.
                     if (InstancedLoot.FailedSyncs.Count >= 32) InstancedLoot.FailedSyncs.RemoveAt(0);
                     InstancedLoot.FailedSyncs.Add(entries);

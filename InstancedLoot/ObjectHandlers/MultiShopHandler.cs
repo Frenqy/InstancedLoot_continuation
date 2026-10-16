@@ -1,4 +1,3 @@
-using System;
 using InstancedLoot.Components;
 using InstancedLoot.Enums;
 using InstancedLoot.Hooks;
@@ -56,23 +55,9 @@ public class MultiShopHandler : AbstractObjectHandler
             if (multiShopController != null)
                 foreach (var terminalGameObject in multiShopController.terminalGameObjects)
                 {
-                    // A CopyObject source is owned by the first player only.  The
-                    // terminals are separate interactables, so they must use the same
-                    // owner as the source instead of accidentally remaining eligible
-                    // for every player (which also prevents client candidate filtering
-                    // from selecting the wrong terminal).
-                    InstanceHandler terminalHandler = base.InstanceSingleObjectFrom(
-                        terminalGameObject, terminalGameObject, new[] { instanceHandler.OrigPlayer });
-
-                    // Each terminal has its own copy group.  The controller's shared
-                    // group only contains controller copies, while terminal copies are
-                    // spawned asynchronously by CreateTerminals and need a source
-                    // handler to receive their state and permissions.
-                    terminalHandler.SharedInfo = new InstanceHandler.SharedInstanceInfo
-                    {
-                        SourceObject = terminalGameObject,
-                        ObjectInstanceMode = ObjectInstanceMode
-                    };
+                    // The recursive terminal branch below creates its own group.
+                    // CopyObject already passes only the source controller's owner.
+                    InstanceSingleObjectFrom(terminalGameObject, terminalGameObject, players);
                     
                     if(instanceInfoTracker != null)
                         instanceInfoTracker.Info.AttachTo(terminalGameObject);
@@ -92,16 +77,18 @@ public class MultiShopHandler : AbstractObjectHandler
             {
                 MultiShopController sourceMultiShopController = source.GetComponent<MultiShopController>();
 
-                targetMultiShopController.rng = new Xoroshiro128Plus(0); //Temporary RNG
-                targetMultiShopController.CreateTerminals();
+                // Awake already creates and network-spawns terminals in game 1.5.0.
+                // Calling CreateTerminals again overwrites the array without destroying
+                // the first set, leaving live untracked interactables at the same slots.
+                // Start is intercepted, so copy its finalized state onto those terminals.
+                targetMultiShopController.Networkavailable = sourceMultiShopController.available;
                 targetMultiShopController.Networkcost = sourceMultiShopController.Networkcost;
                 targetMultiShopController.rng = new Xoroshiro128Plus(sourceMultiShopController.rng);
 
                 var sourceTerminalGameObjects = sourceMultiShopController.terminalGameObjects;
                 var targetTerminalGameObjects = targetMultiShopController.terminalGameObjects;
 
-                int terminalCount = Math.Min(sourceTerminalGameObjects.Length, targetTerminalGameObjects.Length);
-                for (int i = 0; i < terminalCount; i++)
+                for (int i = 0; i < targetTerminalGameObjects.Length; i++)
                     AwaitObjectFor(targetTerminalGameObjects[i],
                         new AwaitedObjectInfo
                         {
@@ -127,22 +114,4 @@ public class MultiShopHandler : AbstractObjectHandler
         return instanceHandler;
     }
 
-    public override void FinalizeObject(GameObject sourceObject)
-    {
-        // The controller and each of its three terminals intentionally have
-        // separate SharedInfo groups. AbstractObjectHandler only broadcasts the
-        // controller group, which leaves clients without terminal handlers until a
-        // later purchase. Publish every group together when the source is ready.
-        base.FinalizeObject(sourceObject);
-
-        MultiShopController controller = sourceObject.GetComponent<MultiShopController>();
-        if (controller == null) return;
-
-        foreach (var terminalObject in controller.terminalGameObjects ?? Array.Empty<GameObject>())
-        {
-            InstanceHandler terminalHandler = terminalObject?.GetComponent<InstanceHandler>();
-            if (terminalHandler?.SharedInfo == null) continue;
-            terminalHandler.SharedInfo.SyncToAll();
-        }
-    }
 }

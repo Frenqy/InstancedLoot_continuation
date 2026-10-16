@@ -147,7 +147,7 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 | `InstancedLoot.cs` 的 BepInPlugin 属性 | `1.5.4`，插件元数据 |
 | `manifest.json` | `1.5.4`，发布包版本及 ZIP 命名依据 |
 | `InstancedLoot.csproj` | `1.5.4`，项目/程序集构建版本元数据 |
-| `CHANGELOG.md` | `1.5.4 (Unreleased)` 记录同步等待、原子购买和受控日志；`1.5.3` 及历史版本继续保留 |
+| `CHANGELOG.md` | `1.5.4 (Unreleased)` 记录 MultiShop 生命周期修复、相机显示与有限诊断；`1.5.3` 及历史版本继续保留 |
 
 本次将三个模组版本从 1.5.3 统一递增为 1.5.4，保留原 GUID；目标游戏仍为 1.5.0，GameLibs 仍为 1.5.0-r.1。此次没有执行打包，也没有重建用户已有的 ZIP。CHANGELOG 的 1.5.0 至 1.5.4 都尚未发布，不补写发布日期；历史兼容性声明不能替代具体对象注册检查和游戏实测。
 
@@ -157,11 +157,13 @@ ZIP 前缀 `Nicebowl-InstancedLoot` 是脚本硬编码，manifest 名称是 `Ins
 
 本批启用 `InteractorHandler`，并让它从交互者所在 `CharacterBody.master` 解析玩家控制器；重叠箱子候选会在客户端筛掉其他玩家无资格的副本。由于当前候选局部是 `IInteractable`，注入在调用 `Component.GetComponent<InstanceHandler>` 前显式执行 `Castclass Component`。Release 构建成功（0 错误、1 条既有过时 API 警告），MultiplayerRegression 通过 39 条断言；当前游戏 1.5.0 build 25921972 的 `FindBestInteractableObject` 接收者类型检查通过，注册 IL 审计通过 18 个模式和 22 个结构断言。未执行 Unity/Mono Hook 安装、主机/客户端联机或分屏实测，也未打包或改写现有 ZIP。
 
-### 模组 1.5.4 同步等待与原子购买修复（2026-10-16）
+### 模组 1.5.4 生命周期、显示与诊断修订（2026-10-16）
 
-客户端在 `SyncInstances` 仍等待 source、clone 或玩家引用时，购买提示和直接入口都会拒绝无 `InstanceHandler` 的目标；快照应用后再恢复合法副本资格。服务器购买入口用 `SharedInfo` 做同帧锁，原生购买成功后关闭购买者同组对象；三选一额外遍历所属 `MultiShopController` 的三个终端，只关闭购买者的终端并保留其他玩家副本。`MultiShopHandler.FinalizeObject` 会在 controller 准备完成时发送 controller 与各 terminal group 的同步消息，避免客户端永远缺少终端 handler。`Debug/LogInstanceInteractions` 默认关闭，启用后记录购买和 `SyncInstances` send/receive/apply 的 netId、source/clone、OrigPlayer、Players、available、hidden、pickup 与 buyer 信息。
+审查未交付的 `bbb6852` 后撤销强制关闭所有同主终端、直接写 available/hidden 的做法，保留原生 Executive Card 与祭坛冷却语义；controller 重入锁覆盖不同 terminal slot。真实游戏 IL 确认 Awake 已 CreateTerminals，旧复制体路径在 Start 再创建造成第二套 Spawn/孤儿终端；现复用已有终端并补控制器 available/cost。终端组原本就由递归初始化和 awaited 完成流程建立/同步，撤销无依据的提前额外广播，纠正“原始源终端全员或没有 SharedInfo”的判断。不同第三方 prefab 的槽位数量差异仍不在本次验证范围。
 
-Release 构建成功（0 错误、1 条既有过时 API 警告）。MultiplayerRegression 通过 57 个断言，覆盖等待期拒绝、CopyObject 合法副本保留、三选一原子关闭、隔离终端组广播、同组重入和受控交互日志；未执行真实主机/客户端、Unity/Mono Hook 安装或网络传输验证，也未打包或改写已有 ZIP。
+客户端已收到但 pending 的快照继续限制无 handler 购买；没有证据证明普通箱持续等主机开箱只由该窗口造成。CopyObject 的 PreCull 不再用 AllOrigPlayers 限制隐藏检查，每个相机始终按 OrigPlayer 写 renderer 状态；同相机资格变化也重新计算淡化。受控日志包含最终候选及其 IInteractable 组件类型、购买 before/return（返回不代表消费成功）、拾取 consumed/retained/final、正确发送 target ID、pending 缺失 target/owner/player/source 原因。采集步骤见[配置文档](CONFIGURATION.md#现场日志采集)。
+
+本次最终 Release 构建成功（0 错误、1 条既有过时 API 警告）；MultiplayerRegression 通过 69 个断言，含 Awake 已生成终端的负例边界、既有终端复用、逐槽完成同步、跨槽重入、原生不关闭/冷却恢复与自份销毁后的多相机显示，以及重复提示日志去重、发送 ID、pending 缺失引用诊断。真实 DLL 及编译后生产 DLL 的 MultiShop 生命周期审计通过 8 项；既有 18 项注册 IL 模式、22 项 pickup 结构断言、动画/指挥精华校验通过。新增审计要求先构建 Release DLL。此前 57 断言 run 没有模拟 Awake，误把强制关闭当作正确预期，不能作为该生命周期的验证。未执行真实主机/客户端、Unity/Mono Hook 安装或网络传输验证，也未打包或改写任何 ZIP。
 
 ### 模组 1.5.3 三选一终端与金币购买资格修复（2026-10-16）
 

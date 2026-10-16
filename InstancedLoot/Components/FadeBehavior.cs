@@ -193,13 +193,13 @@ public class FadeBehavior : InstancedLootBehaviour
         if (needsRefresh)
             RefreshComponentLists();
         
-        if (player == lastPlayer && !isBeingDestroyed)
-            return;
-        
         var instanceHandler = GetComponent<InstanceHandler>();
         bool isCopyObject = instanceHandler != null ? instanceHandler.ObjectInstanceMode == ObjectInstanceMode.CopyObject : true;
 
-        if (isBeingDestroyed || isCopyObject && (instanceHandler == null || instanceHandler.AllOrigPlayers.Contains(player)))
+        // A player whose own copy was destroyed must still hide everyone else's
+        // copies. Always write this camera's result; the previous camera may have
+        // enabled the renderer, and membership can change without a camera change.
+        if (isBeingDestroyed || isCopyObject)
         {
             bool isOrigForCurrent = isBeingDestroyed || instanceHandler == null || instanceHandler.OrigPlayer == player;
             foreach (var renderer in Renderers)
@@ -242,11 +242,8 @@ public class FadeBehavior : InstancedLootBehaviour
         if (needsRefresh)
             RefreshComponentLists();
         
-        if (player == lastPlayer && !isBeingDestroyed)
-            return;
-        
         var instanceHandler = GetComponent<InstanceHandler>();
-        bool isForCurrentPlayer = isBeingDestroyed || instanceHandler.IsInstancedFor(player);
+        bool isForCurrentPlayer = isBeingDestroyed || instanceHandler == null || instanceHandler.IsInstancedFor(player);
         float actualFadeLevel = isForCurrentPlayer ? 1.0f : FadeLevel;
         
         foreach (var renderer in Renderers)

@@ -5,10 +5,12 @@
 ### 1.5.4 (Unreleased)
 
 - Blocked client interaction while a `SyncInstances` snapshot is still resolving its source, clone, or player references, preventing an unsynchronized object from being authorized by the native prompt.
-- Added a server-side per-`SharedInfo` purchase lock and atomic one-shot closure for the purchasing player's linked objects; three-choice shop purchases close all of that owner's terminals while preserving the other players' legal copies.
-- Added opt-in `Debug/LogInstanceInteractions` diagnostics for netId, source/clone, `OrigPlayer`, `Players`, `available`, `hidden`, `pickup`, and buyer state.
+- Reused the MultiShop terminals already spawned by native `Awake`. Calling `CreateTerminals` again during clone initialization had spawned a second set and left the first set untracked and purchasable at the same positions. Copies now inherit the controller's finalized availability and cost.
+- Guarded reentrant purchases across all slots of the same MultiShop controller. Native purchase events retain control of terminal closure, Executive Card behavior, and shrine cooldowns; removed the unvalidated forced closure added earlier in this unreleased batch.
+- Added bounded, opt-in `Debug/LogInstanceInteractions` purchase/snapshot diagnostics with correct send IDs, ownership, controller/source IDs, cost, pending state and missing-reference reasons; avoided per-frame prompt logs. Collection instructions are in `docs/CONFIGURATION.md`.
+- Fixed per-camera visibility of other players' copies after the viewer's own copy is destroyed, and refreshed ownership changes for the same camera.
 
-**Validation:** Release build passed with one existing obsolete-API warning. MultiplayerRegression passed 57 assertions, including pending client snapshot rejection, owner-preserving CopyObject purchase closure, atomic three-choice terminal closure, terminal-group broadcasts, same-group reentry, and opt-in diagnostics. Real host/client gameplay and network transport remain untested; no package was rebuilt.
+**Validation:** Release build passed with one existing obsolete-API warning. MultiplayerRegression passed 69 assertions against linked production sources; installed-game/compiled-production lifecycle audit passed 8 checks, alongside 18 registered IL patterns and 22 pickup structure assertions. The earlier 57-assertion stub run omitted native MultiShop Awake and incorrectly validated forced closure. Real host/client gameplay and network transport remain untested; persistent ordinary-chest blocking remains under investigation. No package was rebuilt.
 
 ### 1.5.3 (Unreleased)
 

@@ -70,6 +70,7 @@ if (args.Length > 0)
     Verify(method, method.Body.Variables[localIndex], firstLoad);
     Console.WriteLine("Installed assembly structure checked; this does not prove a different game version's IL.");
     InstalledHookAudit.Run(args[0]);
+    MultiShopLifecycleAudit.Run(args[0]);
 }
 
 Console.WriteLine($"Passed {assertions} IL structure assertions.");

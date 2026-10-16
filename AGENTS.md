@@ -8,9 +8,9 @@
 - 目的：让多人游戏中的交互物和掉落物按玩家分别使用、领取，并同步归属和显示效果。主机与客户端均需安装。
 - 唯一模组项目：`InstancedLoot/InstancedLoot.csproj`；解决方案：`RoR2Mods.sln`；目标：`netstandard2.1`。隔离验证程序位于 `validation/`，不打入模组 DLL。
 - 插件入口：`InstancedLoot/InstancedLoot.cs`；GUID 为 `com.kuberoot.instancedloot`，也是配置文件名的基础。不要为 continuation 分支随意改 GUID。
-- 当前插件属性、`manifest.json` 和 `.csproj` 的模组版本统一为 `1.5.1`，编译目标为 Hallowed Concepts 游戏 `1.5.0`（2026-10-08 发布）；模组版本与游戏/依赖版本独立，依赖来源和未完成的游戏验证见开发文档。
+- 当前插件属性、`manifest.json` 和 `.csproj` 的模组版本统一为 `1.5.4`，编译目标为 Hallowed Concepts 游戏 `1.5.0`（2026-10-08 发布）；模组版本与游戏/依赖版本独立，依赖来源和未完成的游戏验证见开发文档。
 - 核心依赖为游戏程序集、MMHOOK、BepInEx、R2API.Networking。通过 NuGet 引用，不需要把游戏 DLL 复制进仓库。
-- 文档基于 2026-10-15 的源码整理；源码变化后应同步更新对应章节。编译成功不代表游戏中的 IL 钩子和多人行为有效。
+- 文档基于 2026-10-16 的源码核对；源码变化后应同步更新对应章节。编译成功不代表游戏中的 IL 钩子和多人行为有效。
 
 ## 最小阅读路径
 

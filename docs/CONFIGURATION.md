@@ -4,7 +4,15 @@
 
 主机和每位客户端都需要安装模组及 `manifest.json` 中的运行依赖。手动安装时，将发布包内的 `InstancedLoot` 文件夹放入 `Risk of Rain 2/BepInEx/plugins/`。构建和发布包结构见 [开发文档](DEVELOPMENT.md)。
 
-`Debug/LogInstanceInteractions` 默认关闭。启用后，服务器购买路径和客户端交互提示拒绝会记录对象 netId、source/clone、OrigPlayer、Players、available、hidden、pickup 与购买者，适合复现归属问题；多人长时间运行时建议保持关闭。
+`Debug/LogInstanceInteractions` 默认关闭。启用后记录购买调用前后、发生变化的候选/提示/拾取状态和同步快照，包含对象 netId、source/controller、OrigPlayer、Players、available、hidden、pickup、cost 与购买者。重复提示去重；一次插件会话最多记录 512 行购买、512 行候选/提示/拾取和 1024 行同步详情；到限会提示重启后再采集。它不是自动修复开关。
+
+## 现场日志采集
+
+1. 主机和每个客户端安装同一 Release DLL，先启动一次生成配置后退出。分别编辑各自实际游戏/模组管理器 profile 的 `BepInEx/config/com.kuberoot.instancedloot.cfg`，在 `[Debug]` 下设置 `LogInstanceInteractions = true`，保存后重启游戏。两端都要启用；仅主机日志无法说明客户端选中了哪个对象。
+2. 保持双方模式/预设一致，开双人新局。先让客户端瞄准未开的普通箱，记录“无提示/按键无效”的时刻；再按交互键，随后由主机开同一个位置的箱，再让客户端尝试。分别记录钱数和每一步发生时间。三选一商店另外做“客户端先买、主机再买、两端交替选不同槽”的一组，Executive Card 有/无各注明一次。复现时无需连续刷交互键。
+3. 保存两端完整 `BepInEx/LogOutput.log`，标明哪份是主机/客户端，附双方配置、游戏 build、模组列表、场景名/对象种类与复现时刻；下一次启动可能覆盖日志。模组管理器使用该 profile 目录的日志，不一定是 Steam 游戏根目录。采集后关闭该开关并重启。
+
+日志中 `Selection` 是原生最终选择结果及该 GameObject 的全部 `IInteractable` 类型；`Prompt native/allowed` 区分原生提示结果与模组权限；状态不变不反复写。`Purchase native-begin/native-return` 给出实际进入购买回调的 netId、controller 和 buyer，但返回并不代表扣款/消费成功。`Pickup consumed-retained/consumed-final/not-consumed` 记录授予结果；`SyncInstances send/receive/pending/apply` 对应正确的 target/owner/players ID，`pending missing=[target/owner/player/source:ID]` 说明等待引用，超时也保留原因。比较客户端已 apply 的 owner 与实际选择/购买 netId，可区别旧副本遮挡、丢失同步和原生冷却等情况。持续等主机开箱的普通箱问题仍需这组现场证据，不能从构建通过推断已解决。
 
 首次由 BepInEx 加载并初始化后，配置文件为：
 

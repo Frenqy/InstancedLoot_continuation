@@ -76,13 +76,26 @@ public class GenericPickupControllerHandler : AbstractHookHandler
 
     private void On_GenericPickupController_AttemptGrant(On.RoR2.GenericPickupController.orig_AttemptGrant orig, GenericPickupController self, CharacterBody body)
     {
-        if (!PickupGrantPolicy.CanGrant(self, body)) return;
+        if (!PickupGrantPolicy.CanGrant(self, body))
+        {
+            InteractionDiagnostics.Pickup("grant-denied", self, body);
+            return;
+        }
+        InteractionDiagnostics.Pickup("native-begin", self, body);
         orig(self, body);
+        if (self) InteractionDiagnostics.Pickup("native-return", self, body);
     }
 
     private void IL_GenericPickupController_AttemptGrant(ILContext il)
     {
-        PickupGrantIL.Apply<UpdateGrantContext>(il, PickupGrantPolicy.OnGranted);
+        PickupGrantIL.Apply<UpdateGrantContext>(il, OnGranted);
+    }
+
+    private static void OnGranted(ref PickupDef.GrantContext context, GenericPickupController self, CharacterBody body)
+    {
+        bool consumed = context.shouldDestroy;
+        PickupGrantPolicy.OnGranted(ref context, self, body);
+        InteractionDiagnostics.Pickup(!consumed ? "not-consumed" : context.shouldDestroy ? "consumed-final" : "consumed-retained", self, body);
     }
 
     private delegate void IL_GenericPickupController_CreatePickup_Delegate(GameObject gameObject, ref GenericPickupController.CreatePickupInfo createPickupInfo);

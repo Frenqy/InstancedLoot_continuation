@@ -175,6 +175,12 @@ Check(On.RoR2.PurchaseInteraction.Purchases == 0, "Reject other player's aggrega
 Check(InstancedLoot.InstancedLoot.Instance._logger.Infos.Count == 0,
     "Interaction diagnostics stay quiet when disabled");
 InstancedLoot.InstancedLoot.Instance.InteractionLoggingEnabled = true;
+var repeatedPromptActor = Actor(p1);
+int promptLogsBefore = InstancedLoot.InstancedLoot.Instance._logger.Infos.Count;
+for (int frame = 0; frame < 100; frame++)
+    On.RoR2.PurchaseInteraction.Prompt(copyPurchase, repeatedPromptActor);
+Check(InstancedLoot.InstancedLoot.Instance._logger.Infos.Count == promptLogsBefore + 1,
+    "Repeated identical prompt state emits one transition log instead of per-frame spam");
 On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p1));
 Check(On.RoR2.PurchaseInteraction.Purchases == 0, "Reject other player's copy before purchase callback");
 Check(InstancedLoot.InstancedLoot.Instance._logger.Infos.Any(message =>
@@ -211,11 +217,13 @@ hooks.UnregisterHooks();
 // TripleShop controller copies keep one shared group, while each terminal has
 // its own source/clone group.  This mirrors the asynchronous terminal path used
 // after a controller clone is spawned.
+NetworkServer.active = true;
 var multiShop = new InstancedLoot.ObjectHandlers.MultiShopHandler();
 multiShop.Init(new ObjectHandlerManager());
 var multiSource = Obj(80);
 var sourceController = multiSource.AddComponent<MultiShopController>();
-sourceController.CreateTerminals();
+sourceController.available = true;
+sourceController.Networkcost = 250;
 var multiSourceHandler = multiShop.InstanceSingleObjectFrom(multiSource, multiSource, [p1]);
 multiSourceHandler.SharedInfo = new() { SourceObject = multiSource, ObjectInstanceMode = ObjectInstanceMode.CopyObject };
 var sourceTerminalHandlers = sourceController.terminalGameObjects
@@ -228,10 +236,18 @@ Check(sourceTerminalHandlers.All(handler => handler.OrigPlayer == p1 && handler.
 
 var multiClone = Obj(81);
 var cloneController = multiClone.AddComponent<MultiShopController>();
+var awakeTerminals = cloneController.terminalGameObjects.ToArray();
 multiShop.InstanceSingleObjectFrom(multiSource, multiClone, [p2]);
 var cloneTerminals = cloneController.terminalGameObjects;
+Check(cloneController.CreateTerminalsCalls == 1 && cloneTerminals.SequenceEqual(awakeTerminals),
+    "Copy initialization reuses Awake-spawned terminals without creating orphan interactables");
+Check(cloneController.available && cloneController.Networkcost == 250,
+    "Intercepted clone Start copies controller availability and cost");
+R2API.Networking.Interfaces.Extensions.SentMessages.Clear();
 foreach (var cloneTerminal in cloneTerminals)
     multiShop.HandleAwaitedObject(cloneTerminal);
+Check(R2API.Networking.Interfaces.Extensions.SentMessages.Count == 3,
+    "Each completed awaited terminal publishes its actual source/clone group");
 var cloneTerminalHandlers = cloneTerminals.Select(terminal => terminal.GetComponent<InstanceHandler>()).ToArray();
 Check(multiClone.GetComponent<InstanceHandler>().SharedInfo == multiSourceHandler.SharedInfo &&
     multiClone.GetComponent<InstanceHandler>().OrigPlayer == p2,
@@ -246,18 +262,16 @@ Check(cloneTerminalHandlers.Length == 3 &&
 Check(cloneTerminalHandlers.Select(handler => handler.SharedInfo).Distinct().Count() == 3,
     "Three-choice terminal groups remain independent by slot");
 
-// Finalizing a controller must broadcast its controller group and all three
-// independent terminal groups so clients can install every terminal handler.
+// Controller finalization must not publish premature source-only terminal groups.
 R2API.Networking.Interfaces.Extensions.SentMessages.Clear();
 NetworkServer.active = true;
 multiShop.FinalizeObject(multiSource);
-Check(R2API.Networking.Interfaces.Extensions.SentMessages.Count == 4,
-    "Three-choice finalization broadcasts controller and all terminal groups");
+Check(R2API.Networking.Interfaces.Extensions.SentMessages.Count == 1,
+    "Controller finalization publishes only its own group");
 NetworkServer.active = false;
 
-// A three-choice shop is one purchase for each owner across all three slots.
-// Closing the purchased owner's source terminals must leave the legal clone set
-// available to the other player.
+// Native MultiShop events decide sibling closure (Executive Card may retain them).
+// Reentrant calls to a different slot of this controller must share one lock.
 hooks.RegisterHooks();
 NetworkServer.active = true;
 var sourceTerminalPurchase = sourceController.terminalGameObjects[0].GetComponent<PurchaseInteraction>();
@@ -265,18 +279,32 @@ var purchasesBeforeReentry = On.RoR2.PurchaseInteraction.Purchases;
 On.RoR2.PurchaseInteraction.DuringNativePurchase = (_, actor) =>
 {
     On.RoR2.PurchaseInteraction.DuringNativePurchase = null;
-    On.RoR2.PurchaseInteraction.Buy(sourceTerminalPurchase, actor);
+    On.RoR2.PurchaseInteraction.Buy(sourceController.terminalGameObjects[1].GetComponent<PurchaseInteraction>(), actor);
 };
 On.RoR2.PurchaseInteraction.Buy(sourceTerminalPurchase, Actor(p1));
 Check(On.RoR2.PurchaseInteraction.Purchases == purchasesBeforeReentry + 1,
-    "Reentrant purchase in one SharedInfo group is executed only once");
-Check(sourceController.terminalGameObjects.All(terminal =>
-    !terminal.GetComponent<PurchaseInteraction>().available &&
-    terminal.GetComponent<ShopTerminalBehavior>().Networkhidden),
-    "One three-choice purchase closes every source terminal for that owner");
+    "Reentrant purchase of another terminal on the same controller is executed only once");
+Check(!sourceTerminalPurchase.available && sourceController.terminalGameObjects.Skip(1).All(terminal =>
+    terminal.GetComponent<PurchaseInteraction>().available &&
+    !terminal.GetComponent<ShopTerminalBehavior>().Networkhidden),
+    "Hook preserves native sibling availability and does not force hidden");
 Check(cloneTerminals.All(terminal => terminal.GetComponent<PurchaseInteraction>().available &&
     !terminal.GetComponent<ShopTerminalBehavior>().Networkhidden),
     "Three-choice purchase retains every legal client clone");
+On.RoR2.PurchaseInteraction.NativeOutcome = _ => { };
+var cardTerminalPurchase = sourceController.terminalGameObjects[1].GetComponent<PurchaseInteraction>();
+On.RoR2.PurchaseInteraction.Buy(cardTerminalPurchase, Actor(p1));
+Check(cardTerminalPurchase.available && !cardTerminalPurchase.GetComponent<ShopTerminalBehavior>().Networkhidden,
+    "Native return with unchanged availability does not force a closure");
+On.RoR2.PurchaseInteraction.NativeOutcome = null;
+// A cooldown is transient: the hook must leave subsequent availability to native code.
+copyPurchase.available = true;
+On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p2));
+copyPurchase.available = true;
+var beforeRepeat = On.RoR2.PurchaseInteraction.Purchases;
+On.RoR2.PurchaseInteraction.Buy(copyPurchase, Actor(p2));
+Check(On.RoR2.PurchaseInteraction.Purchases == beforeRepeat + 1,
+    "Native cooldown restoration permits a repeat shrine purchase");
 hooks.UnregisterHooks();
 NetworkServer.active = false;
 InstancedLoot.InstancedLoot.Instance.InteractionLoggingEnabled = false;
@@ -334,6 +362,43 @@ Check(fadeRenderer.fade == fade.FadeLevel, "Other player's instanced object is f
 fadeHandler.OnDestroy();
 fade.OnDestroy();
 Check(fadeRenderer.enabled && fadeRenderer.fade == 1f, "Unloading restores renderers after group has detached");
+
+var viewSource = Obj(120);
+var viewClone = Obj(121);
+var sourceRenderer = viewSource.AddComponent<Renderer>();
+var cloneRenderer = viewClone.AddComponent<Renderer>();
+var viewSourceHandler = objectHandler.InstanceSingleObjectFrom(viewSource, viewSource, [p1]);
+viewSourceHandler.SharedInfo = new() { SourceObject = viewSource, ObjectInstanceMode = ObjectInstanceMode.CopyObject };
+var viewCloneHandler = objectHandler.InstanceSingleObjectFrom(viewSource, viewClone, [p2]);
+var cloneFade = viewClone.GetComponent<FadeBehavior>();
+cloneFade.RefreshForPreCull(p2);
+cloneFade.RefreshForPreRender(p2);
+Check(cloneRenderer.enabled, "Owner camera enables its copy");
+viewSourceHandler.OnDestroy();
+cloneFade.RefreshForPreCull(p1);
+cloneFade.RefreshForPreRender(p1);
+Check(!cloneRenderer.enabled, "Camera without surviving own copy still hides other-player copies");
+cloneFade.RefreshForPreCull(p2);
+cloneFade.RefreshForPreRender(p2);
+Check(cloneRenderer.enabled, "Next split-screen camera restores its own copy");
+viewCloneHandler.OrigPlayer = p1;
+cloneFade.RefreshForPreCull(p2);
+cloneFade.RefreshForPreRender(p2);
+Check(!cloneRenderer.enabled && cloneRenderer.fade == cloneFade.FadeLevel,
+    "Same-camera ownership change updates both renderer enablement and fade");
+
+InstancedLoot.InstancedLoot.Instance.InteractionLoggingEnabled = true;
+Check(new SyncInstances.InstanceHandlerEntry(viewCloneHandler).TargetId == new NetworkInstanceId(121),
+    "Outgoing diagnostic entries retain actual target identity before serialization");
+int pendingLogsBefore = InstancedLoot.InstancedLoot.Instance._logger.Infos.Count;
+Message(9000, (121, 2, [2, 9001])).OnReceived();
+for (int frame = 0; frame < 20; frame++) Scheduler.Tick();
+var pendingLogs = InstancedLoot.InstancedLoot.Instance._logger.Infos.Skip(pendingLogsBefore).ToArray();
+Check(pendingLogs.Count(message => message.Contains("pending missing=")) == 1 &&
+    pendingLogs.Any(message => message.Contains("source:") && message.Contains("player:")),
+    "Pending trace records missing source and player once even after partial resolution");
+SyncInstances.ClearPending();
+Scheduler.Tick();
 
 Console.WriteLine($"PASS: {assertions} assertions against linked production sources (stub runtime, no real game or transport test).");
 

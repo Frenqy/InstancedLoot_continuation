@@ -72,3 +72,12 @@ the synthetic CLR behavior, not corrected Unity/Mono hook installation, game run
 game build, transport, or multiplayer behavior. Pool ownership lifecycles and
 the picker's direct-grant asset/event usage are outside these checks.
 Do not pass a stripped GameLibs assembly as runtime IL evidence.
+
+With a real DLL argument, the 1.5.4 run also audits eight MultiShop lifecycle
+properties in the installed game and compiled Release mod: Awake creates terminals,
+Start initializes availability/cost, creation spawns without destroying old sets,
+native purchase events conditionally close terminals, and production cloning
+never calls CreateTerminals again or forces availability/hidden state from its purchase hook.
+Build the mod in Release first; the audit reads `InstancedLoot/bin/Release/netstandard2.1/InstancedLoot.dll`.
+This static evidence catches the missing lifecycle boundary in the earlier stub,
+while still not executing Unity or proving multiplayer behavior.

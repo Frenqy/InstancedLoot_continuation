@@ -60,6 +60,7 @@
 | `SpawnCardHandler.cs` | 记录对象实际使用的 SpawnCard |
 | `SceneDirectorHandler.cs` | 交互物生成预算；Lockbox、LockboxVoid、FreeChest 的拥有者注入 |
 | `PurchaseInteractionHandler.cs` | 提示与服务器实际购买入口的资格检查；交互前记录购买者 Owner |
+| `InteractionDiagnostics.cs` | 默认关闭的有限候选/提示/拾取状态日志；按状态变化去重，不决定权限或修改原生结果 |
 | `ChestBehaviorHandler.cs`、`OptionChestBehaviorHandler.cs` | Start 中名称识别/复制体接管；掉落上下文 |
 | `RouletteChestControllerHandler.cs`、`ShrineChanceBehaviorHandler.cs` | 轮盘箱与机会祭坛的识别和掉落上下文 |
 | `MultiShopControllerHandler.cs`、`ShopTerminalBehaviorHandler.cs` | 商店/终端初始化、源类型继承和掉落 |
@@ -79,6 +80,6 @@
 | `AnimationEventsHandler.cs`、`AnimationPrefabIL.cs`、`EffectManagerHandler.cs` | CreatePrefab 的 DoSpawnEffect 返回点注入与非池化效果归属；SpawnEffect 的 Instantiate 路径；池化显示关联未覆盖 |
 | `PingHandler.cs` | 标记消息、实例归属文字、提示保留与位置指示器 |
 | `DevelopmentHooksHandler.cs` | 仅 DEBUG 注册；修改连接回调、消息 hash、空玩家名 |
-| `InteractorHandler.cs` | 在 `FindBestInteractableObject` 的重叠候选阶段跳过不属于当前玩家的实例，避免客户端按命中顺序选中其他玩家的副本 |
+| `InteractorHandler.cs` | 在 `FindBestInteractableObject` 的重叠候选阶段跳过不属于当前玩家的实例；额外 On Hook 仅观察最终选择，记录真实组件类型/玩家/归属，不改变射线算法 |
 
 通用 Hook 在 HookManager 构造函数登记；各对象专用 Hook 由 ObjectHandler.Init 登记。判断某个 Hook 是否生效，应追到这两处注册入口，不应只检查 `RegisterHooks` 方法是否存在。
