@@ -1,46 +1,40 @@
+using System.Collections.Generic;
 using InstancedLoot.Components;
 using RoR2;
+using UnityEngine.Networking;
 
 namespace InstancedLoot.Hooks;
 
-public class PurchaseInteractionHandler : AbstractHookHandler
+public sealed class PurchaseInteractionHandler : AbstractHookHandler
 {
+    private readonly HashSet<UnityEngine.Object> inProgress = new();
     public override void RegisterHooks()
     {
-        On.RoR2.PurchaseInteraction.GetInteractability += On_PurchaseInteraction_GetInteractability;
-        On.RoR2.PurchaseInteraction.OnInteractionBegin += On_PurchaseInteraction_OnInteractionBegin;
+        On.RoR2.PurchaseInteraction.GetInteractability += GetInteractability;
+        On.RoR2.PurchaseInteraction.OnInteractionBegin += Begin;
     }
-
     public override void UnregisterHooks()
     {
-        On.RoR2.PurchaseInteraction.GetInteractability -= On_PurchaseInteraction_GetInteractability;
-        On.RoR2.PurchaseInteraction.OnInteractionBegin -= On_PurchaseInteraction_OnInteractionBegin;
+        On.RoR2.PurchaseInteraction.GetInteractability -= GetInteractability;
+        On.RoR2.PurchaseInteraction.OnInteractionBegin -= Begin;
+        inProgress.Clear();
     }
-
-    private Interactability On_PurchaseInteraction_GetInteractability(On.RoR2.PurchaseInteraction.orig_GetInteractability orig, PurchaseInteraction self, Interactor activator)
+    private Interactability GetInteractability(On.RoR2.PurchaseInteraction.orig_GetInteractability orig, PurchaseInteraction self, Interactor actor) =>
+        InstanceAccessPolicy.CanInteract(self.gameObject, actor) ? orig(self, actor) : Interactability.Disabled;
+    private void Begin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor actor)
     {
-        var interactability = orig(self, activator);
-
-        var body = activator.GetComponent<CharacterBody>();
-        if (body)
+        if (!NetworkServer.active) { orig(self, actor); return; }
+        if (!self.GetComponent<InstanceHandler>() && !PendingOwnership.IsPending(self.gameObject))
         {
-            var player = body.master.GetComponent<PlayerCharacterMasterController>();
-            var instanceHandler = self.GetComponent<InstanceHandler>();
-            if (player && instanceHandler)
-                if (!instanceHandler.Players.Contains(player))
-                    interactability = Interactability.Disabled;
+            orig(self, actor);
+            return;
         }
-
-        return interactability;
-    }
-
-    private void On_PurchaseInteraction_OnInteractionBegin(On.RoR2.PurchaseInteraction.orig_OnInteractionBegin orig, PurchaseInteraction self, Interactor activator)
-    {
-        if(activator.GetComponent<CharacterBody>() is var characterBody && characterBody
-           && characterBody.master is var master && master
-           && master.playerCharacterMasterController is var player && player)
-            InstanceInfoTracker.InstanceOverrideInfo.SetOwner(self.gameObject, player);
-
-        orig(self, activator);
+        // Do not turn a cooldown/failed shrine roll into permanent consumption, or
+        // force-close shop terminals: native OnPurchase handles Executive Card etc.
+        var terminal = self.GetComponent<ShopTerminalBehavior>();
+        UnityEngine.Object transaction = terminal && terminal.serverMultiShopController ? terminal.serverMultiShopController : self;
+        if (!InstanceAccessPolicy.CanInteract(self.gameObject, actor) || !self.available || !inProgress.Add(transaction)) return;
+        try { orig(self, actor); }
+        finally { inProgress.Remove(transaction); }
     }
 }

@@ -1,93 +1,38 @@
 using System.Linq;
 using InstancedLoot.Components;
-using InstancedLoot.Enums;
 using RoR2;
 using UnityEngine;
 
 namespace InstancedLoot;
 
-public class Utils
+public static class Utils
 {
-    public static bool IsObjectInteractibleForPlayer(GameObject gameObject, PlayerCharacterMasterController player)
+    public static bool IsObjectInteractibleForPlayer(GameObject target, PlayerCharacterMasterController player)
     {
-        if (gameObject == null) return true;
-
-        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null)
+        if (!target || !player) return true;
+        if (PendingOwnership.IsPending(target)) return false;
+        var instance = target.GetComponent<InstanceHandler>();
+        if (!instance) return true;
+        return instance.LinkedHandlers.Where(handler => handler.IsInstancedFor(player)).Any(handler =>
         {
-            if (instanceHandler.AllPlayers.Contains(player))
-            {
-                return instanceHandler.LinkedHandlers.Where(handler => handler.Players.Contains(player)).Any(handler =>
-                {
-                    if (handler.GetComponent<IInteractable>() is var interactable && interactable != null
-                        && player.body is var body && body
-                        && body.GetComponent<Interactor>() is var interactor && interactor)
-                    {
-                        if (interactable.GetInteractability(interactor) == Interactability.Disabled)
-                            return false;
-                    }
-                    
-                    return true;
-                });
-            }
-            return instanceHandler.AllPlayers.Contains(player);
-        }
-
-        return true;
+            var purchase = handler.GetComponent<PurchaseInteraction>();
+            var actor = player.body ? player.body.GetComponent<Interactor>() : null;
+            return !purchase || !actor || purchase.GetInteractability(actor) != Interactability.Disabled;
+        });
     }
-    
-    public static bool IsObjectInstanceInteractibleForPlayer(GameObject gameObject, PlayerCharacterMasterController player)
+    public static bool IsObjectInstanceInteractibleForPlayer(GameObject target, PlayerCharacterMasterController player)
     {
-        if (gameObject == null) return true;
-        
-        if (gameObject.GetComponent<InstanceHandler>() is var instanceHandler && instanceHandler != null) return instanceHandler.Players.Contains(player);
-
-        return true;
+        if (PendingOwnership.IsPending(target)) return false;
+        var instance = target ? target.GetComponent<InstanceHandler>() : null;
+        return !instance || instance.IsInstancedFor(player);
     }
-
-    public static bool IsObjectInteractibleForCameraRigController(GameObject gameObject,
-        CameraRigController cameraRigController)
+    private static PlayerCharacterMasterController CameraPlayer(CameraRigController camera)
     {
-        if (cameraRigController == null) return true;
-        
-        CharacterBody body = cameraRigController.targetBody;
-        if (body == null) return true;
-
-        CharacterMaster master = body.master;
-        if (master == null) return true;
-
-        PlayerCharacterMasterController player = master.playerCharacterMasterController;
-        if (player == null) return true;
-
-        return IsObjectInteractibleForPlayer(gameObject, player);
+        var body = camera ? camera.targetBody : null;
+        return body && body.master ? body.master.playerCharacterMasterController : null;
     }
-
-    public static bool IsObjectInstanceInteractibleForCameraRigController(GameObject gameObject,
-        CameraRigController cameraRigController)
-    {
-        if (cameraRigController == null) return true;
-        
-        CharacterBody body = cameraRigController.targetBody;
-        if (body == null) return true;
-
-        CharacterMaster master = body.master;
-        if (master == null) return true;
-
-        PlayerCharacterMasterController player = master.playerCharacterMasterController;
-        if (player == null) return true;
-
-        return IsObjectInstanceInteractibleForPlayer(gameObject, player);
-    }
-
-    public static bool IncreasesItemCount(InstanceMode instanceMode)
-    {
-        switch (instanceMode)
-        {
-            case InstanceMode.InstanceBoth:
-            case InstanceMode.InstanceItems:
-            case InstanceMode.InstanceObject:
-                return true;
-        }
-
-        return false;
-    }
+    public static bool IsObjectInteractibleForCameraRigController(GameObject target, CameraRigController camera) =>
+        IsObjectInteractibleForPlayer(target, CameraPlayer(camera));
+    public static bool IsObjectInstanceInteractibleForCameraRigController(GameObject target, CameraRigController camera) =>
+        !CameraPlayer(camera) || IsObjectInstanceInteractibleForPlayer(target, CameraPlayer(camera));
 }

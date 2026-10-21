@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><LangVersion>12</LangVersion><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../InstancedLoot/Networking/OwnerSnapshot.cs" Link="Production/Networking/OwnerSnapshot.cs" />
+    <Compile Include="../../InstancedLoot/Components/InstanceHandler.cs" Link="Production/Components/InstanceHandler.cs" />
+    <Compile Include="../../InstancedLoot/Components/InstanceAccessPolicy.cs" Link="Production/Components/InstanceAccessPolicy.cs" />
+    <Compile Include="../../InstancedLoot/Components/PendingOwnership.cs" Link="Production/Components/PendingOwnership.cs" />
+    <Compile Include="../../InstancedLoot/Components/FadeBehavior.cs" Link="Production/Components/FadeBehavior.cs" />
+    <Compile Include="../../InstancedLoot/ObjectInstancing/ObjectAdapter.cs" Link="Production/ObjectInstancing/ObjectAdapter.cs" />
+    <Compile Include="../../InstancedLoot/ObjectInstancing/ObjectInstanceService.cs" Link="Production/ObjectInstancing/ObjectInstanceService.cs" />
+    <Compile Include="../../InstancedLoot/ObjectInstancing/NativeAdapters.cs" Link="Production/ObjectInstancing/NativeAdapters.cs" />
+    <Compile Include="../../InstancedLoot/Hooks/PurchaseInteractionHandler.cs" Link="Production/Hooks/PurchaseInteractionHandler.cs" />
+    <Compile Include="../../InstancedLoot/Hooks/InteractorHandler.cs" Link="Production/Hooks/InteractorHandler.cs" />
+    <Compile Include="../../InstancedLoot/Hooks/ObjectLifecycleHooks.cs" Link="Production/Hooks/ObjectLifecycleHooks.cs" />
+    <Compile Include="../../InstancedLoot/Utils.cs" Link="Production/Utils.cs" />
+    <Compile Include="../../InstancedLoot/Components/PingerControllerRenderBehaviour.cs" Link="Production/PingerControllerRenderBehaviour.cs" />
+  </ItemGroup>
+</Project>

@@ -1,61 +1,31 @@
-# InstancedLoot_continuation
+# InstancedLoot continuation 2.0
 
-fork from: https://gitlab.com/KubeRoot/ror2-instancedloot
-origin mod: https://thunderstore.io/package/KubeRoot/InstancedLoot/
+A BepInEx 5 mod for Risk of Rain 2, targeting Hallowed Concepts / game 1.5.0.
 
-# InstancedLoot
+Install the same 2.0 version on the host and every client. The plugin GUID remains `com.kuberoot.instancedloot`.
 
-Highly configurable mod to allow players to loot items and objects separately.
+## How it works
 
-This mod needs to be installed both on clients and the host to function.
+`PreferredInstanceMode=InstanceObject` is the only strategy. Each player present when an interactable is allocated receives an independently usable native object. Players pay and open their own chests or choose from their own three-choice shop. Initial goods and costs match, while subsequent prices, cooldowns and consumption stay independent. Dropped items remain ordinary public loot that anybody can collect.
 
-NOTE: Please check out the config options in `BepInEx/config/com.kuberoot.instancedloot.cfg` before usage.
+Supported source adapters cover normal/category chests, equipment barrels, lunar/void chests, lockboxes, adaptive/option chests, scavenger sacks, three-choice/equipment/delivery shops, and Shrines of Chance, Blood and Order. Damaged drone and turret purchases have an experimental repair adapter: the native summon belongs to the buyer; special broken prefabs without a SpawnCard fall back to vanilla. Active drone/turret bodies are not cloned.
 
-## Usage notes:
+Printers, cauldrons, cleansing pools, scrappers, lunar shops, unknown/global shrines and item pickup behavior remain vanilla.
 
-When first opening the mod, by default it will use the `Default` preset, instancing most objects, with `PreferredInstanceMode` set to `InstanceObject`. This way, objects will be instanced, but the items within won't be. What that means is, for example, when a player opens a chest, other players can still open that chest, and the item that drops can be picked up by anybody.
+## Configuration
 
-If you wish to change *how* most things are instanced, you should tweak `PreferredInstanceMode` to a mode you prefer - the description for that option includes all available modes, also listed here for convenience:
+Open `BepInEx/config/com.kuberoot.instancedloot.cfg`. Every supported object has its own boolean toggle; the three supported shrines and damaged drone/turret purchases have separate sections. All are enabled by default. A disabled type uses its native shared behavior. Changes affect newly spawned objects.
 
-- `None`: Self-explanatory, this object does not get instanced, nor do items spawned from it
-- `Default`: Do not override the preset/alias. If every value in the chain is Default, defaults to None.
-- `InstancePreferred`: Use the configuration for PreferredInstanceMode for this entry. Provided for convenience and/or experimentation.
-- `InstanceObject`: Spawn multiple copies of the object, one for each player, where each can only be opened by the owning player, and from which items can be picked up by any player
-- `InstanceItems`: Keep one copy of the object that can be opened by anybody, but instance the spawned item, such that each player can pick it up independently
-- `InstanceBoth`: Spawn multiple copies of the object, like InstanceObject, but also limit the resulting item such that it can only be picked up by the player who earned/bought it
-- `InstanceItemForOwnerOnly`: Keep one copy of the object, and limit the resulting item to only be picked up by the player who earned/bought it.
-- `InstanceObjectForOwnerOnly`: Keep one copy of the object, and limit opening it to only the owning player. This is only meaningful for objects that inherently belong to a player, like lockboxes. The resulting items are not instanced and can be picked up by any player.
-- `InstanceBothForOwnerOnly`: Similar to InstanceObjectForOwnerOnly, but the resulting item can only be picked up by the owning player.  
+The old item-sharing, owner-only, preset/alias and chat-command configuration was removed. Back up an old cfg and regenerate it when upgrading, then select the new toggles. See [configuration](docs/CONFIGURATION.md) for the exact keys. The interactable-budget reduction remains enabled by default; money-drop reduction remains disabled by default, under the existing `General - Balance` section.
 
-Another important thing to note is the presence of simple chat commands.
+## Validation and limits
 
-- You can ping an item that is instanced for you and say `uninstance` in the chat to "forfeit" the item, making anybody able to pick it up.
+Release builds and production-linked stub regressions pass. The installed game assembly is also checked for the new candidate injection and native lifecycle/payment assumptions. This version has **not yet been tested in an actual host/client game or split-screen run**. Late joining synchronizes current ownership but does not add old object copies. Unknown metadata may briefly display overlapping native objects; server permissions still apply. Pool effects, shaders and native ping highlighting need gameplay verification.
 
-- You can say `uninstanceall` in the chat to "forfeit" all items currently instanced for you.
-
-Those commands also work on pickup pickers, such as command essences. The current chat command format is meant as a placeholder, hopefully I can implement a better system in the future.
-
-## Limitations/issues:
-
-- Changing settings mid-run can result in too many items dropping on the current stage, but everything should work as normal on subsequent stages.
-
-- Certain materials don't support dithering, because of that you might notice some things aren't fading out properly.
-
-- Instancing for drones/turrets isn't implemented - hopefully that will come in a later release.
-
-- You might encounter weird issues with certain things not instancing correctly - when testing I had some issues that I couldn't reproduce. Feel free to report those, especially if you think you know why it happened.
-
-- Interactibles from other mods need explicit support between the mods - I tried to write my mod to make this easy, if you're a mod author looking for compatibility feel free to contact me.
-
-## Features:
-
-- Instancing interactibles, like chests and shrines, so that each player can buy them separately.
-- Instancing items, so that each player can pick them up separately.
-- Items and objects that are not available for you are invisible or faded out, depending on circumstances.
-- An included preset, so you can have sane behavior without having to configure anything manually.
-- Configuration options for every "alias" and every object type separately, allowing you to tweak the exact behavior.
-- Supports XSplitScreen.
+See [development and validation](docs/DEVELOPMENT.md) and [known limits](docs/KNOWN_ISSUES.md). This change does not build or modify release archives.
 
 ## Installation
 
-Copy the `InstancedLoot` folder to `Risk of Rain 2/BepInEx/plugins`
+Place the built plugin under `Risk of Rain 2/BepInEx/plugins` with the dependencies listed in manifest.json.
+
+Original project: [KubeRoot/ror2-instancedloot](https://gitlab.com/KubeRoot/ror2-instancedloot). Original distribution: [KubeRoot/InstancedLoot](https://thunderstore.io/package/KubeRoot/InstancedLoot/). Continuation: [GitHub](https://github.com/Frenqy/InstancedLoot_continuation).
